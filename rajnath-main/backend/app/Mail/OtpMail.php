@@ -12,7 +12,8 @@ class OtpMail extends Mailable
 
     public function envelope(): Envelope
     {
-        return new Envelope(subject: $this->code.' is your '.config('brand')['brand.name'].' code');
+        // The code stays out of the subject: inbox previews, lock screens and mail logs would show it.
+        return new Envelope(subject: 'Your sign-in code for '.config('brand')['brand.name']);
     }
 
     public function content(): Content

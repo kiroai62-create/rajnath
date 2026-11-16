@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../api/api_client.dart';
 import '../state/app_state.dart';
 import '../theme/app_theme.dart';
+import '../util/i18n.dart';
 import '../util/validators.dart';
 import '../widgets/common.dart';
 import 'activity_screens.dart' show confirm;
@@ -44,7 +45,7 @@ class _AstrologerApplicationScreenState extends State<AstrologerApplicationScree
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('Apply as astrologer')),
+        appBar: AppBar(title: Text(tr('Apply as astrologer'))),
         body: SafeArea(
           child: AsyncView<List<Map<String, dynamic>>>(
             key: ValueKey(_v),
@@ -59,15 +60,15 @@ class _AstrologerApplicationScreenState extends State<AstrologerApplicationScree
                       padding: const EdgeInsets.all(16),
                       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                         Row(children: [
-                          Expanded(child: Text('Your application', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600))),
+                          Expanded(child: Text(tr('Your application'), style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600))),
                           StatusChip(open['status']),
                         ]),
                         const SizedBox(height: 8),
-                        Text('Sent ${formatWhen(open['created_at'], pattern: 'd MMM yyyy')} as ${open['name']} (${open['email']}).'),
+                        Text(tr('Sent {0} as {1} ({2}).', [formatWhen(open['created_at'], pattern: 'd MMM yyyy'), open['name'], open['email']])),
                         const SizedBox(height: 4),
-                        const Text('Our team is reviewing it and will email you with the next steps.', style: TextStyle(color: ArjColors.ink600)),
+                        Text(tr('Our team is reviewing it and will email you with the next steps.'), style: TextStyle(color: ArjColors.ink600)),
                         const SizedBox(height: 12),
-                        OutlinedButton(onPressed: _busy ? null : () => _withdraw(open), child: Text(_busy ? 'Please wait…' : 'Withdraw application')),
+                        OutlinedButton(onPressed: _busy ? null : () => _withdraw(open), child: Text(tr(_busy ? 'Please wait…' : 'Withdraw application'))),
                       ]),
                     ),
                   )
@@ -78,11 +79,11 @@ class _AstrologerApplicationScreenState extends State<AstrologerApplicationScree
                   for (final a in earlier)
                     Card(
                       child: ListTile(
-                        title: Text('${a['name']}'),
-                        subtitle: Text([
+                        title: Text(tr('${a['name']}')),
+                        subtitle: Text(tr([
                           'Sent ${formatWhen(a['created_at'], pattern: 'd MMM yyyy')}',
                           if (a['decision_note'] != null && '${a['decision_note']}'.isNotEmpty) '${a['decision_note']}',
-                        ].join('\n')),
+                        ].join('\n'))),
                         trailing: StatusChip(a['status']),
                       ),
                     ),
@@ -177,15 +178,15 @@ class _ApplicationFormState extends State<ApplicationForm> {
           maxLines: maxLines,
           maxLength: maxLength,
           textCapitalization: cap,
-          decoration: InputDecoration(labelText: label, helperText: helper, helperMaxLines: 2, errorText: _errors[key], errorMaxLines: 3),
+          decoration: InputDecoration(labelText: trn(label), helperText: trn(helper), helperMaxLines: 2, errorText: trn(_errors[key]), errorMaxLines: 3),
         ),
       );
 
   @override
   Widget build(BuildContext context) => Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        Text('Join our team of astrologers', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600)),
+        Text(tr('Join our team of astrologers'), style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600)),
         const SizedBox(height: 4),
-        const Text('Tell us about your practice. Our team reviews every application and replies by email.', style: TextStyle(color: ArjColors.ink600)),
+        Text(tr('Tell us about your practice. Our team reviews every application and replies by email.'), style: TextStyle(color: ArjColors.ink600)),
         const SizedBox(height: 16),
         _field(_name, 'Full name', 'name', cap: TextCapitalization.words),
         _field(_email, 'Email for your astrologer account', 'email', type: TextInputType.emailAddress, cap: TextCapitalization.none,
@@ -201,11 +202,11 @@ class _ApplicationFormState extends State<ApplicationForm> {
           value: _consent,
           controlAffinity: ListTileControlAffinity.leading,
           onChanged: (v) => setState(() => _consent = v ?? false),
-          title: const Text('I confirm these details are true'),
-          subtitle: _errors['consent'] != null ? Text(_errors['consent']!, style: TextStyle(color: Theme.of(context).colorScheme.error)) : null,
+          title: Text(tr('I confirm these details are true')),
+          subtitle: _errors['consent'] != null ? Text(tr(_errors['consent']!), style: TextStyle(color: Theme.of(context).colorScheme.error)) : null,
         ),
         FormError(_errors['_']),
         const SizedBox(height: 12),
-        FilledButton(onPressed: _busy ? null : _submit, child: Text(_busy ? 'Sending…' : 'Send application')),
+        FilledButton(onPressed: _busy ? null : _submit, child: Text(tr(_busy ? 'Sending…' : 'Send application'))),
       ]);
 }

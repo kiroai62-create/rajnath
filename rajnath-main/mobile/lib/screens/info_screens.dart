@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../api/api_client.dart';
 import '../state/app_state.dart';
 import '../theme/app_theme.dart';
+import '../util/i18n.dart';
 import '../util/validators.dart';
 import '../widgets/common.dart';
 import 'activity_screens.dart';
@@ -24,8 +25,8 @@ Widget _fact(String label, Object? value) => value == null || _list(value).isEmp
     : Padding(
         padding: const EdgeInsets.symmetric(vertical: 4),
         child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          SizedBox(width: 130, child: Text(label, style: const TextStyle(color: ArjColors.ink600))),
-          Expanded(child: Text(_list(value))),
+          SizedBox(width: 130, child: Text(tr(label), style: const TextStyle(color: ArjColors.ink600))),
+          Expanded(child: Text(tr(_list(value)))),
         ]),
       );
 
@@ -78,8 +79,8 @@ class _MoreScreenState extends State<MoreScreen> {
         margin: const EdgeInsets.only(bottom: 8),
         child: ListTile(
           leading: Icon(icon),
-          title: Text(title),
-          subtitle: subtitle == null ? null : Text(subtitle),
+          title: Text(tr(title)),
+          subtitle: subtitle == null ? null : Text(tr(subtitle)),
           trailing: Icon(url != null ? Icons.open_in_new : Icons.chevron_right),
           onTap: () => url != null ? openExternal(context, url) : Navigator.of(context).push(MaterialPageRoute(builder: (_) => page!())),
         ),
@@ -127,7 +128,7 @@ class LanguageScreen extends StatelessWidget {
   Future<void> _pick(BuildContext context, String l) async {
     try {
       await state.setLocale(l);
-      if (context.mounted) showSnack(context, 'Language set to ${AppState.localeNames[l]}.');
+      if (context.mounted) showSnack(context, tr('Language set to {0}.', [AppState.localeNames[l]]));
     } on ApiException catch (e) {
       if (context.mounted) showSnack(context, e.message);
     }
@@ -135,19 +136,19 @@ class LanguageScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('Language')),
+        appBar: AppBar(title: Text(tr('Language'))),
         body: SafeArea(
           child: ListenableBuilder(
             listenable: state,
             builder: (context, _) => ListView(padding: const EdgeInsets.all(16), children: [
-              const Text('Content from our server (services, FAQ and messages) is shown in this language where a translation is available.', style: TextStyle(color: ArjColors.ink600)),
+              Text(tr('The app and our content are shown in this language. A few new words may stay in English for a short while until they are translated.'), style: const TextStyle(color: ArjColors.ink600)),
               const SizedBox(height: 12),
               for (final l in state.enabledLocales)
                 Card(
                   margin: const EdgeInsets.only(bottom: 8),
                   child: ListTile(
-                    title: Text(AppState.localeNames[l] ?? l),
-                    trailing: (state.locale ?? 'en') == l ? const Icon(Icons.check, color: ArjColors.success700, semanticLabel: 'Selected') : null,
+                    title: Text(tr(AppState.localeNames[l] ?? l)),
+                    trailing: (state.locale ?? 'en') == l ? Icon(Icons.check, color: ArjColors.success700, semanticLabel: tr('Selected')) : null,
                     onTap: () => _pick(context, l),
                   ),
                 ),
@@ -175,7 +176,7 @@ class _VratCalendarScreenState extends State<VratCalendarScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('Vrat calendar')),
+        appBar: AppBar(title: Text(tr('Vrat calendar'))),
         body: SafeArea(
           child: Column(children: [
             Padding(
@@ -189,12 +190,12 @@ class _VratCalendarScreenState extends State<VratCalendarScreen> {
             ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: PlaceField(api: widget.state.api, labelText: 'City', initial: _place == null ? null : '${_place!['label']}', onSelected: (p) => setState(() => _place = p)),
+              child: PlaceField(api: widget.state.api, labelText: tr('City'), initial: _place == null ? null : '${_place!['label']}', onSelected: (p) => setState(() => _place = p)),
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
               child: Row(children: [
-                FilterChip(label: const Text('Only vrat & festival days'), selected: _eventsOnly, onSelected: (v) => setState(() => _eventsOnly = v)),
+                FilterChip(label: Text(tr('Only vrat & festival days')), selected: _eventsOnly, onSelected: (v) => setState(() => _eventsOnly = v)),
               ]),
             ),
             Expanded(
@@ -205,8 +206,8 @@ class _VratCalendarScreenState extends State<VratCalendarScreen> {
                   final days = unwrapList(r).where((d) => !_eventsOnly || ((d['events'] as List?) ?? const []).isNotEmpty).toList();
                   final place = ((r['meta'] as Map?)?['place'] as Map?)?['name'];
                   return ListView(padding: const EdgeInsets.all(16), children: [
-                    if (place != null) Text('Dates for $place.', style: const TextStyle(fontSize: 12, color: ArjColors.ink600)),
-                    if (days.isEmpty) const Padding(padding: EdgeInsets.all(24), child: Text('Nothing listed for this month.', textAlign: TextAlign.center)),
+                    if (place != null) Text(tr('Dates for {0}.', [place]), style: const TextStyle(fontSize: 12, color: ArjColors.ink600)),
+                    if (days.isEmpty) Padding(padding: EdgeInsets.all(24), child: Text(tr('Nothing listed for this month.'), textAlign: TextAlign.center)),
                     for (final d in days)
                       Card(
                         margin: const EdgeInsets.only(top: 8),
@@ -214,14 +215,14 @@ class _VratCalendarScreenState extends State<VratCalendarScreen> {
                           leading: SizedBox(
                             width: 44,
                             child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                              Text(formatAtOffset(d['date'], pattern: 'd'), style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 18)),
-                              Text(formatAtOffset(d['date'], pattern: 'EEE'), style: const TextStyle(fontSize: 12, color: ArjColors.ink600)),
+                              Text(tr(formatAtOffset(d['date'], pattern: 'd')), style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 18)),
+                              Text(tr(formatAtOffset(d['date'], pattern: 'EEE')), style: const TextStyle(fontSize: 12, color: ArjColors.ink600)),
                             ]),
                           ),
                           title: ((d['events'] as List?) ?? const []).isEmpty
-                              ? Text('${d['tithi'] ?? ''}')
-                              : Text(((d['events'] as List)).join('\n'), style: const TextStyle(fontWeight: FontWeight.w600)),
-                          subtitle: Text([d['tithi'], d['nakshatra']].whereType<Object>().join(' · ')),
+                              ? Text(tr('${d['tithi'] ?? ''}'))
+                              : Text(tr(((d['events'] as List)).join('\n')), style: const TextStyle(fontWeight: FontWeight.w600)),
+                          subtitle: Text(tr([d['tithi'], d['nakshatra']].whereType<Object>().join(' · '))),
                         ),
                       ),
                   ]);
@@ -240,14 +241,14 @@ class RashiListScreen extends StatelessWidget {
   final AppState state;
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('Rashi guide')),
+        appBar: AppBar(title: Text(tr('Rashi guide'))),
         body: SafeArea(
           child: ListView(padding: const EdgeInsets.all(16), children: [
             for (var i = 0; i < 12; i++)
               Card(
                 margin: const EdgeInsets.only(bottom: 8),
                 child: ListTile(
-                  title: Text(signNames[i]),
+                  title: Text(tr(signNames[i])),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => RashiDetailScreen(state: state, slug: rashiSlugs[i], title: signNames[i]))),
                 ),
@@ -265,7 +266,7 @@ class RashiDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: Text(title ?? 'Rashi')),
+        appBar: AppBar(title: Text(tr(title ?? 'Rashi'))),
         body: SafeArea(
           child: AsyncView<Map<String, dynamic>>(
             load: () async => unwrap(await state.api.get('/rashi/$slug', query: {'lang': state.locale == 'hi' ? 'hi' : 'en'})),
@@ -274,7 +275,7 @@ class RashiDetailScreen extends StatelessWidget {
               final horoscopes = ((r['horoscopes'] as List?) ?? const []).whereType<Map>();
               final nak = ((r['nakshatras'] as List?) ?? const []).whereType<Map>().map((n) => '${n['name']} (pada ${_list(n['padas'])})');
               return ListView(padding: const EdgeInsets.all(16), children: [
-                Text('${r['symbol'] ?? ''} ${r['name']}${r['hi'] != null ? ' · ${r['hi']}' : ''}'.trim(), style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600)),
+                Text(tr('${r['symbol'] ?? ''} ${r['name']}${r['hi'] != null ? ' · ${r['hi']}' : ''}'.trim()), style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600)),
                 const SizedBox(height: 8),
                 _fact('Lord', (r['lord'] as Map?)?['name']),
                 _fact('Element', r['element']),
@@ -291,7 +292,7 @@ class RashiDetailScreen extends StatelessWidget {
                       child: Padding(
                         padding: const EdgeInsets.all(16),
                         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                          Text('${humanize(h['period'])} · ${humanize(h['topic'])}', style: const TextStyle(fontWeight: FontWeight.w600)),
+                          Text(tr('${humanize(h['period'])} · ${humanize(h['topic'])}'), style: const TextStyle(fontWeight: FontWeight.w600)),
                           const SizedBox(height: 4),
                           SelectableText('${h['body'] ?? ''}', style: const TextStyle(height: 1.5)),
                         ]),
@@ -303,8 +304,8 @@ class RashiDetailScreen extends StatelessWidget {
                   for (final t in transits)
                     ListTile(
                       contentPadding: EdgeInsets.zero,
-                      title: Text('${t['name']} in ${t['sign_name']}'),
-                      subtitle: Text('House ${t['house']} from the Moon'),
+                      title: Text(tr('${t['name']} in ${t['sign_name']}')),
+                      subtitle: Text(tr('House {0} from the Moon', [t['house']])),
                       trailing: t['favourable'] == true ? const ToneChip('Favourable', ArjColors.success700) : const ToneChip('Needs care', ArjColors.gold700),
                     ),
                 ],
@@ -323,13 +324,13 @@ class NavagrahaScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('Navagraha')),
+        appBar: AppBar(title: Text(tr('Navagraha'))),
         body: SafeArea(
           child: AsyncView<List<Map<String, dynamic>>>(
             load: () async => unwrapList(await state.api.get('/navagraha')),
             isEmpty: (l) => l.isEmpty,
             builder: (context, list, _) => ListView(padding: const EdgeInsets.all(16), children: [
-              const Text('The nine planets of Jyotish, where they are now (sidereal, Lahiri) and what they signify.', style: TextStyle(color: ArjColors.ink600)),
+              Text(tr('The nine planets of Jyotish, where they are now (sidereal, Lahiri) and what they signify.'), style: TextStyle(color: ArjColors.ink600)),
               for (final p in list)
                 Card(
                   margin: const EdgeInsets.only(top: 12),
@@ -339,10 +340,10 @@ class NavagrahaScreen extends StatelessWidget {
                     child: Padding(
                       padding: const EdgeInsets.all(16),
                       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        Text('${p['name']}${p['hi'] != null ? ' · ${p['hi']}' : ''}', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
+                        Text(tr('${p['name']}${p['hi'] != null ? ' · ${p['hi']}' : ''}'), style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
                         if (p['now'] is Map)
                           Text(
-                            'Now in ${p['now']['sign_name']} ${p['now']['degree'] ?? ''}${p['now']['retro'] == true && !const ['rahu', 'ketu'].contains(p['planet']) ? ' (R)' : ''}',
+                            tr('Now in {0} {1}{2}', [p['now']['sign_name'], p['now']['degree'] ?? '', p['now']['retro'] == true && !const ['rahu', 'ketu'].contains(p['planet']) ? ' (R)' : '']),
                             style: const TextStyle(color: ArjColors.gold700),
                           ),
                         const SizedBox(height: 6),
@@ -373,7 +374,7 @@ class FaqScreen extends StatelessWidget {
   final AppState state;
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('FAQ')),
+        appBar: AppBar(title: Text(tr('FAQ'))),
         body: SafeArea(
           child: AsyncView<List<Map<String, dynamic>>>(
             load: () async => unwrapList(await state.api.get('/faq')),
@@ -384,7 +385,7 @@ class FaqScreen extends StatelessWidget {
                 Card(
                   margin: const EdgeInsets.only(bottom: 8),
                   child: ExpansionTile(
-                    title: Text('${f['question']}', style: const TextStyle(fontWeight: FontWeight.w600)),
+                    title: Text(tr('${f['question']}'), style: const TextStyle(fontWeight: FontWeight.w600)),
                     childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                     expandedCrossAxisAlignment: CrossAxisAlignment.start,
                     children: [SelectableText('${f['answer']}', style: const TextStyle(height: 1.5))],
@@ -406,7 +407,7 @@ class ContactScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('Contact us')),
+        appBar: AppBar(title: Text(tr('Contact us'))),
         body: SafeArea(
           child: AsyncView<Map<String, dynamic>>(
             load: () async => unwrap(await state.api.get('/site')),
@@ -415,36 +416,36 @@ class ContactScreen extends StatelessWidget {
               final hours = ((s['hours'] as List?) ?? const []).whereType<Map>();
               final phones = [s['phone'], s['phone2']].whereType<String>().where((p) => p.isNotEmpty).toSet();
               return ListView(padding: const EdgeInsets.all(16), children: [
-                Text('${s['name'] ?? ''}', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600)),
-                if (s['tagline'] != null) Text('${s['tagline']}', style: const TextStyle(color: ArjColors.ink600)),
+                Text(tr('${s['name'] ?? ''}'), style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600)),
+                if (s['tagline'] != null) Text(tr('${s['tagline']}'), style: const TextStyle(color: ArjColors.ink600)),
                 const SizedBox(height: 12),
                 for (final p in phones)
                   Card(
                     margin: const EdgeInsets.only(bottom: 8),
-                    child: ListTile(leading: const Icon(Icons.call_outlined), title: Text(p), subtitle: const Text('Call'), onTap: () => openExternal(context, 'tel:${_digits(p)}')),
+                    child: ListTile(leading: const Icon(Icons.call_outlined), title: Text(tr(p)), subtitle: Text(tr('Call')), onTap: () => openExternal(context, 'tel:${_digits(p)}')),
                   ),
                 if (s['whatsapp'] is String && (s['whatsapp'] as String).isNotEmpty)
                   Card(
                     margin: const EdgeInsets.only(bottom: 8),
                     child: ListTile(
                       leading: const Icon(Icons.chat_outlined),
-                      title: Text('${s['whatsapp']}'),
-                      subtitle: const Text('WhatsApp'),
+                      title: Text(tr('${s['whatsapp']}')),
+                      subtitle: Text(tr('WhatsApp')),
                       onTap: () => openExternal(context, 'https://wa.me/${_digits('${s['whatsapp']}').replaceAll('+', '')}'),
                     ),
                   ),
                 if (s['email'] is String && (s['email'] as String).isNotEmpty)
                   Card(
                     margin: const EdgeInsets.only(bottom: 8),
-                    child: ListTile(leading: const Icon(Icons.email_outlined), title: Text('${s['email']}'), subtitle: const Text('Email'), onTap: () => openExternal(context, 'mailto:${s['email']}')),
+                    child: ListTile(leading: const Icon(Icons.email_outlined), title: Text(tr('${s['email']}')), subtitle: Text(tr('Email')), onTap: () => openExternal(context, 'mailto:${s['email']}')),
                   ),
                 if (addr['line'] != null)
                   Card(
                     margin: const EdgeInsets.only(bottom: 8),
                     child: ListTile(
                       leading: const Icon(Icons.place_outlined),
-                      title: Text('${addr['line']}'),
-                      subtitle: const Text('Open map'),
+                      title: Text(tr('${addr['line']}')),
+                      subtitle: Text(tr('Open map')),
                       onTap: s['map_url'] == null ? null : () => openExternal(context, '${s['map_url']}'),
                     ),
                   ),
@@ -452,11 +453,11 @@ class ContactScreen extends StatelessWidget {
                   const SectionTitle('Office hours'),
                   for (final h in hours) _fact('${h['days']}', h['time']),
                 ],
-                if (s['languages'] is List) ...[const SectionTitle('Languages'), Text(_list(s['languages']))],
+                if (s['languages'] is List) ...[const SectionTitle('Languages'), Text(tr(_list(s['languages'])))],
                 if (s['social'] is List && (s['social'] as List).isNotEmpty) ...[
                   const SectionTitle('Follow us'),
                   for (final u in (s['social'] as List))
-                    ListTile(contentPadding: EdgeInsets.zero, leading: const Icon(Icons.link), title: Text(Uri.tryParse('$u')?.host ?? '$u'), onTap: () => openExternal(context, '$u')),
+                    ListTile(contentPadding: EdgeInsets.zero, leading: const Icon(Icons.link), title: Text(tr(Uri.tryParse('$u')?.host ?? '$u')), onTap: () => openExternal(context, '$u')),
                 ],
               ]);
             },

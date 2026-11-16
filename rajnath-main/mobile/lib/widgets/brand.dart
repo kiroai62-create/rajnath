@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
+import '../util/i18n.dart';
 
 /// Building blocks copied from the website's design (backend/resources/css/app.css):
 /// .bg-cosmic + .stars, .eyebrow, .btn-gold, .text-gold-grad, the zodiac wheel and the
@@ -136,7 +137,7 @@ class Eyebrow extends StatelessWidget {
         ),
         const SizedBox(width: 9),
         Flexible(
-          child: Text(text.toUpperCase(),
+          child: Text(tr(text.toUpperCase()),
               style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700, letterSpacing: 1.8, color: onDark ? ArjColors.gold200 : ArjColors.gold700)),
         ),
       ]);
@@ -152,7 +153,7 @@ class GoldGradientText extends StatelessWidget {
   Widget build(BuildContext context) => ShaderMask(
         blendMode: BlendMode.srcIn,
         shaderCallback: (b) => const LinearGradient(colors: [ArjColors.gold200, ArjColors.gold300, ArjColors.saffron400]).createShader(b),
-        child: Text(text, style: style),
+        child: Text(tr(text), style: style),
       );
 }
 
@@ -178,7 +179,7 @@ class GoldButton extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
         child: Row(mainAxisSize: expand ? MainAxisSize.max : MainAxisSize.min, mainAxisAlignment: MainAxisAlignment.center, children: [
           if (icon != null) ...[Icon(icon, size: 19, color: ArjColors.ink950), const SizedBox(width: 8)],
-          Flexible(child: Text(label, textAlign: TextAlign.center, style: const TextStyle(color: ArjColors.ink950, fontWeight: FontWeight.w700, fontSize: 15.5, letterSpacing: 0.2))),
+          Flexible(child: Text(tr(label), textAlign: TextAlign.center, style: const TextStyle(color: ArjColors.ink950, fontWeight: FontWeight.w700, fontSize: 15.5, letterSpacing: 0.2))),
         ]),
       ),
     );
@@ -209,7 +210,7 @@ class GlassButton extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
             child: Row(mainAxisSize: MainAxisSize.min, children: [
               if (icon != null) ...[Icon(icon, size: 18, color: ArjColors.gold200), const SizedBox(width: 8)],
-              Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 15)),
+              Text(tr(label), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 15)),
             ]),
           ),
         ),
@@ -248,13 +249,13 @@ class CosmicHeader extends StatelessWidget {
               Text.rich(TextSpan(children: [
                 TextSpan(text: title),
                 if (highlight != null) ...[
-                  const TextSpan(text: ' '),
+                  TextSpan(text: ' '),
                   WidgetSpan(alignment: PlaceholderAlignment.baseline, baseline: TextBaseline.alphabetic, child: GoldGradientText(highlight!, style: h)),
                 ],
               ]), style: h),
               if (subtitle != null) ...[
                 const SizedBox(height: 8),
-                Text(subtitle!, style: TextStyle(color: Colors.white.withValues(alpha: 0.8), height: 1.45, fontSize: 14.5)),
+                Text(tr(subtitle!), style: TextStyle(color: Colors.white.withValues(alpha: 0.8), height: 1.45, fontSize: 14.5)),
               ],
               if (child != null) ...[const SizedBox(height: 14), child!],
             ]),

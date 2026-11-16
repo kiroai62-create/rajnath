@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 import '../api/api_client.dart';
 import '../state/app_state.dart';
 import '../theme/app_theme.dart';
+import '../util/i18n.dart';
 import '../util/validators.dart';
 import '../widgets/common.dart';
 import 'activity_screens.dart';
@@ -17,7 +18,7 @@ class PalmListScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('Palmistry')),
+        appBar: AppBar(title: Text(tr('Palmistry'))),
         body: SafeArea(
           child: AsyncView<List<Map<String, dynamic>>>(
             load: () async => unwrapList(await state.api.get('/palmistry')),
@@ -29,16 +30,16 @@ class PalmListScreen extends StatelessWidget {
                   margin: const EdgeInsets.only(bottom: 8),
                   child: ListTile(
                     leading: const Icon(Icons.back_hand_outlined),
-                    title: const Text('Palm reading'),
+                    title: Text(tr('Palm reading')),
                     subtitle: Padding(padding: const EdgeInsets.only(top: 4), child: Row(children: [StatusChip(p['status'])])),
                     trailing: Row(mainAxisSize: MainAxisSize.min, children: [
                       if (p['pdf_url'] != null)
                         IconButton(
-                          tooltip: 'Download PDF',
+                          tooltip: tr('Download PDF'),
                           icon: const Icon(Icons.picture_as_pdf_outlined),
                           onPressed: () => openFreshLink(context, () => freshPdfUrl(state, '/palmistry/${p['ref']}')),
                         ),
-                      const Icon(Icons.chevron_right, semanticLabel: 'Open'),
+                      Icon(Icons.chevron_right, semanticLabel: tr('Open')),
                     ]),
                     onTap: () async {
                       await Navigator.of(context).push(MaterialPageRoute(builder: (_) => PalmDetailScreen(state: state, ref: '${p['ref']}')));
@@ -72,23 +73,23 @@ class _PalmDetailScreenState extends State<PalmDetailScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('Palm reading')),
+        appBar: AppBar(title: Text(tr('Palm reading'))),
         body: SafeArea(
           child: AsyncView<Map<String, dynamic>>(
             key: ValueKey(_v),
             load: () async => unwrap(await widget.state.api.get('/palmistry/${widget.ref}')),
             builder: (context, p, _) => ListView(padding: const EdgeInsets.all(16), children: [
               Row(children: [StatusChip(p['status'])]),
-              if (_statusText[p['status']] != null) Padding(padding: const EdgeInsets.only(top: 12), child: Text(_statusText[p['status']]!)),
+              if (_statusText[p['status']] != null) Padding(padding: const EdgeInsets.only(top: 12), child: Text(tr(_statusText[p['status']]!))),
               if (p['status'] == 'needs_new_photos' && p['staff_note'] != null)
                 Container(
                   margin: const EdgeInsets.only(top: 12),
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(color: ArjColors.gold50, borderRadius: BorderRadius.circular(12), border: Border.all(color: ArjColors.gold200)),
-                  child: Text('Note from our team: ${p['staff_note']}'),
+                  child: Text(tr('Note from our team: {0}', [p['staff_note']])),
                 ),
               if (p['status'] == 'completed') ...[
-                if (p['completed_at'] != null) Padding(padding: const EdgeInsets.only(top: 8), child: Text('Completed ${formatWhen(p['completed_at'], pattern: 'd MMM yyyy')}', style: const TextStyle(color: ArjColors.ink600))),
+                if (p['completed_at'] != null) Padding(padding: const EdgeInsets.only(top: 8), child: Text(tr('Completed {0}', [formatWhen(p['completed_at'], pattern: 'd MMM yyyy')]), style: const TextStyle(color: ArjColors.ink600))),
                 if (p['pdf_url'] != null) Padding(padding: const EdgeInsets.only(top: 12), child: Align(alignment: Alignment.centerLeft, child: pdfButton(context, widget.state, '/palmistry/${widget.ref}'))),
                 SectionsView((p['sections'] as List?) ?? const []),
               ],
@@ -132,8 +133,8 @@ class _PalmUploadFormState extends State<PalmUploadForm> {
       showDragHandle: true,
       builder: (c) => SafeArea(
         child: Column(mainAxisSize: MainAxisSize.min, children: [
-          ListTile(leading: const Icon(Icons.photo_camera_outlined), title: const Text('Take a photo'), onTap: () => Navigator.pop(c, ImageSource.camera)),
-          ListTile(leading: const Icon(Icons.photo_library_outlined), title: const Text('Choose from gallery'), onTap: () => Navigator.pop(c, ImageSource.gallery)),
+          ListTile(leading: const Icon(Icons.photo_camera_outlined), title: Text(tr('Take a photo')), onTap: () => Navigator.pop(c, ImageSource.camera)),
+          ListTile(leading: const Icon(Icons.photo_library_outlined), title: Text(tr('Choose from gallery')), onTap: () => Navigator.pop(c, ImageSource.gallery)),
         ]),
       ),
     );
@@ -142,7 +143,7 @@ class _PalmUploadFormState extends State<PalmUploadForm> {
       final f = await _picker.pickImage(source: source, imageQuality: 85, maxWidth: 2000);
       if (f != null && mounted) setState(() => left ? _left = f : _right = f);
     } catch (_) {
-      if (mounted) showSnack(context, 'Could not open the ${source == ImageSource.camera ? 'camera' : 'gallery'}.');
+      if (mounted) showSnack(context, tr('Could not open the {0}.', [source == ImageSource.camera ? 'camera' : 'gallery']));
     }
   }
 
@@ -202,11 +203,11 @@ class _PalmUploadFormState extends State<PalmUploadForm> {
                   ? Column(mainAxisAlignment: MainAxisAlignment.center, children: [
                       const Icon(Icons.add_a_photo_outlined, color: ArjColors.ink600),
                       const SizedBox(height: 6),
-                      Text(label, textAlign: TextAlign.center),
+                      Text(tr(label), textAlign: TextAlign.center),
                     ])
                   : Stack(fit: StackFit.expand, children: [
                       Image.file(File(f.path), fit: BoxFit.cover, semanticLabel: label),
-                      Align(alignment: Alignment.bottomCenter, child: Container(width: double.infinity, color: Colors.black54, padding: const EdgeInsets.all(4), child: Text(label, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white)))),
+                      Align(alignment: Alignment.bottomCenter, child: Container(width: double.infinity, color: Colors.black54, padding: const EdgeInsets.all(4), child: Text(tr(label), textAlign: TextAlign.center, style: const TextStyle(color: Colors.white)))),
                     ]),
             ),
           ),
@@ -216,31 +217,31 @@ class _PalmUploadFormState extends State<PalmUploadForm> {
   @override
   Widget build(BuildContext context) => Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         const SectionTitle('Upload your palm photos'),
-        const Text('Use daylight, keep the whole palm and fingers in the frame, and avoid shadows.', style: TextStyle(color: ArjColors.ink600)),
+        Text(tr('Use daylight, keep the whole palm and fingers in the frame, and avoid shadows.'), style: TextStyle(color: ArjColors.ink600)),
         const SizedBox(height: 12),
         Row(children: [_photo('Left palm', _left, true), const SizedBox(width: 12), _photo('Right palm', _right, false)]),
         FormError(_errors['left'] ?? _errors['right']),
         const SizedBox(height: 16),
-        const Text('Dominant hand'),
+        Text(tr('Dominant hand')),
         const SizedBox(height: 6),
         SegmentedButton<String>(
-          segments: const [ButtonSegment(value: 'left', label: Text('Left')), ButtonSegment(value: 'right', label: Text('Right'))],
+          segments: [ButtonSegment(value: 'left', label: Text(tr('Left'))), ButtonSegment(value: 'right', label: Text(tr('Right')))],
           selected: {_dominant},
           onSelectionChanged: (s) => setState(() => _dominant = s.first),
         ),
         const SizedBox(height: 12),
         Row(children: [
-          Expanded(child: TextField(controller: _age, keyboardType: TextInputType.number, decoration: InputDecoration(labelText: 'Age (optional)', errorText: _errors['age']))),
+          Expanded(child: TextField(controller: _age, keyboardType: TextInputType.number, decoration: InputDecoration(labelText: tr('Age (optional)'), errorText: trn(_errors['age'])))),
           const SizedBox(width: 12),
           Expanded(
             child: DropdownButtonFormField<String?>(
               initialValue: _gender,
-              decoration: InputDecoration(labelText: 'Gender (optional)', errorText: _errors['gender']),
-              items: const [
-                DropdownMenuItem(value: null, child: Text('—')),
-                DropdownMenuItem(value: 'male', child: Text('Male')),
-                DropdownMenuItem(value: 'female', child: Text('Female')),
-                DropdownMenuItem(value: 'other', child: Text('Other')),
+              decoration: InputDecoration(labelText: tr('Gender (optional)'), errorText: trn(_errors['gender'])),
+              items: [
+                DropdownMenuItem(value: null, child: Text(tr('—'))),
+                DropdownMenuItem(value: 'male', child: Text(tr('Male'))),
+                DropdownMenuItem(value: 'female', child: Text(tr('Female'))),
+                DropdownMenuItem(value: 'other', child: Text(tr('Other'))),
               ],
               onChanged: (v) => setState(() => _gender = v),
             ),
@@ -249,22 +250,22 @@ class _PalmUploadFormState extends State<PalmUploadForm> {
         const SizedBox(height: 12),
         DropdownButtonFormField<String?>(
           initialValue: _language,
-          decoration: InputDecoration(labelText: 'Reading language (optional)', errorText: _errors['language']),
-          items: const [DropdownMenuItem(value: null, child: Text('—')), DropdownMenuItem(value: 'en', child: Text('English')), DropdownMenuItem(value: 'hi', child: Text('हिन्दी'))],
+          decoration: InputDecoration(labelText: tr('Reading language (optional)'), errorText: trn(_errors['language'])),
+          items: [DropdownMenuItem(value: null, child: Text(tr('—'))), DropdownMenuItem(value: 'en', child: Text(tr('English'))), DropdownMenuItem(value: 'hi', child: Text(tr('हिन्दी')))],
           onChanged: (v) => setState(() => _language = v),
         ),
         const SizedBox(height: 12),
-        TextField(controller: _question, maxLines: 3, maxLength: 500, decoration: InputDecoration(labelText: 'Your question (optional)', errorText: _errors['question'])),
+        TextField(controller: _question, maxLines: 3, maxLength: 500, decoration: InputDecoration(labelText: tr('Your question (optional)'), errorText: trn(_errors['question']))),
         CheckboxListTile(
           contentPadding: EdgeInsets.zero,
           controlAffinity: ListTileControlAffinity.leading,
           value: _consent,
           onChanged: (v) => setState(() => _consent = v ?? false),
-          title: const Text('I consent to Astro Rajnath Jha storing and viewing these photos to prepare my palm reading.'),
-          subtitle: _errors['consent'] != null ? Text(_errors['consent']!, style: TextStyle(color: Theme.of(context).colorScheme.error)) : null,
+          title: Text(tr('I consent to Astro Rajnath Jha storing and viewing these photos to prepare my palm reading.')),
+          subtitle: _errors['consent'] != null ? Text(tr(_errors['consent']!), style: TextStyle(color: Theme.of(context).colorScheme.error)) : null,
         ),
         FormError(_errors['_'] ?? _errors['dominant_hand']),
         const SizedBox(height: 12),
-        FilledButton(onPressed: _busy ? null : _submit, child: Text(_busy ? 'Uploading…' : 'Upload photos')),
+        FilledButton(onPressed: _busy ? null : _submit, child: Text(tr(_busy ? 'Uploading…' : 'Upload photos'))),
       ]);
 }

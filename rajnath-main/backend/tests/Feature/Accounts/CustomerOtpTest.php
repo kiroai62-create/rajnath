@@ -22,6 +22,8 @@ class CustomerOtpTest extends TestCase
         $code = null;
         Mail::assertSent(OtpMail::class, function (OtpMail $m) use (&$code) {
             $code = $m->code;
+            // The code is in the body only, never in the subject line
+            $m->assertHasSubject('Your sign-in code for Astro Rajnath Jha');
 
             return true;
         });

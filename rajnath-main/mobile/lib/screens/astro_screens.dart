@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../api/api_client.dart';
 import '../state/app_state.dart';
 import '../theme/app_theme.dart';
+import '../util/i18n.dart';
 import '../widgets/common.dart';
 import 'assistant_screen.dart';
 import '../widgets/tool_display.dart';
@@ -41,7 +42,7 @@ class PlaceField extends StatelessWidget {
         },
         onSelected: onSelected,
         fieldViewBuilder: (context, c, f, _) => TextField(controller: c, focusNode: f,
-            decoration: InputDecoration(labelText: labelText, helperText: 'Choose from the list. Place data © GeoNames', errorText: errorText)),
+            decoration: InputDecoration(labelText: trn(labelText), helperText: tr('Choose from the list. Place data © GeoNames'), errorText: trn(errorText))),
       );
 }
 
@@ -86,7 +87,7 @@ class _BirthFieldsState extends State<BirthFields> {
       if (widget.title != null) SectionTitle(widget.title!),
       OutlinedButton.icon(
         icon: const Icon(Icons.calendar_today),
-        label: Text(i.date == null ? 'Date of birth' : DateFormat('d MMM yyyy').format(i.date!)),
+        label: Text(tr(i.date == null ? 'Date of birth' : DateFormat('d MMM yyyy').format(i.date!))),
         onPressed: () async {
           final d = await showDatePicker(context: context, firstDate: DateTime(1800), lastDate: DateTime.now(), initialDate: i.date ?? DateTime(1990));
           if (d != null) setState(() => i.date = d);
@@ -95,7 +96,7 @@ class _BirthFieldsState extends State<BirthFields> {
       const SizedBox(height: 8),
       OutlinedButton.icon(
         icon: const Icon(Icons.schedule),
-        label: Text(i.time == null ? 'Time of birth' : i.time!.format(context)),
+        label: Text(tr(i.time == null ? 'Time of birth' : i.time!.format(context))),
         onPressed: () async {
           final t = await showTimePicker(context: context, initialTime: i.time ?? const TimeOfDay(hour: 6, minute: 0));
           if (t != null) setState(() => i.time = t);
@@ -142,21 +143,21 @@ class _KundliScreenState extends State<KundliScreen> {
   Widget build(BuildContext context) {
     final r = _result;
     return Scaffold(
-      appBar: AppBar(title: Text(widget.matching ? 'Kundli Matching' : 'Free Kundli')),
+      appBar: AppBar(title: Text(tr(widget.matching ? 'Kundli Matching' : 'Free Kundli'))),
       body: SafeArea(
         child: ListView(padding: const EdgeInsets.all(16), children: [
           BirthFields(api: widget.state.api, input: _a, title: widget.matching ? 'Boy / groom' : null),
           if (widget.matching) BirthFields(api: widget.state.api, input: _b, title: 'Girl / bride'),
           const SizedBox(height: 16),
-          FilledButton(onPressed: _busy ? null : _calc, child: Text(_busy ? 'Calculating…' : 'Calculate')),
-          if (_error != null) Padding(padding: const EdgeInsets.only(top: 12), child: Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error))),
+          FilledButton(onPressed: _busy ? null : _calc, child: Text(tr(_busy ? 'Calculating…' : 'Calculate'))),
+          if (_error != null) Padding(padding: const EdgeInsets.only(top: 12), child: Text(tr(_error!), style: TextStyle(color: Theme.of(context).colorScheme.error))),
           if (r != null && !widget.matching) ..._kundli(context, r['chart'] as Map),
           if (r != null && widget.matching) ..._match(context, r),
           if (r != null && r['display'] is Map)
             ExpansionTile(
               tilePadding: EdgeInsets.zero,
-              title: const Text('All details'),
-              subtitle: Text(widget.matching ? 'Koota table and Manglik check' : 'Navamsa, Manglik check and full tables'),
+              title: Text(tr('All details')),
+              subtitle: Text(tr(widget.matching ? 'Koota table and Manglik check' : 'Navamsa, Manglik check and full tables')),
               children: [ToolDisplayView(r['display'] as Map)],
             ),
         ]),
@@ -167,17 +168,17 @@ class _KundliScreenState extends State<KundliScreen> {
   List<Widget> _kundli(BuildContext context, Map c) => [
         const SectionTitle('Summary'),
         Card(child: Padding(padding: const EdgeInsets.all(16), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('Lagna: ${c['lagna']['sign_name']} ${c['lagna']['degree']}'),
-          Text('Moon sign: ${c['moon_sign']['name']}'),
-          Text('Nakshatra: ${c['nakshatra']['name']}, pada ${c['nakshatra']['pada']}'),
+          Text(tr('Lagna: ${c['lagna']['sign_name']} ${c['lagna']['degree']}')),
+          Text(tr('Moon sign: {0}', [c['moon_sign']['name']])),
+          Text(tr('Nakshatra: {0}, pada {1}', [c['nakshatra']['name'], c['nakshatra']['pada']])),
         ]))),
         const SectionTitle('Planets'),
         for (final e in (c['planets'] as Map).entries.where((e) => e.value['classical'] == true))
-          ListTile(dense: true, title: Text('${e.value['name']}${e.value['retro'] == true && !['rahu', 'ketu'].contains(e.key) ? ' (R)' : ''}'),
-              subtitle: Text('${e.value['sign_name']} ${e.value['degree']} · house ${e.value['house']} · ${e.value['nakshatra']}')),
+          ListTile(dense: true, title: Text(tr('${e.value['name']}${e.value['retro'] == true && !['rahu', 'ketu'].contains(e.key) ? ' (R)' : ''}')),
+              subtitle: Text(tr('{0} {1} · house {2} · {3}', [e.value['sign_name'], e.value['degree'], e.value['house'], e.value['nakshatra']]))),
         const SectionTitle('Vimshottari Mahadasha'),
-        for (final p in c['dasha']['periods'] as List) ListTile(dense: true, title: Text('${p['lord']}'.toUpperCase()), trailing: Text('${p['start']} – ${p['end']}')),
-        Text('Method: ${c['method']['ephemeris']}, ${c['method']['ayanamsha']}', style: const TextStyle(fontSize: 12, color: ArjColors.ink600)),
+        for (final p in c['dasha']['periods'] as List) ListTile(dense: true, title: Text(tr('${p['lord']}'.toUpperCase())), trailing: Text(tr('${p['start']} – ${p['end']}'))),
+        Text(tr('Method: ${c['method']['ephemeris']}, ${c['method']['ayanamsha']}'), style: const TextStyle(fontSize: 12, color: ArjColors.ink600)),
       ];
 
   List<Widget> _match(BuildContext context, Map r) {
@@ -185,12 +186,12 @@ class _KundliScreenState extends State<KundliScreen> {
     return [
       const SectionTitle('Guna Milan'),
       Card(child: Padding(padding: const EdgeInsets.all(16), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text('${m['total']} / 36', style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w600)),
-        Text('Traditionally ${m['band']}.'),
-        if ((m['doshas'] as List).isNotEmpty) Text('Doshas: ${(m['doshas'] as List).join(', ')}'),
+        Text(tr('${m['total']} / 36'), style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w600)),
+        Text(tr('Traditionally {0}.', [m['band']])),
+        if ((m['doshas'] as List).isNotEmpty) Text(tr('Doshas: ${(m['doshas'] as List).join(', ')}')),
       ]))),
-      for (final e in (m['kootas'] as Map).entries) ListTile(dense: true, title: Text(e.key.replaceAll('_', ' ')), subtitle: Text('${e.value['detail']}'), trailing: Text('${e.value['score']} / ${e.value['max']}')),
-      const Text('Guna milan is one traditional input; exceptions and the full charts should be reviewed by an astrologer.', style: TextStyle(fontSize: 12, color: ArjColors.ink600)),
+      for (final e in (m['kootas'] as Map).entries) ListTile(dense: true, title: Text(tr(e.key.replaceAll('_', ' '))), subtitle: Text(tr('${e.value['detail']}')), trailing: Text(tr('${e.value['score']} / ${e.value['max']}'))),
+      Text(tr('Guna milan is one traditional input; exceptions and the full charts should be reviewed by an astrologer.'), style: TextStyle(fontSize: 12, color: ArjColors.ink600)),
     ];
   }
 }
@@ -231,7 +232,7 @@ class _PanchangScreenState extends State<PanchangScreen> {
           if (items.any((i) => i['period'] == period))
             Padding(
               padding: const EdgeInsets.only(top: 4),
-              child: Text(period == 'day' ? 'Day' : 'Night', style: const TextStyle(color: ArjColors.ink600, fontWeight: FontWeight.w600)),
+              child: Text(tr(period == 'day' ? 'Day' : 'Night'), style: const TextStyle(color: ArjColors.ink600, fontWeight: FontWeight.w600)),
             ),
           for (final i in items.where((i) => i['period'] == period)) row(i),
         ],
@@ -247,7 +248,7 @@ class _PanchangScreenState extends State<PanchangScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Panchang')),
+      appBar: AppBar(title: Text(tr('Panchang'))),
       body: SafeArea(
         child: Column(children: [
           Padding(
@@ -256,7 +257,7 @@ class _PanchangScreenState extends State<PanchangScreen> {
               Expanded(child: OutlinedButton(onPressed: () async {
                 final d = await showDatePicker(context: context, firstDate: DateTime(1800), lastDate: DateTime(2399, 12, 31), initialDate: _date);
                 if (d != null) setState(() => _date = d);
-              }, child: Text(DateFormat('d MMM yyyy').format(_date)))),
+              }, child: Text(tr(DateFormat('d MMM yyyy').format(_date))))),
             ]),
           ),
           Padding(padding: const EdgeInsets.symmetric(horizontal: 16), child: PlaceField(api: widget.state.api, initial: '${_place['label']}', onSelected: (p) => setState(() => _place = p))),
@@ -265,31 +266,31 @@ class _PanchangScreenState extends State<PanchangScreen> {
               key: ValueKey('${_place['id']}-${DateFormat('yyyy-MM-dd').format(_date)}'),
               load: () async => (await widget.state.api.get('/panchang', query: {'date': DateFormat('yyyy-MM-dd').format(_date), 'place_id': _place['id']}))['data'] as Map<String, dynamic>,
               builder: (context, p, _) => ListView(padding: const EdgeInsets.all(16), children: [
-                if (p['polar'] == true) Text('${p['polar_note']}'),
-                Text('${p['vara']}', style: Theme.of(context).textTheme.titleLarge),
-                if (lunarMonthText(p['masa']) != null) Text(lunarMonthText(p['masa'])!),
-                Text('Times shown in the place\'s local time (UTC${p['place']['utc_offset']}).', style: const TextStyle(color: ArjColors.ink600, fontSize: 12)),
+                if (p['polar'] == true) Text(tr('${p['polar_note']}')),
+                Text(tr('${p['vara']}'), style: Theme.of(context).textTheme.titleLarge),
+                if (lunarMonthText(p['masa']) != null) Text(tr(lunarMonthText(p['masa'])!)),
+                Text(tr('Times shown in the place\'s local time (UTC{0}).', [p['place']['utc_offset']]), style: const TextStyle(color: ArjColors.ink600, fontSize: 12)),
                 AskAiCard(state: widget.state, page: '/panchang', question: 'Explain today\'s Panchang in simple words: is today good for new work?', suggestions: const ['What is Rahu Kaal today?', 'Best Choghadiya today?']),
                 const SectionTitle('Sun & Moon'),
                 Wrap(spacing: 16, runSpacing: 8, children: [
-                  Text('Sunrise ${_t(p['sunrise'])}'), Text('Sunset ${_t(p['sunset'])}'), Text('Moonrise ${_t(p['moonrise'])}'), Text('Moonset ${_t(p['moonset'])}'),
+                  Text(tr('Sunrise {0}', [_t(p['sunrise'])])), Text(tr('Sunset {0}', [_t(p['sunset'])])), Text(tr('Moonrise {0}', [_t(p['moonrise'])])), Text(tr('Moonset {0}', [_t(p['moonset'])])),
                 ]),
                 const SectionTitle('Panchang'),
                 for (final k in ['tithi', 'nakshatra', 'yoga', 'karana'])
-                  ListTile(contentPadding: EdgeInsets.zero, title: Text(k[0].toUpperCase() + k.substring(1)),
-                      subtitle: Text([for (final a in p['angas'][k] as List) '${a['name']}${a['ends'] != null ? ' until ${_t(a['ends'])}' : ''}'].join('\n'))),
+                  ListTile(contentPadding: EdgeInsets.zero, title: Text(tr(k[0].toUpperCase() + k.substring(1))),
+                      subtitle: Text(tr([for (final a in p['angas'][k] as List) '${a['name']}${a['ends'] != null ? ' until ${_t(a['ends'])}' : ''}'].join('\n')))),
                 if ((p['intervals'] as Map).isNotEmpty) ...[
                   const SectionTitle('Timings'),
                   for (final e in {'abhijit': 'Abhijit muhurta', 'rahu_kaal': 'Rahu Kaal', 'yamaganda': 'Yamaganda', 'gulika': 'Gulika'}.entries)
-                    ListTile(dense: true, contentPadding: EdgeInsets.zero, title: Text(e.value), trailing: Text('${_t(p['intervals'][e.key]['start'])} – ${_t(p['intervals'][e.key]['end'])}')),
+                    ListTile(dense: true, contentPadding: EdgeInsets.zero, title: Text(tr(e.value)), trailing: Text(tr('${_t(p['intervals'][e.key]['start'])} – ${_t(p['intervals'][e.key]['end'])}'))),
                 ],
                 if (p['choghadiya'] is List && (p['choghadiya'] as List).isNotEmpty) ...[
                   const SectionTitle('Choghadiya'),
                   ..._byPeriod((p['choghadiya'] as List).whereType<Map>(), (c) => ListTile(
                         dense: true,
                         contentPadding: EdgeInsets.zero,
-                        title: Text('${c['name']}'),
-                        subtitle: Text('${_t(c['start'])} – ${_t(c['end'])}'),
+                        title: Text(tr('${c['name']}')),
+                        subtitle: Text(tr('${_t(c['start'])} – ${_t(c['end'])}')),
                         trailing: _quality(c['quality']),
                       )),
                 ],
@@ -298,8 +299,8 @@ class _PanchangScreenState extends State<PanchangScreen> {
                   ..._byPeriod((p['hora'] as List).whereType<Map>(), (h) => ListTile(
                         dense: true,
                         contentPadding: EdgeInsets.zero,
-                        title: Text(planetName(h['lord'])),
-                        trailing: Text('${_t(h['start'])} – ${_t(h['end'])}'),
+                        title: Text(tr(planetName(h['lord']))),
+                        trailing: Text(tr('${_t(h['start'])} – ${_t(h['end'])}')),
                       )),
                 ],
               ]),

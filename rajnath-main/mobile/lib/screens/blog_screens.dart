@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../api/api_client.dart';
 import '../state/app_state.dart';
 import '../theme/app_theme.dart';
+import '../util/i18n.dart';
 import '../util/validators.dart';
 import '../widgets/common.dart';
 import 'assistant_screen.dart';
@@ -98,22 +99,22 @@ class _BlogScreenState extends State<BlogScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('Articles')),
+        appBar: AppBar(title: Text(tr('Articles'))),
         body: SafeArea(
           child: RefreshIndicator(
             onRefresh: () => _fetch(reset: true),
             child: ListView(padding: const EdgeInsets.all(16), children: [
-              Text('Insights on Jyotish, Vastu, puja and remedies, written for everyday life.', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: ArjColors.ink600)),
+              Text(tr('Insights on Jyotish, Vastu, puja and remedies, written for everyday life.'), style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: ArjColors.ink600)),
               const SizedBox(height: 12),
               TextField(
                 controller: _search,
                 decoration: InputDecoration(
-                  labelText: 'Search articles',
+                  labelText: tr('Search articles'),
                   prefixIcon: const Icon(Icons.search),
                   suffixIcon: _q.isEmpty
                       ? null
                       : IconButton(
-                          tooltip: 'Clear search',
+                          tooltip: tr('Clear search'),
                           icon: const Icon(Icons.clear),
                           onPressed: () {
                             _search.clear();
@@ -130,8 +131,8 @@ class _BlogScreenState extends State<BlogScreen> {
               if (_categories.isNotEmpty) ...[
                 const SizedBox(height: 12),
                 Wrap(spacing: 8, runSpacing: 8, children: [
-                  ChoiceChip(label: const Text('All'), selected: _category == null, onSelected: (_) => _setCategory(null)),
-                  for (final c in _categories) ChoiceChip(label: Text(_s(c['label'])), selected: _category == c['key'], onSelected: (_) => _setCategory(_s(c['key']))),
+                  ChoiceChip(label: Text(tr('All')), selected: _category == null, onSelected: (_) => _setCategory(null)),
+                  for (final c in _categories) ChoiceChip(label: Text(tr(_s(c['label']))), selected: _category == c['key'], onSelected: (_) => _setCategory(_s(c['key']))),
                 ]),
               ],
               const SizedBox(height: 16),
@@ -143,10 +144,10 @@ class _BlogScreenState extends State<BlogScreen> {
               else if (_items.isEmpty)
                 Padding(
                   padding: const EdgeInsets.all(24),
-                  child: Text(_q.isNotEmpty || _category != null ? 'No articles match. Try another word or category.' : 'No articles yet. Please check back soon.', textAlign: TextAlign.center),
+                  child: Text(tr(_q.isNotEmpty || _category != null ? 'No articles match. Try another word or category.' : 'No articles yet. Please check back soon.'), textAlign: TextAlign.center),
                 )
               else if (_page < _last)
-                OutlinedButton(onPressed: _fetch, child: const Text('Load more')),
+                OutlinedButton(onPressed: _fetch, child: Text(tr('Load more'))),
             ]),
           ),
         ),
@@ -178,17 +179,17 @@ class ArticleCard extends StatelessWidget {
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               if (_s(a['category_label']).isNotEmpty) ToneChip(_s(a['category_label']), ArjColors.gold700),
               const SizedBox(height: 8),
-              Text(title, maxLines: compact ? 2 : 3, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
+              Text(tr(title), maxLines: compact ? 2 : 3, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
               if (!compact && _s(a['excerpt']).isNotEmpty) ...[
                 const SizedBox(height: 6),
-                Text(_s(a['excerpt']), maxLines: 3, overflow: TextOverflow.ellipsis, style: const TextStyle(color: ArjColors.ink600, height: 1.4)),
+                Text(tr(_s(a['excerpt'])), maxLines: 3, overflow: TextOverflow.ellipsis, style: const TextStyle(color: ArjColors.ink600, height: 1.4)),
               ],
               if (articleMeta(a).isNotEmpty) ...[
                 const SizedBox(height: 8),
                 Row(children: [
                   const Icon(Icons.schedule, size: 14, color: ArjColors.ink600),
                   const SizedBox(width: 4),
-                  Flexible(child: Text(articleMeta(a), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, color: ArjColors.ink600))),
+                  Flexible(child: Text(tr(articleMeta(a)), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, color: ArjColors.ink600))),
                 ]),
               ],
             ]),
@@ -210,7 +211,7 @@ class ArticleScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('Article')),
+        appBar: AppBar(title: Text(tr('Article'))),
         body: SafeArea(
           child: AsyncView<Map<String, dynamic>>(
             load: () async => unwrap(await state.api.get('/blog/$slug')),
@@ -226,18 +227,18 @@ class ArticleScreen extends StatelessWidget {
                 const SizedBox(height: 16),
                 if (_s(a['category_label']).isNotEmpty) Align(alignment: Alignment.centerLeft, child: ToneChip(_s(a['category_label']), ArjColors.gold700)),
                 const SizedBox(height: 8),
-                Text(_s(a['title']), style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w600, color: ArjColors.ink900)),
-                if (articleMeta(a).isNotEmpty) Padding(padding: const EdgeInsets.only(top: 6), child: Text(articleMeta(a), style: const TextStyle(color: ArjColors.ink600))),
+                Text(tr(_s(a['title'])), style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w600, color: ArjColors.ink900)),
+                if (articleMeta(a).isNotEmpty) Padding(padding: const EdgeInsets.only(top: 6), child: Text(tr(articleMeta(a)), style: const TextStyle(color: ArjColors.ink600))),
                 if (_s(a['excerpt']).isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.only(top: 12),
-                    child: Text(_s(a['excerpt']), style: Theme.of(context).textTheme.titleMedium?.copyWith(color: ArjColors.ink700, height: 1.5, fontWeight: FontWeight.w400)),
+                    child: Text(tr(_s(a['excerpt'])), style: Theme.of(context).textTheme.titleMedium?.copyWith(color: ArjColors.ink700, height: 1.5, fontWeight: FontWeight.w400)),
                   ),
                 const Divider(height: 32),
                 for (final b in blocks) ArticleBlock(b),
                 if (tags.isNotEmpty) ...[
                   const SectionTitle('Tags'),
-                  Wrap(spacing: 8, runSpacing: 8, children: [for (final t in tags) Chip(label: Text('#$t'), visualDensity: VisualDensity.compact)]),
+                  Wrap(spacing: 8, runSpacing: 8, children: [for (final t in tags) Chip(label: Text(tr('#$t')), visualDensity: VisualDensity.compact)]),
                 ],
                 if (services.isNotEmpty) ...[
                   const SectionTitle('Related services'),
@@ -248,7 +249,7 @@ class ArticleScreen extends StatelessWidget {
                         style: OutlinedButton.styleFrom(alignment: Alignment.centerLeft),
                         onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => ServiceDetailScreen(state: state, slug: s))),
                         icon: const Icon(Icons.auto_awesome_outlined),
-                        label: Text(slugLabel(s)),
+                        label: Text(tr(slugLabel(s))),
                       ),
                     ),
                 ],
@@ -260,8 +261,8 @@ class ArticleScreen extends StatelessWidget {
                       clipBehavior: Clip.antiAlias,
                       child: ListTile(
                         leading: ClipRRect(borderRadius: BorderRadius.circular(8), child: SizedBox(width: 64, height: 48, child: NetImage(_s(r['cover_url'])))),
-                        title: Text(_s(r['title']), maxLines: 2, overflow: TextOverflow.ellipsis),
-                        subtitle: Text(articleMeta(r)),
+                        title: Text(tr(_s(r['title'])), maxLines: 2, overflow: TextOverflow.ellipsis),
+                        subtitle: Text(tr(articleMeta(r))),
                         trailing: const Icon(Icons.chevron_right),
                         onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => ArticleScreen(state: state, slug: _s(r['slug']), title: _s(r['title'])))),
                       ),
@@ -270,7 +271,7 @@ class ArticleScreen extends StatelessWidget {
                 AskAiCard(state: state, page: 'article:$slug', question: 'Explain this article in simple words.', suggestions: const ['What remedy does it suggest?', 'Does this apply to me?']),
                 if (web.isNotEmpty) ...[
                   const SizedBox(height: 20),
-                  FilledButton.icon(onPressed: () => openExternal(context, web), icon: const Icon(Icons.open_in_new), label: const Text('Read on the website')),
+                  FilledButton.icon(onPressed: () => openExternal(context, web), icon: const Icon(Icons.open_in_new), label: Text(tr('Read on the website'))),
                   const SizedBox(height: 8),
                   OutlinedButton.icon(
                     onPressed: () async {
@@ -278,11 +279,11 @@ class ArticleScreen extends StatelessWidget {
                       if (context.mounted) showSnack(context, 'Link copied. Paste it to share.');
                     },
                     icon: const Icon(Icons.share_outlined),
-                    label: const Text('Copy link to share'),
+                    label: Text(tr('Copy link to share')),
                   ),
                 ],
                 const SizedBox(height: 20),
-                const Text('Astrological guidance is traditional and interpretive. It does not replace medical, legal or financial advice.', style: TextStyle(fontSize: 12, color: ArjColors.ink600)),
+                Text(tr('Astrological guidance is traditional and interpretive. It does not replace medical, legal or financial advice.'), style: TextStyle(fontSize: 12, color: ArjColors.ink600)),
               ]);
             },
           ),
@@ -301,8 +302,8 @@ class ArticleBlock extends StatelessWidget {
     if (text.isEmpty) return const SizedBox.shrink();
     final t = Theme.of(context).textTheme;
     return switch (block['type']) {
-      'h2' => Padding(padding: const EdgeInsets.only(top: 16, bottom: 8), child: Semantics(header: true, child: Text(text, style: t.titleLarge?.copyWith(fontWeight: FontWeight.w600, color: ArjColors.ink900)))),
-      'h3' => Padding(padding: const EdgeInsets.only(top: 12, bottom: 6), child: Semantics(header: true, child: Text(text, style: t.titleMedium?.copyWith(fontWeight: FontWeight.w600, color: ArjColors.ink700)))),
+      'h2' => Padding(padding: const EdgeInsets.only(top: 16, bottom: 8), child: Semantics(header: true, child: Text(tr(text), style: t.titleLarge?.copyWith(fontWeight: FontWeight.w600, color: ArjColors.ink900)))),
+      'h3' => Padding(padding: const EdgeInsets.only(top: 12, bottom: 6), child: Semantics(header: true, child: Text(tr(text), style: t.titleMedium?.copyWith(fontWeight: FontWeight.w600, color: ArjColors.ink700)))),
       'li' => Padding(
           padding: const EdgeInsets.only(left: 4, bottom: 6),
           child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -346,7 +347,7 @@ class CoursesScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('Courses')),
+        appBar: AppBar(title: Text(tr('Courses'))),
         body: SafeArea(
           child: ListView(padding: const EdgeInsets.all(16), children: [
             Container(
@@ -356,11 +357,11 @@ class CoursesScreen extends StatelessWidget {
                 gradient: const LinearGradient(colors: [ArjColors.ink900, ArjColors.ink700], begin: Alignment.topLeft, end: Alignment.bottomRight),
               ),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('JYOTIRVEDA VIGYAN SANSTHAN', style: Theme.of(context).textTheme.labelMedium?.copyWith(color: ArjColors.gold200, letterSpacing: 1.5)),
+                Text(tr('JYOTIRVEDA VIGYAN SANSTHAN'), style: Theme.of(context).textTheme.labelMedium?.copyWith(color: ArjColors.gold200, letterSpacing: 1.5)),
                 const SizedBox(height: 8),
-                Text('Learn from Acharya Ji', style: Theme.of(context).textTheme.headlineSmall?.copyWith(color: Colors.white, fontWeight: FontWeight.w600)),
+                Text(tr('Learn from Acharya Ji'), style: Theme.of(context).textTheme.headlineSmall?.copyWith(color: Colors.white, fontWeight: FontWeight.w600)),
                 const SizedBox(height: 8),
-                const Text('Structured courses in the traditional sciences are being prepared. Admissions are not open yet.', style: TextStyle(color: Colors.white70, height: 1.4)),
+                Text(tr('Structured courses in the traditional sciences are being prepared. Admissions are not open yet.'), style: TextStyle(color: Colors.white70, height: 1.4)),
               ]),
             ),
             const SectionTitle('Planned courses'),
@@ -374,9 +375,9 @@ class CoursesScreen extends StatelessWidget {
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        Text(title, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
+                        Text(tr(title), style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
                         const SizedBox(height: 4),
-                        Text(blurb, style: const TextStyle(color: ArjColors.ink600, height: 1.4)),
+                        Text(tr(blurb), style: const TextStyle(color: ArjColors.ink600, height: 1.4)),
                         const SizedBox(height: 8),
                         const ToneChip('Coming soon', ArjColors.gold700),
                       ]),
@@ -388,10 +389,10 @@ class CoursesScreen extends StatelessWidget {
             FilledButton.icon(
               onPressed: () => _notify(context, 'Courses: tell me when admissions open'),
               icon: const Icon(Icons.notifications_active_outlined),
-              label: const Text('Tell me when admissions open'),
+              label: Text(tr('Tell me when admissions open')),
             ),
             const SizedBox(height: 8),
-            const Text('Leave your number and our team will call you when the first batch opens.', textAlign: TextAlign.center, style: TextStyle(color: ArjColors.ink600)),
+            Text(tr('Leave your number and our team will call you when the first batch opens.'), textAlign: TextAlign.center, style: TextStyle(color: ArjColors.ink600)),
           ]),
         ),
       );

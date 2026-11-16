@@ -40,7 +40,8 @@ Widget screenForTarget(AppState state, String? kind, String? ref) {
   return switch (kind) {
     'booking' => BookingsScreen(state: state, highlight: r),
     'report' when r != null => ReportDetailScreen(state: state, ref: r),
-    'puja' when r != null => PujaDetailScreen(state: state, ref: r),
+    // Puja notifications are about a puja request or an earlier puja booking: the list shows both.
+    'puja' => PujaListScreen(state: state, highlight: r),
     'palm' when r != null => PalmDetailScreen(state: state, ref: r),
     'order' when r != null => OrderDetailScreen(state: state, ref: r),
     'review' => MyReviewsScreen(state: state),

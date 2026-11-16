@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../api/api_client.dart';
 import '../state/app_state.dart';
 import '../theme/app_theme.dart';
+import '../util/i18n.dart';
 import '../util/validators.dart';
 import '../widgets/common.dart';
 import 'activity_screens.dart';
@@ -41,7 +42,7 @@ class StarRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Semantics(
         container: true,
-        label: 'Rated ${_n(rating)} out of 5',
+        label: tr('Rated {0} out of 5', [_n(rating)]),
         excludeSemantics: true,
         child: Row(mainAxisSize: MainAxisSize.min, children: [
           for (var i = 1; i <= 5; i++)
@@ -56,9 +57,9 @@ Widget _replyBox(Object? reply) => Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(color: ArjColors.gold50, borderRadius: BorderRadius.circular(12), border: Border.all(color: ArjColors.gold200)),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const Text('Reply from our team', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12)),
+        Text(tr('Reply from our team'), style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12)),
         const SizedBox(height: 4),
-        Text('$reply', style: const TextStyle(height: 1.4)),
+        Text(tr('$reply'), style: const TextStyle(height: 1.4)),
       ]),
     );
 
@@ -83,12 +84,12 @@ class ReviewCard extends StatelessWidget {
             StarRow((r['rating'] as num?) ?? 0),
             if (r['verified'] == true) const ToneChip('Verified purchase', ArjColors.success700),
           ]),
-          if (title != null) ...[const SizedBox(height: 8), Text(title, style: const TextStyle(fontWeight: FontWeight.w600))],
+          if (title != null) ...[const SizedBox(height: 8), Text(tr(title), style: const TextStyle(fontWeight: FontWeight.w600))],
           const SizedBox(height: 4),
-          Text('${r['body'] ?? ''}', maxLines: compact ? 4 : null, overflow: compact ? TextOverflow.ellipsis : null, style: const TextStyle(height: 1.5)),
+          Text(tr('${r['body'] ?? ''}'), maxLines: compact ? 4 : null, overflow: compact ? TextOverflow.ellipsis : null, style: const TextStyle(height: 1.5)),
           if (reply != null && !compact) _replyBox(reply),
-          if (who.isNotEmpty) ...[const SizedBox(height: 8), Text(who, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13))],
-          if (about.isNotEmpty) Text(about, style: const TextStyle(fontSize: 12, color: ArjColors.ink600)),
+          if (who.isNotEmpty) ...[const SizedBox(height: 8), Text(tr(who), style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13))],
+          if (about.isNotEmpty) Text(tr(about), style: const TextStyle(fontSize: 12, color: ArjColors.ink600)),
         ]),
       ),
     );
@@ -172,10 +173,10 @@ class _ReviewsScreenState extends State<ReviewsScreen> {
         padding: const EdgeInsets.all(16),
         child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
           Column(children: [
-            Text(avg == null ? '–' : avg.toStringAsFixed(1), style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w600)),
+            Text(tr(avg == null ? '–' : avg.toStringAsFixed(1)), style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w600)),
             StarRow(avg ?? 0),
             const SizedBox(height: 4),
-            Text('$count review${count == 1 ? '' : 's'}', style: const TextStyle(fontSize: 12, color: ArjColors.ink600)),
+            Text(tr('{0} review{1}', [count, count == 1 ? '' : 's']), style: const TextStyle(fontSize: 12, color: ArjColors.ink600)),
           ]),
           const SizedBox(width: 16),
           Expanded(
@@ -193,7 +194,7 @@ class _ReviewsScreenState extends State<ReviewsScreen> {
     return Semantics(
       button: true,
       selected: selected,
-      label: '$stars star${stars == 1 ? '' : 's'}, $n review${n == 1 ? '' : 's'}${selected ? ', showing only these. Tap again to show all' : ''}',
+      label: tr('{0} star{1}, {2} review{3}{4}', [stars, stars == 1 ? '' : 's', n, n == 1 ? '' : 's', selected ? ', showing only these. Tap again to show all' : '']),
       onTap: () => _filter(stars),
       excludeSemantics: true,
       child: InkWell(
@@ -204,14 +205,14 @@ class _ReviewsScreenState extends State<ReviewsScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 5),
           decoration: BoxDecoration(color: selected ? ArjColors.gold50 : null, borderRadius: BorderRadius.circular(8), border: selected ? Border.all(color: ArjColors.gold200) : null),
           child: Row(children: [
-            SizedBox(width: 28, child: Text('$stars ★', style: TextStyle(fontWeight: selected ? FontWeight.w600 : FontWeight.normal))),
+            SizedBox(width: 28, child: Text(tr('$stars ★'), style: TextStyle(fontWeight: selected ? FontWeight.w600 : FontWeight.normal))),
             Expanded(
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(99),
                 child: LinearProgressIndicator(value: count == 0 ? 0 : n / count, minHeight: 8, backgroundColor: ArjColors.ivory200, color: ArjColors.gold500),
               ),
             ),
-            SizedBox(width: 36, child: Text('$n', textAlign: TextAlign.end)),
+            SizedBox(width: 36, child: Text(tr('$n'), textAlign: TextAlign.end)),
           ]),
         ),
       ),
@@ -232,13 +233,13 @@ class _ReviewsScreenState extends State<ReviewsScreen> {
         child: ListView(padding: const EdgeInsets.all(16), children: [
           if (s != null && ((s['count'] as num?) ?? 0) > 0) _summaryCard(s),
           const SizedBox(height: 12),
-          FilledButton.icon(onPressed: _write, icon: const Icon(Icons.rate_review_outlined), label: const Text('Write a review')),
+          FilledButton.icon(onPressed: _write, icon: const Icon(Icons.rate_review_outlined), label: Text(tr('Write a review'))),
           if (_rating != null)
             Padding(
               padding: const EdgeInsets.only(top: 12),
               child: Row(children: [
-                Expanded(child: Text('Showing $_rating-star reviews', style: const TextStyle(fontWeight: FontWeight.w600))),
-                TextButton(onPressed: () => _filter(null), child: const Text('Show all')),
+                Expanded(child: Text(tr('Showing {0}-star reviews', [_rating]), style: const TextStyle(fontWeight: FontWeight.w600))),
+                TextButton(onPressed: () => _filter(null), child: Text(tr('Show all'))),
               ]),
             ),
           const SizedBox(height: 12),
@@ -249,17 +250,17 @@ class _ReviewsScreenState extends State<ReviewsScreen> {
           else if (items.isEmpty)
             Padding(
               padding: const EdgeInsets.all(24),
-              child: Text(_rating == null ? 'No reviews yet. Be the first to share your experience.' : 'No $_rating-star reviews yet.', textAlign: TextAlign.center),
+              child: Text(tr(_rating == null ? 'No reviews yet. Be the first to share your experience.' : 'No $_rating-star reviews yet.'), textAlign: TextAlign.center),
             )
           else ...[
             for (final r in items) ReviewCard(r),
             if (_page < _lastPage)
-              OutlinedButton(onPressed: _loadingMore ? null : () => _load(more: true), child: Text(_loadingMore ? 'Loading…' : 'Load more')),
+              OutlinedButton(onPressed: _loadingMore ? null : () => _load(more: true), child: Text(tr(_loadingMore ? 'Loading…' : 'Load more'))),
           ],
         ]),
       );
     }
-    return Scaffold(appBar: AppBar(title: const Text('Client reviews')), body: SafeArea(child: body));
+    return Scaffold(appBar: AppBar(title: Text(tr('Client reviews'))), body: SafeArea(child: body));
   }
 }
 
@@ -310,10 +311,10 @@ class _MyReviewsScreenState extends State<MyReviewsScreen> {
             StarRow((r['rating'] as num?) ?? 0),
             ToneChip('${r['status_label'] ?? humanize(r['status'])}', _reviewStatusColor(r['status'])),
           ]),
-          if (subject != null) ...[const SizedBox(height: 6), Text(subject, style: const TextStyle(fontSize: 12, color: ArjColors.ink600))],
-          if (title != null) ...[const SizedBox(height: 8), Text(title, style: const TextStyle(fontWeight: FontWeight.w600))],
+          if (subject != null) ...[const SizedBox(height: 6), Text(tr(subject), style: const TextStyle(fontSize: 12, color: ArjColors.ink600))],
+          if (title != null) ...[const SizedBox(height: 8), Text(tr(title), style: const TextStyle(fontWeight: FontWeight.w600))],
           const SizedBox(height: 4),
-          Text('${r['body'] ?? ''}', style: const TextStyle(height: 1.5)),
+          Text(tr('${r['body'] ?? ''}'), style: const TextStyle(height: 1.5)),
           if (r['status'] == 'rejected' && reason != null)
             Container(
               margin: const EdgeInsets.only(top: 10),
@@ -324,21 +325,21 @@ class _MyReviewsScreenState extends State<MyReviewsScreen> {
                 border: Border.all(color: ArjColors.danger700.withValues(alpha: 0.3)),
               ),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                const Text('Why it was not published', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12)),
+                Text(tr('Why it was not published'), style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12)),
                 const SizedBox(height: 4),
-                Text(reason),
+                Text(tr(reason)),
                 const SizedBox(height: 4),
-                const Text('You can edit it and send it again.', style: TextStyle(fontSize: 12, color: ArjColors.ink600)),
+                Text(tr('You can edit it and send it again.'), style: TextStyle(fontSize: 12, color: ArjColors.ink600)),
               ]),
             ),
           if (reply != null) _replyBox(reply),
           Row(mainAxisAlignment: MainAxisAlignment.end, children: [
             if (r['editable'] == true)
-              TextButton.icon(onPressed: () => _open(WriteReviewScreen(state: widget.state, review: r)), icon: const Icon(Icons.edit_outlined), label: const Text('Edit')),
+              TextButton.icon(onPressed: () => _open(WriteReviewScreen(state: widget.state, review: r)), icon: const Icon(Icons.edit_outlined), label: Text(tr('Edit'))),
             TextButton.icon(
               onPressed: () => _delete(r),
               icon: const Icon(Icons.delete_outline),
-              label: const Text('Delete'),
+              label: Text(tr('Delete')),
               style: TextButton.styleFrom(foregroundColor: ArjColors.danger700),
             ),
           ]),
@@ -349,7 +350,7 @@ class _MyReviewsScreenState extends State<MyReviewsScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('My reviews')),
+        appBar: AppBar(title: Text(tr('My reviews'))),
         body: SafeArea(
           child: AsyncView<Map<String, dynamic>>(
             key: ValueKey(_v),
@@ -362,16 +363,16 @@ class _MyReviewsScreenState extends State<MyReviewsScreen> {
               return ListView(padding: const EdgeInsets.all(16), children: [
                 if (orders.isNotEmpty) ...[
                   const SectionTitle('Waiting for your review'),
-                  const Text('Tell others how it went. Reviews appear after our team has checked them.', style: TextStyle(color: ArjColors.ink600)),
+                  Text(tr('Tell others how it went. Reviews appear after our team has checked them.'), style: TextStyle(color: ArjColors.ink600)),
                   const SizedBox(height: 8),
                   for (final o in orders)
                     Card(
                       margin: const EdgeInsets.only(bottom: 8),
                       child: ListTile(
                         leading: const Icon(Icons.rate_review_outlined),
-                        title: Text('${o['label'] ?? 'Your order'}'),
-                        subtitle: o['paid_at'] == null ? null : Text('Paid ${formatAtOffset(o['paid_at'], pattern: 'd MMM yyyy')}'),
-                        trailing: const Icon(Icons.chevron_right, semanticLabel: 'Write a review'),
+                        title: Text(tr('${o['label'] ?? 'Your order'}')),
+                        subtitle: o['paid_at'] == null ? null : Text(tr('Paid {0}', [formatAtOffset(o['paid_at'], pattern: 'd MMM yyyy')])),
+                        trailing: Icon(Icons.chevron_right, semanticLabel: tr('Write a review')),
                         onTap: () => _open(WriteReviewScreen(state: widget.state, orderRef: '${o['ref']}', orderLabel: _text(o['label']), suggestedName: suggested)),
                       ),
                     ),
@@ -379,7 +380,7 @@ class _MyReviewsScreenState extends State<MyReviewsScreen> {
                 const SectionTitle('Your reviews'),
                 if (reviews.isEmpty)
                   Text(
-                    orders.isEmpty ? 'You have not written any reviews yet. After you pay for a consultation or a product, you can review it here.' : 'You have not written any reviews yet.',
+                    tr(orders.isEmpty ? 'You have not written any reviews yet. After you pay for a consultation or a product, you can review it here.' : 'You have not written any reviews yet.'),
                     style: const TextStyle(color: ArjColors.ink600),
                   ),
                 for (final rv in reviews) _own(rv),
@@ -489,24 +490,24 @@ class _WriteReviewScreenState extends State<WriteReviewScreen> {
     final general = _errors.entries.where((e) => !_fields.contains(e.key)).map((e) => e.value).join('\n');
     final err = Theme.of(context).colorScheme.error;
     return Scaffold(
-      appBar: AppBar(title: Text(_editing ? 'Edit your review' : 'Write a review')),
+      appBar: AppBar(title: Text(tr(_editing ? 'Edit your review' : 'Write a review'))),
       body: SafeArea(
         child: ListView(padding: const EdgeInsets.all(16), children: [
-          if (subject != null) ...[Text(subject, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)), const SizedBox(height: 12)],
-          const Text('Your rating', style: TextStyle(fontWeight: FontWeight.w600)),
+          if (subject != null) ...[Text(tr(subject), style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)), const SizedBox(height: 12)],
+          Text(tr('Your rating'), style: TextStyle(fontWeight: FontWeight.w600)),
           Row(children: [for (var i = 1; i <= 5; i++) _star(i)]),
-          if (_errors['rating'] != null) Text(_errors['rating']!, style: TextStyle(color: err, fontSize: 12)),
+          if (_errors['rating'] != null) Text(tr(_errors['rating']!), style: TextStyle(color: err, fontSize: 12)),
           const SizedBox(height: 12),
-          TextField(controller: _title, maxLength: 120, decoration: InputDecoration(labelText: 'Title (optional)', errorText: _errors['title'])),
+          TextField(controller: _title, maxLength: 120, decoration: InputDecoration(labelText: tr('Title (optional)'), errorText: trn(_errors['title']))),
           TextField(
             controller: _body,
             minLines: 4,
             maxLines: 8,
             maxLength: 2000,
-            decoration: InputDecoration(labelText: 'Your review', helperText: 'At least 20 characters.', errorText: _errors['body'], alignLabelWithHint: true),
+            decoration: InputDecoration(labelText: tr('Your review'), helperText: tr('At least 20 characters.'), errorText: trn(_errors['body']), alignLabelWithHint: true),
           ),
-          TextField(controller: _name, maxLength: 80, decoration: InputDecoration(labelText: 'Name to show', errorText: _errors['display_name'])),
-          TextField(controller: _city, maxLength: 80, decoration: InputDecoration(labelText: 'City (optional)', errorText: _errors['city'])),
+          TextField(controller: _name, maxLength: 80, decoration: InputDecoration(labelText: tr('Name to show'), errorText: trn(_errors['display_name']))),
+          TextField(controller: _city, maxLength: 80, decoration: InputDecoration(labelText: tr('City (optional)'), errorText: trn(_errors['city']))),
           if (!_editing)
             CheckboxListTile(
               value: _consent,
@@ -516,14 +517,14 @@ class _WriteReviewScreenState extends State<WriteReviewScreen> {
               }),
               controlAffinity: ListTileControlAffinity.leading,
               contentPadding: EdgeInsets.zero,
-              title: const Text(reviewConsentText, style: TextStyle(fontSize: 14)),
-              subtitle: _errors['consent'] == null ? null : Text(_errors['consent']!, style: TextStyle(color: err)),
+              title: Text(tr(reviewConsentText), style: TextStyle(fontSize: 14)),
+              subtitle: _errors['consent'] == null ? null : Text(tr(_errors['consent']!), style: TextStyle(color: err)),
             )
           else
-            const Text('After you save, our team checks the review again before it appears.', style: TextStyle(fontSize: 12, color: ArjColors.ink600)),
+            Text(tr('After you save, our team checks the review again before it appears.'), style: TextStyle(fontSize: 12, color: ArjColors.ink600)),
           FormError(general.isEmpty ? null : general),
           const SizedBox(height: 12),
-          FilledButton(onPressed: _busy ? null : _submit, child: Text(_busy ? 'Sending…' : (_editing ? 'Save changes' : 'Send review'))),
+          FilledButton(onPressed: _busy ? null : _submit, child: Text(tr(_busy ? 'Sending…' : (_editing ? 'Save changes' : 'Send review')))),
         ]),
       ),
     );
@@ -574,7 +575,7 @@ class _HomeReviewsState extends State<HomeReviews> {
           child: Row(children: [
             StarRow(_average!),
             const SizedBox(width: 8),
-            Text('${_average!.toStringAsFixed(1)} from $_count review${_count == 1 ? '' : 's'}', style: const TextStyle(color: ArjColors.ink600)),
+            Text(tr('{0} from {1} review{2}', [_average!.toStringAsFixed(1), _count, _count == 1 ? '' : 's']), style: const TextStyle(color: ArjColors.ink600)),
           ]),
         ),
       for (final r in _items) ReviewCard(r, compact: true),
@@ -582,7 +583,7 @@ class _HomeReviewsState extends State<HomeReviews> {
         alignment: Alignment.centerRight,
         child: TextButton(
           onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => ReviewsScreen(state: widget.state))),
-          child: const Text('All reviews'),
+          child: Text(tr('All reviews')),
         ),
       ),
     ]);

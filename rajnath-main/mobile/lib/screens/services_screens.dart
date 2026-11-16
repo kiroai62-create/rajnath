@@ -5,6 +5,7 @@ import '../api/api_client.dart';
 import '../models/slots.dart';
 import '../state/app_state.dart';
 import '../theme/app_theme.dart';
+import '../util/i18n.dart';
 import '../widgets/common.dart';
 import 'assistant_screen.dart';
 import 'purchase_screens.dart';
@@ -53,7 +54,7 @@ class _ServicesScreenState extends State<ServicesScreen> {
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(color: ArjColors.gold400, borderRadius: BorderRadius.circular(20)),
-                      child: const Text('Popular', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: ArjColors.ink900)),
+                      child: Text(tr('Popular'), style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: ArjColors.ink900)),
                     ),
                   ),
               ]),
@@ -62,9 +63,9 @@ class _ServicesScreenState extends State<ServicesScreen> {
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text('${o['title']}', maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14.5, height: 1.25)),
+                  Text(tr('${o['title']}'), maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14.5, height: 1.25)),
                   const SizedBox(height: 4),
-                  Expanded(child: Text('${o['summary'] ?? ''}', maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: ArjColors.ink600, fontSize: 12.5, height: 1.35))),
+                  Expanded(child: Text(tr('${o['summary'] ?? ''}'), maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: ArjColors.ink600, fontSize: 12.5, height: 1.35))),
                   const SizedBox(height: 6),
                   PriceChip(o['from_price_minor'] == null ? 'Price on request' : 'From ${formatPaise((o['from_price_minor'] as num).toInt())}'),
                 ]),
@@ -88,7 +89,7 @@ class _ServicesScreenState extends State<ServicesScreen> {
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
             sliver: SliverList.list(children: [
               TextField(
-                decoration: const InputDecoration(labelText: 'Search services', prefixIcon: Icon(Icons.search), hintText: 'e.g. marriage, Shani, Vastu, court case'),
+                decoration: InputDecoration(labelText: tr('Search services'), prefixIcon: Icon(Icons.search), hintText: tr('e.g. marriage, Shani, Vastu, court case')),
                 textInputAction: TextInputAction.search,
                 onSubmitted: (v) => setState(() => _q = v.trim()),
               ),
@@ -96,19 +97,19 @@ class _ServicesScreenState extends State<ServicesScreen> {
               SizedBox(
                 height: 40,
                 child: ListView(scrollDirection: Axis.horizontal, children: [
-                  ChoiceChip(label: const Text('All'), selected: _family == null, onSelected: (_) => setState(() => _family = null)),
-                  for (final f in fams) Padding(padding: const EdgeInsets.only(left: 8), child: ChoiceChip(label: Text('${f['name']}'), selected: _family == f['slug'], onSelected: (_) => setState(() => _family = '${f['slug']}'))),
+                  ChoiceChip(label: Text(tr('All')), selected: _family == null, onSelected: (_) => setState(() => _family = null)),
+                  for (final f in fams) Padding(padding: const EdgeInsets.only(left: 8), child: ChoiceChip(label: Text(tr('${f['name']}')), selected: _family == f['slug'], onSelected: (_) => setState(() => _family = '${f['slug']}'))),
                 ]),
               ),
               if (modes.isNotEmpty) ...[
                 const SizedBox(height: 10),
-                const Text('How would you like it?', style: TextStyle(color: ArjColors.ink600)),
+                Text(tr('How would you like it?'), style: TextStyle(color: ArjColors.ink600)),
                 const SizedBox(height: 6),
                 SizedBox(
                   height: 40,
                   child: ListView(scrollDirection: Axis.horizontal, children: [
-                    ChoiceChip(label: const Text('Any mode'), selected: _mode == null, onSelected: (_) => setState(() => _mode = null)),
-                    for (final m in modes) Padding(padding: const EdgeInsets.only(left: 8), child: ChoiceChip(label: Text('${m['label']}'), selected: _mode == m['key'], onSelected: (_) => setState(() => _mode = '${m['key']}'))),
+                    ChoiceChip(label: Text(tr('Any mode')), selected: _mode == null, onSelected: (_) => setState(() => _mode = null)),
+                    for (final m in modes) Padding(padding: const EdgeInsets.only(left: 8), child: ChoiceChip(label: Text(tr('${m['label']}')), selected: _mode == m['key'], onSelected: (_) => setState(() => _mode = '${m['key']}'))),
                   ]),
                 ),
               ],
@@ -118,13 +119,13 @@ class _ServicesScreenState extends State<ServicesScreen> {
                 color: ArjColors.gold50,
                 child: ListTile(
                   leading: const Icon(Icons.diamond_outlined, color: ArjColors.gold700),
-                  title: const Text('Gemstone store'),
-                  subtitle: const Text('Certified gemstones, rudraksha, yantras and puja kits'),
+                  title: Text(tr('Gemstone store')),
+                  subtitle: Text(tr('Certified gemstones, rudraksha, yantras and puja kits')),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => StoreScreen(state: widget.state))),
                 ),
               ),
-              if (items.isEmpty) const StatePanel(icon: Icons.search_off_rounded, message: 'No services match.'),
+              if (items.isEmpty) StatePanel(icon: Icons.search_off_rounded, message: tr('No services match.')),
             ]),
           ),
           SliverPadding(
@@ -173,17 +174,17 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
               Container(
                 width: 28, height: 28, alignment: Alignment.center,
                 decoration: BoxDecoration(shape: BoxShape.circle, color: ArjColors.gold50, border: Border.all(color: ArjColors.gold200)),
-                child: numbered ? Text('${i + 1}', style: const TextStyle(fontWeight: FontWeight.w700, color: ArjColors.gold700, fontSize: 13)) : const Icon(Icons.check, size: 16, color: ArjColors.gold700),
+                child: numbered ? Text(tr('${i + 1}'), style: const TextStyle(fontWeight: FontWeight.w700, color: ArjColors.gold700, fontSize: 13)) : const Icon(Icons.check, size: 16, color: ArjColors.gold700),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: s is Map
                     ? Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        Text('${s['title']}', style: const TextStyle(fontWeight: FontWeight.w600)),
+                        Text(tr('${s['title']}'), style: const TextStyle(fontWeight: FontWeight.w600)),
                         const SizedBox(height: 2),
-                        Text('${s['text']}', style: const TextStyle(color: ArjColors.ink600, height: 1.4)),
+                        Text(tr('${s['text']}'), style: const TextStyle(color: ArjColors.ink600, height: 1.4)),
                       ])
-                    : Padding(padding: const EdgeInsets.only(top: 4), child: Text('$s', style: const TextStyle(height: 1.45))),
+                    : Padding(padding: const EdgeInsets.only(top: 4), child: Text(tr('$s'), style: const TextStyle(height: 1.45))),
               ),
             ]),
           ),
@@ -197,11 +198,11 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
         future: _future,
         builder: (context, snap) {
           if (snap.connectionState != ConnectionState.done) {
-            return Scaffold(appBar: AppBar(title: const Text('Service')), body: const Center(child: CircularProgressIndicator()));
+            return Scaffold(appBar: AppBar(title: Text(tr('Service'))), body: const Center(child: CircularProgressIndicator()));
           }
           if (snap.hasError) {
             return Scaffold(
-              appBar: AppBar(title: const Text('Service')),
+              appBar: AppBar(title: Text(tr('Service'))),
               body: ErrorPanel(message: snap.error is ApiException ? (snap.error as ApiException).message : 'Something went wrong.', offline: snap.error is ApiException && (snap.error as ApiException).isOffline,
                   onRetry: () => Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => ServiceDetailScreen(state: state, slug: slug)))),
             );
@@ -216,29 +217,26 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
           return Column(children: [
             Expanded(
               child: CustomScrollView(slivers: [
-                SliverAppBar(
-                  pinned: true,
-                  expandedHeight: o['image_url'] != null ? 240 : null,
-                  title: const Text('Service'),
-                  flexibleSpace: o['image_url'] == null
-                      ? null
-                      : FlexibleSpaceBar(
-                          background: Stack(fit: StackFit.expand, children: [
-                            NetImage('${o['image_url']}', framed: true, semanticLabel: '${o['title']}', fallback: Container(color: ArjColors.ivory100)),
-                            const DecoratedBox(decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0x66000000), Color(0x00000000), Color(0x22000000)]))),
-                          ]),
-                        ),
-                ),
+                // A normal app bar keeps the status bar (time, network, battery) clear; the photo sits below it
+                // instead of being drawn behind the status bar and the back button.
+                SliverAppBar(pinned: true, title: Text(tr('Service'))),
+                if (o['image_url'] != null)
+                  SliverToBoxAdapter(
+                    child: AspectRatio(
+                      aspectRatio: 16 / 9,
+                      child: NetImage('${o['image_url']}', framed: true, semanticLabel: tr('${o['title']}'), fallback: Container(color: ArjColors.ivory100)),
+                    ),
+                  ),
                 SliverPadding(
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
                   sliver: SliverList.list(children: [
-                    if (o['family_name'] != null) Padding(padding: const EdgeInsets.only(bottom: 6), child: Text('${o['family_name']}'.toUpperCase(), style: tt.labelMedium?.copyWith(color: ArjColors.gold700, letterSpacing: 1.2))),
-                    Text('${o['title']}', style: tt.headlineSmall?.copyWith(fontWeight: FontWeight.w700)),
+                    if (o['family_name'] != null) Padding(padding: const EdgeInsets.only(bottom: 6), child: Text(tr('${o['family_name']}'.toUpperCase()), style: tt.labelMedium?.copyWith(color: ArjColors.gold700, letterSpacing: 1.2))),
+                    Text(tr('${o['title']}'), style: tt.headlineSmall?.copyWith(fontWeight: FontWeight.w700)),
                     const SizedBox(height: 6),
-                    Text('${o['summary']}', style: const TextStyle(color: ArjColors.ink600, height: 1.45)),
+                    Text(tr('${o['summary']}'), style: const TextStyle(color: ArjColors.ink600, height: 1.45)),
                     if (o['body'] != null) ...[
                       const SectionTitle('About'),
-                      for (final para in '${o['body']}'.split(RegExp(r'\n\s*\n'))) Padding(padding: const EdgeInsets.only(bottom: 10), child: Text(para.trim(), style: const TextStyle(height: 1.55))),
+                      for (final para in '${o['body']}'.split(RegExp(r'\n\s*\n'))) Padding(padding: const EdgeInsets.only(bottom: 10), child: Text(tr(para.trim()), style: const TextStyle(height: 1.55))),
                     ],
                     if (process.isNotEmpty) ...[const SectionTitle('How it is done'), _steps(process)],
                     if (benefits.isNotEmpty) ...[
@@ -248,7 +246,7 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                             decoration: BoxDecoration(color: ArjColors.ivory100, borderRadius: BorderRadius.circular(14)),
-                            child: Row(mainAxisSize: MainAxisSize.min, children: [const Icon(Icons.auto_awesome, size: 14, color: ArjColors.gold700), const SizedBox(width: 6), Flexible(child: Text('$b', style: const TextStyle(fontSize: 13)))]),
+                            child: Row(mainAxisSize: MainAxisSize.min, children: [const Icon(Icons.auto_awesome, size: 14, color: ArjColors.gold700), const SizedBox(width: 6), Flexible(child: Text(tr('$b'), style: const TextStyle(fontSize: 13)))]),
                           ),
                       ]),
                     ],
@@ -261,14 +259,14 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
                       Card(
                         margin: const EdgeInsets.only(bottom: 8),
                         child: ListTile(
-                          title: Text('${v['name']}', style: const TextStyle(fontWeight: FontWeight.w600)),
-                          subtitle: Text([if (v['duration_min'] != null) '${v['duration_min']} min', if ((v['participants'] ?? 1) > 1) '${v['participants']} people', if (v['urgent'] == true) 'Priority', formatPaise((v['price_minor'] as num?)?.toInt())].join(' · ')),
+                          title: Text(tr('${v['name']}'), style: const TextStyle(fontWeight: FontWeight.w600)),
+                          subtitle: Text(tr([if (v['duration_min'] != null) '${v['duration_min']} min', if ((v['participants'] ?? 1) > 1) '${v['participants']} people', if (v['urgent'] == true) 'Priority', formatPaise((v['price_minor'] as num?)?.toInt())].join(' · '))),
                           trailing: v['price_minor'] == null
                               ? null
                               : FilledButton(
                                   style: FilledButton.styleFrom(minimumSize: const Size(72, 42), padding: const EdgeInsets.symmetric(horizontal: 16)),
                                   onPressed: () => widget._buy(context, o, v),
-                                  child: Text(isSlotVariant(v) ? 'Book' : 'Buy', semanticsLabel: '${isSlotVariant(v) ? 'Book' : 'Buy'} ${v['name']}'),
+                                  child: Text(tr(isSlotVariant(v) ? 'Book' : 'Buy'), semanticsLabel: '${isSlotVariant(v) ? 'Book' : 'Buy'} ${v['name']}'),
                                 ),
                         ),
                       ),
@@ -280,19 +278,19 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
                       for (final f in faqs)
                         Card(
                           margin: const EdgeInsets.only(bottom: 8),
-                          child: ExpansionTile(title: Text('${f['q']}', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14.5)), childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 14), children: [Text('${f['a']}', style: const TextStyle(height: 1.45))]),
+                          child: ExpansionTile(title: Text(tr('${f['q']}'), style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14.5)), childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 14), children: [Text(tr('${f['a']}'), style: const TextStyle(height: 1.45))]),
                         ),
                     ],
                     if (o['disclaimer'] != null)
                       Container(margin: const EdgeInsets.only(top: 16), padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: ArjColors.gold50, borderRadius: BorderRadius.circular(12), border: Border.all(color: ArjColors.gold200)),
-                          child: Text('Please note: ${o['disclaimer']}')),
+                          child: Text(tr('Please note: {0}', [o['disclaimer']]))),
                     const SizedBox(height: 20),
                     if (variants.isEmpty || variants.any((v) => v['price_minor'] == null)) ...[
-                      FilledButton(onPressed: () => widget._request(context, o), child: const Text('Request this service')),
+                      FilledButton(onPressed: () => widget._request(context, o), child: Text(tr('Request this service'))),
                       const SizedBox(height: 8),
-                      const Text('Our team will call you to confirm the time and fee.', textAlign: TextAlign.center, style: TextStyle(color: ArjColors.ink600)),
+                      Text(tr('Our team will call you to confirm the time and fee.'), textAlign: TextAlign.center, style: TextStyle(color: ArjColors.ink600)),
                     ] else
-                      TextButton(onPressed: () => widget._request(context, o), child: const Text('Have a question first? Send us a request')),
+                      TextButton(onPressed: () => widget._request(context, o), child: Text(tr('Have a question first? Send us a request'))),
                   ]),
                 ),
               ]),
@@ -306,12 +304,12 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
                     child: Row(children: [
-                      Expanded(child: Text('${variants.length} option${variants.length == 1 ? '' : 's'} · pay securely online', style: const TextStyle(color: ArjColors.ink600, fontSize: 13))),
+                      Expanded(child: Text(tr('{0} option{1} · pay securely online', [variants.length, variants.length == 1 ? '' : 's']), style: const TextStyle(color: ArjColors.ink600, fontSize: 13))),
                       FilledButton.icon(
                         style: FilledButton.styleFrom(backgroundColor: ArjColors.gold400, foregroundColor: ArjColors.ink900),
                         onPressed: _toOptions,
                         icon: const Icon(Icons.event_available_outlined, size: 18),
-                        label: const Text('Choose an option'),
+                        label: Text(tr('Choose an option')),
                       ),
                     ]),
                   ),
@@ -379,8 +377,8 @@ class _RequestScreenState extends State<RequestScreen> {
         'mode': ?_mode, 'language': ?_language, if (_date != null) 'preferred_date': DateFormat('yyyy-MM-dd').format(_date!),
       });
       if (!mounted) return;
-      await showDialog<void>(context: context, builder: (_) => AlertDialog(title: const Text('Request received'),
-          content: Text('Thank you. Our team will call you to confirm. Reference ${('${r['data']['ref']}').substring(18)}.'), actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK'))]));
+      await showDialog<void>(context: context, builder: (_) => AlertDialog(title: Text(tr('Request received')),
+          content: Text(tr('Thank you. Our team will call you to confirm. Reference {0}.', [('${r['data']['ref']}').substring(18)])), actions: [TextButton(onPressed: () => Navigator.pop(context), child: Text(tr('OK')))]));
       if (mounted) Navigator.of(context).pop();
     } on ApiException catch (e) {
       setState(() => _errors = e.fieldErrors.isEmpty ? {'_': e.message} : e.fieldErrors);
@@ -391,46 +389,46 @@ class _RequestScreenState extends State<RequestScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('Send request')),
+        appBar: AppBar(title: Text(tr('Send request'))),
         body: SafeArea(
           child: ListView(padding: const EdgeInsets.all(20), children: [
-            Text(widget.title, style: Theme.of(context).textTheme.titleMedium),
+            Text(tr(widget.title), style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 16),
-            TextField(controller: _name, decoration: InputDecoration(labelText: 'Your name', errorText: _errors['name'])),
+            TextField(controller: _name, decoration: InputDecoration(labelText: tr('Your name'), errorText: trn(_errors['name']))),
             const SizedBox(height: 12),
-            TextField(controller: _phone, keyboardType: TextInputType.phone, decoration: InputDecoration(labelText: 'Mobile number', errorText: _errors['phone'])),
+            TextField(controller: _phone, keyboardType: TextInputType.phone, decoration: InputDecoration(labelText: tr('Mobile number'), errorText: trn(_errors['phone']))),
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
               initialValue: _mode,
-              decoration: InputDecoration(labelText: 'Preferred mode (optional)', errorText: _errors['mode']),
-              items: [for (final e in modes.entries) DropdownMenuItem(value: e.key, child: Text(e.value))],
+              decoration: InputDecoration(labelText: tr('Preferred mode (optional)'), errorText: trn(_errors['mode'])),
+              items: [for (final e in modes.entries) DropdownMenuItem(value: e.key, child: Text(tr(e.value)))],
               onChanged: (v) => setState(() => _mode = v),
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
               initialValue: _language,
-              decoration: InputDecoration(labelText: 'Language (optional)', errorText: _errors['language']),
-              items: [for (final l in languages) DropdownMenuItem(value: l, child: Text(l))],
+              decoration: InputDecoration(labelText: tr('Language (optional)'), errorText: trn(_errors['language'])),
+              items: [for (final l in languages) DropdownMenuItem(value: l, child: Text(tr(l)))],
               onChanged: (v) => setState(() => _language = v),
             ),
             ListTile(
               contentPadding: EdgeInsets.zero,
               leading: const Icon(Icons.event_outlined),
-              title: Text(_date == null ? 'Preferred date (optional)' : DateFormat('EEE, d MMM yyyy').format(_date!)),
-              subtitle: _errors['preferred_date'] != null ? Text(_errors['preferred_date']!, style: TextStyle(color: Theme.of(context).colorScheme.error)) : null,
-              trailing: _date == null ? null : IconButton(tooltip: 'Clear date', onPressed: () => setState(() => _date = null), icon: const Icon(Icons.clear)),
+              title: Text(tr(_date == null ? 'Preferred date (optional)' : DateFormat('EEE, d MMM yyyy').format(_date!))),
+              subtitle: _errors['preferred_date'] != null ? Text(tr(_errors['preferred_date']!), style: TextStyle(color: Theme.of(context).colorScheme.error)) : null,
+              trailing: _date == null ? null : IconButton(tooltip: tr('Clear date'), onPressed: () => setState(() => _date = null), icon: const Icon(Icons.clear)),
               onTap: () async {
                 final now = DateTime.now();
                 final d = await showDatePicker(context: context, firstDate: DateTime(now.year, now.month, now.day), lastDate: now.add(const Duration(days: 365)), initialDate: _date ?? now);
                 if (d != null) setState(() => _date = d);
               },
             ),
-            TextField(controller: _msg, maxLines: 3, decoration: const InputDecoration(labelText: 'Your question (optional)')),
+            TextField(controller: _msg, maxLines: 3, decoration: InputDecoration(labelText: tr('Your question (optional)'))),
             CheckboxListTile(contentPadding: EdgeInsets.zero, value: _consent, controlAffinity: ListTileControlAffinity.leading, onChanged: (v) => setState(() => _consent = v ?? false),
-                title: const Text('I agree to be contacted about this request'), subtitle: _errors['consent'] != null ? Text(_errors['consent']!, style: TextStyle(color: Theme.of(context).colorScheme.error)) : null),
-            if (_errors['_'] != null) Text(_errors['_']!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+                title: Text(tr('I agree to be contacted about this request')), subtitle: _errors['consent'] != null ? Text(tr(_errors['consent']!), style: TextStyle(color: Theme.of(context).colorScheme.error)) : null),
+            if (_errors['_'] != null) Text(tr(_errors['_']!), style: TextStyle(color: Theme.of(context).colorScheme.error)),
             const SizedBox(height: 12),
-            FilledButton(onPressed: _busy ? null : _submit, child: Text(_busy ? 'Sending…' : 'Send request')),
+            FilledButton(onPressed: _busy ? null : _submit, child: Text(tr(_busy ? 'Sending…' : 'Send request'))),
           ]),
         ),
       );

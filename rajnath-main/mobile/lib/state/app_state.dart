@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 
 import '../api/api_client.dart';
+import '../util/i18n.dart';
 import '../util/version.dart';
 
 /// App-wide session state. Signed-in user is loaded from /me using the stored token.
@@ -70,8 +71,8 @@ class AppState extends ChangeNotifier {
 
   /// Display names for the languages the server knows (config/locales.php).
   static const localeNames = {
-    'en': 'English', 'hi': 'हिन्दी', 'bn': 'বাংলা', 'gu': 'ગુજરાતી', 'kn': 'ಕನ್ನಡ',
-    'ml': 'മലയാളം', 'mr': 'मराठी', 'pa': 'ਪੰਜਾਬੀ', 'ta': 'தமிழ்', 'te': 'తెలుగు',
+    'en': 'English', 'hi': 'हिन्दी', 'bn': 'বাংলা', 'mr': 'मराठी', 'te': 'తెలుగు',
+    'ta': 'தமிழ்', 'gu': 'ગુજરાતી', 'ur': 'اردو', 'kn': 'ಕನ್ನಡ',
   };
 
   /// App language. Null until chosen (the server then uses the account's saved language, else English).
@@ -89,17 +90,24 @@ class AppState extends ChangeNotifier {
 
   Future<void> bootstrap() async {
     final saved = await api.savedLocale();
-    if (saved != null && localeNames.containsKey(saved)) api.locale = locale = saved;
+    if (saved != null && localeNames.containsKey(saved)) {
+      api.locale = locale = saved;
+      await I18n.useCached(saved); // the last language shows at once, even offline
+    }
     if (await api.token() != null) {
       try {
         user = (await api.get('/me'))['data'] as Map<String, dynamic>;
-        if (locale == null && localeNames.containsKey(user?['locale'])) api.locale = locale = '${user!['locale']}';
+        if (locale == null && localeNames.containsKey(user?['locale'])) {
+          api.locale = locale = '${user!['locale']}';
+          await I18n.useCached(locale!);
+        }
       } on ApiException catch (e) {
         if (e.status == 401) await api.clearToken();
       }
     }
     ready = true;
     notifyListeners();
+    unawaited(_refreshStrings());
     if (signedIn) unawaited(refreshUnread());
     // Admin › Mobile app settings (maintenance, update, banner, sections) apply as soon as they arrive.
     if (meta == null) unawaited(loadMeta());
@@ -109,7 +117,11 @@ class AppState extends ChangeNotifier {
     try {
       meta = await api.get('/meta');
       // a language saved earlier that the server no longer offers falls back to English
-      if (locale != null && !enabledLocales.contains(locale)) api.locale = locale = null;
+      if (locale != null && !enabledLocales.contains(locale)) {
+        api.locale = locale = null;
+        await I18n.useCached('en');
+        I18n.rebuildAll();
+      }
       notifyListeners();
     } catch (_) {/* offline: features fall back to defaults */}
     return meta;
@@ -137,15 +149,38 @@ class AppState extends ChangeNotifier {
   }
 
   /// Switches the app language: saved on the device, sent as Accept-Language, and saved to the account when signed in.
+  /// The app's own text (buttons, titles) switches too, on every open screen.
   Future<void> setLocale(String l) async {
     api.locale = locale = l;
+    await I18n.useCached(l);
     notifyListeners();
+    I18n.rebuildAll();
     await api.saveLocale(l);
+    // The newest translations arrive in the background; content from the server reloads via the listeners.
+    unawaited(_refreshStrings());
     if (signedIn) {
       final r = await api.patch('/me', {'locale': l});
       if (r['data'] is Map) setUser((r['data'] as Map).cast<String, dynamic>());
     }
   }
+
+  /// Fetches the newest translations. While the server is still translating new lines (a language chosen for
+  /// the first time), it asks again a few times, a few minutes apart.
+  Future<void> _refreshStrings({int round = 0}) async {
+    final l = locale;
+    if (await I18n.refresh(api)) {
+      notifyListeners();
+      I18n.rebuildAll();
+    }
+    if (I18n.pending > 0 && round < 5 && l != null && l != 'en') {
+      _stringsTimer?.cancel();
+      _stringsTimer = Timer(const Duration(minutes: 3), () {
+        if (locale == l) unawaited(_refreshStrings(round: round + 1));
+      });
+    }
+  }
+
+  Timer? _stringsTimer;
 
   void setUser(Map<String, dynamic> u) {
     user = u;

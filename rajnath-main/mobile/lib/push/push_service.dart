@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../state/app_state.dart';
+import '../util/i18n.dart';
 
 // The backend contract stores classic FCM registration tokens (POST /push-tokens) and sends with
 // them, so we deliberately keep getToken()/onTokenRefresh. firebase_messaging 17 deprecates them in
@@ -128,8 +129,8 @@ class PushService {
     final text = [title, body].whereType<String>().where((s) => s.isNotEmpty).join(' — ');
     if (text.isEmpty) return;
     messengerKey?.currentState?.showSnackBar(SnackBar(
-      content: Text(text),
-      action: SnackBarAction(label: 'View', onPressed: () => _open(m)),
+      content: Text(tr(text)),
+      action: SnackBarAction(label: tr('View'), onPressed: () => _open(m)),
       duration: const Duration(seconds: 6),
     ));
   }

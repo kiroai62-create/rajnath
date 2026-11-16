@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'api/api_client.dart';
 import 'api/app_analytics.dart';
@@ -14,6 +15,7 @@ import 'screens/astro_screens.dart';
 import 'screens/blog_screens.dart';
 import 'screens/content_screens.dart';
 import 'screens/info_screens.dart';
+import 'screens/puja_request_screens.dart';
 import 'screens/review_screens.dart';
 import 'screens/routing.dart';
 import 'screens/services_screens.dart';
@@ -22,6 +24,7 @@ import 'screens/store_screens.dart';
 import 'screens/tool_screens.dart';
 import 'state/app_state.dart';
 import 'theme/app_theme.dart';
+import 'util/i18n.dart';
 import 'util/validators.dart';
 import 'widgets/common.dart';
 
@@ -51,14 +54,21 @@ class ArjApp extends StatelessWidget {
     return _app();
   }
 
-  Widget _app() => MaterialApp(
-        navigatorKey: navigatorKey,
-        navigatorObservers: [ScreenObserver()],
-        scaffoldMessengerKey: messengerKey,
-        title: 'Astro Rajnath Jha',
-        debugShowCheckedModeBanner: false,
-        theme: buildArjTheme(),
-        home: ListenableBuilder(listenable: state, builder: (_, _) => HomeShell(state: state)),
+  Widget _app() => ValueListenableBuilder<String>(
+        valueListenable: I18n.current,
+        builder: (_, locale, _) => MaterialApp(
+          navigatorKey: navigatorKey,
+          navigatorObservers: [ScreenObserver()],
+          scaffoldMessengerKey: messengerKey,
+          title: 'Astro Rajnath Jha',
+          debugShowCheckedModeBanner: false,
+          theme: buildArjTheme(),
+          // The chosen language also drives the built-in texts (date picker, back button) and right-to-left for Urdu.
+          locale: Locale(locale),
+          supportedLocales: [for (final l in AppState.localeNames.keys) Locale(l)],
+          localizationsDelegates: GlobalMaterialLocalizations.delegates,
+          home: ListenableBuilder(listenable: state, builder: (_, _) => HomeShell(state: state)),
+        ),
       );
 }
 
@@ -72,13 +82,43 @@ class HomeShell extends StatefulWidget {
 class _HomeShellState extends State<HomeShell> {
   int _tab = 0;
 
+  /// Tabs visited, so the back button retraces them before leaving the app.
+  final List<int> _history = [];
+  DateTime? _backAt;
+
+  void _selectTab(int i) {
+    if (i == _tab) return;
+    setState(() {
+      _history.remove(i);
+      _history.add(_tab);
+      _tab = i;
+    });
+  }
+
+  /// Back on a tab goes to the previous tab (finally Home); on Home a second press within 2 seconds closes the app.
+  void _onBack() {
+    if (_history.isNotEmpty || _tab != 0) {
+      setState(() => _tab = _history.isNotEmpty ? _history.removeLast() : 0);
+      return;
+    }
+    final now = DateTime.now();
+    if (_backAt != null && now.difference(_backAt!) < const Duration(seconds: 2)) {
+      SystemNavigator.pop();
+      return;
+    }
+    _backAt = now;
+    ScaffoldMessenger.maybeOf(context)
+      ?..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(tr('Press back again to close the app')), duration: const Duration(seconds: 2)));
+  }
+
   @override
   Widget build(BuildContext context) {
     // Admin › Mobile app can put the app into maintenance or require an update.
     if (widget.state.maintenanceMessage != null) return AppGateScreen.maintenance(state: widget.state);
     if (widget.state.updateRequired) return AppGateScreen.update(state: widget.state);
     final pages = [
-      HomeTab(state: widget.state, onOpenServices: () => setState(() => _tab = 1)),
+      HomeTab(state: widget.state, onOpenServices: () => _selectTab(1)),
       ServicesScreen(state: widget.state),
       ToolsTab(state: widget.state),
       AccountScreen(state: widget.state),
@@ -86,7 +126,12 @@ class _HomeShellState extends State<HomeShell> {
     ];
     final state = widget.state;
     const titles = ['Astro Rajnath Jha', 'Our services', 'Tools & guidance', 'My account', 'More'];
-    return Scaffold(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _onBack();
+      },
+      child: Scaffold(
       appBar: AppBar(
         titleSpacing: 12,
         bottom: const BrandStripe(),
@@ -98,17 +143,17 @@ class _HomeShellState extends State<HomeShell> {
                 ? ShaderMask(
                     blendMode: BlendMode.srcIn,
                     shaderCallback: (b) => const LinearGradient(colors: [ArjColors.maroon700, ArjColors.maroon500, ArjColors.saffron600]).createShader(b),
-                    child: Text(titles[_tab], overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w700)),
+                    child: Text(tr(titles[_tab]), overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w700)),
                   )
-                : Text(titles[_tab], overflow: TextOverflow.ellipsis),
+                : Text(tr(titles[_tab]), overflow: TextOverflow.ellipsis),
           ),
         ]),
         actions: [
-          if (state.assistantEnabled) IconButton(tooltip: 'Ask our AI assistant', icon: const Icon(Icons.auto_awesome_outlined), onPressed: () => openAssistant(context, state)),
+          if (state.assistantEnabled) IconButton(tooltip: tr('Ask our AI assistant'), icon: const Icon(Icons.auto_awesome_outlined), onPressed: () => openAssistant(context, state)),
           if (state.signedIn)
             IconButton(
-              tooltip: 'Notifications',
-              icon: Badge(isLabelVisible: state.unread > 0, label: Text('${state.unread}'), child: const Icon(Icons.notifications_none_rounded)),
+              tooltip: tr('Notifications'),
+              icon: Badge(isLabelVisible: state.unread > 0, label: Text(tr('${state.unread}')), child: const Icon(Icons.notifications_none_rounded)),
               onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => NotificationsScreen(state: state))),
             ),
           const SizedBox(width: 4),
@@ -128,22 +173,23 @@ class _HomeShellState extends State<HomeShell> {
         selectedIndex: _tab,
         onDestinationSelected: (i) {
           HapticFeedback.selectionClick();
-          setState(() => _tab = i);
+          _selectTab(i);
         },
         destinations: [
-          const NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'Home'),
-          const NavigationDestination(icon: Icon(Icons.auto_awesome_outlined), selectedIcon: Icon(Icons.auto_awesome), label: 'Services'),
-          const NavigationDestination(icon: Icon(Icons.calculate_outlined), selectedIcon: Icon(Icons.calculate), label: 'Tools'),
+          NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: tr('Home')),
+          NavigationDestination(icon: Icon(Icons.auto_awesome_outlined), selectedIcon: Icon(Icons.auto_awesome), label: tr('Services')),
+          NavigationDestination(icon: Icon(Icons.calculate_outlined), selectedIcon: Icon(Icons.calculate), label: tr('Tools')),
           NavigationDestination(
-            icon: Badge(isLabelVisible: widget.state.unread > 0, label: Text('${widget.state.unread}'), child: const Icon(Icons.person_outline)),
-            selectedIcon: Badge(isLabelVisible: widget.state.unread > 0, label: Text('${widget.state.unread}'), child: const Icon(Icons.person)),
-            label: 'Account',
-            tooltip: widget.state.unread > 0 ? 'Account, ${widget.state.unread} unread notifications' : 'Account',
+            icon: Badge(isLabelVisible: widget.state.unread > 0, label: Text(tr('${widget.state.unread}')), child: const Icon(Icons.person_outline)),
+            selectedIcon: Badge(isLabelVisible: widget.state.unread > 0, label: Text(tr('${widget.state.unread}')), child: const Icon(Icons.person)),
+            label: tr('Account'),
+            tooltip: trn(widget.state.unread > 0 ? 'Account, ${widget.state.unread} unread notifications' : 'Account'),
           ),
-          const NavigationDestination(icon: Icon(Icons.menu), label: 'More'),
+          NavigationDestination(icon: Icon(Icons.menu), label: tr('More')),
         ],
         ),
       ),
+    ),
     );
   }
 }
@@ -190,7 +236,7 @@ class _AskAiButtonState extends State<_AskAiButton> with SingleTickerProviderSta
   @override
   Widget build(BuildContext context) => Semantics(
         button: true,
-        label: 'Ask AI',
+        label: tr('Ask AI'),
         child: Material(
           color: Colors.transparent,
           child: InkWell(
@@ -216,7 +262,7 @@ class _AskAiButtonState extends State<_AskAiButton> with SingleTickerProviderSta
                   child: Image.asset('assets/images/logo-mark-light.png', width: 40, height: 40, excludeFromSemantics: true),
                 ),
                 const SizedBox(width: 10),
-                const Text('Ask AI', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15)),
+                Text(tr('Ask AI'), style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15)),
               ]),
             ),
           ),
@@ -285,21 +331,18 @@ class _HomeTabState extends State<HomeTab> {
 
   void _push(Widget Function() page) => Navigator.of(context).push(MaterialPageRoute(builder: (_) => page()));
 
-  /// Services filtered to one family (puja, chadhava), with its own app bar.
-  Widget _family(String title, String family) => Scaffold(appBar: AppBar(title: Text(title)), body: SafeArea(child: ServicesScreen(state: state, initialFamily: family)));
-
   /// The "Everything in one place" tiles: website art, label, screen, and the app feature that hides it.
   List<(String, String, Widget Function(), String?)> get _ecosystem => [
         ('kundli', 'Free Kundli', () => KundliScreen(state: state), null),
         ('kundli-matching', 'Kundli matching', () => KundliScreen(state: state, matching: true), null),
-        ('family-puja', 'Online puja', () => _family('Online puja', 'puja'), 'puja'),
-        ('family-chadhava', 'Chadhava', () => _family('Chadhava', 'chadhava'), 'puja'),
+        // As on the website: online puja and chadhava are requested with one form; the team fixes the date.
+        ('family-puja', 'Puja on request', () => PujaRequestScreen(state: state), 'puja'),
         ('gems', 'Gemstones & samagri', () => StoreScreen(state: state), 'store'),
         ('panchang', 'Panchang', () => PanchangScreen(state: state), null),
         ('muhurat', 'Muhurat', () => MuhuratScreen(state: state), null),
         ('gochar', 'Grah gochar', () => GocharScreen(state: state), null),
         ('festivals', 'Festivals', () => FestivalsScreen(state: state), null),
-        ('calculators', 'Calculators', () => Scaffold(appBar: AppBar(title: const Text('Calculators')), body: SafeArea(child: ToolsTab(state: state))), null),
+        ('calculators', 'Calculators', () => Scaffold(appBar: AppBar(title: Text(tr('Calculators'))), body: SafeArea(child: ToolsTab(state: state))), null),
         ('blog', 'Articles', () => BlogScreen(state: state), 'blog'),
         ('courses', 'Courses', () => CoursesScreen(state: state), 'blog'),
       ].where((t) => t.$4 == null || state.featureOn(t.$4!)).toList();
@@ -328,7 +371,7 @@ class _HomeTabState extends State<HomeTab> {
                 ),
                 Padding(
                   padding: const EdgeInsets.fromLTRB(6, 7, 6, 9),
-                  child: Text(label, textAlign: TextAlign.center, maxLines: 2, overflow: TextOverflow.ellipsis,
+                  child: Text(tr(label), textAlign: TextAlign.center, maxLines: 2, overflow: TextOverflow.ellipsis,
                       style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: ArjColors.ink900, height: 1.2)),
                 ),
               ]),
@@ -376,13 +419,13 @@ class _HomeTabState extends State<HomeTab> {
       Row(children: [
         Container(width: 18, height: 2, color: ArjColors.gold300),
         const SizedBox(width: 8),
-        Flexible(child: Text(eyebrow, style: tt.labelMedium?.copyWith(color: ArjColors.gold200, letterSpacing: 1.6, fontWeight: FontWeight.w700))),
+        Flexible(child: Text(tr(eyebrow), style: tt.labelMedium?.copyWith(color: ArjColors.gold200, letterSpacing: 1.6, fontWeight: FontWeight.w700))),
       ]),
       const SizedBox(height: 12),
-      Text('Clear, practical guidance from', style: heading),
+      Text(tr('Clear, practical guidance from'), style: heading),
       GoldGradientText(name, style: heading?.copyWith(fontSize: 27)),
       const SizedBox(height: 10),
-      Text(_or(home['subtitle'], 'Ph.D. in Astrology · Director, Jyotirveda Vigyan Sansthan, Patna · 30+ years of practice'),
+      Text(tr(_or(home['subtitle'], 'Ph.D. in Astrology · Director, Jyotirveda Vigyan Sansthan, Patna · 30+ years of practice')),
           style: TextStyle(color: Colors.white.withValues(alpha: 0.8), height: 1.5, fontSize: 15)),
     ]);
     final portrait = Stack(alignment: Alignment.center, clipBehavior: Clip.none, children: [
@@ -408,13 +451,13 @@ class _HomeTabState extends State<HomeTab> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
           decoration: BoxDecoration(color: ArjColors.ink950.withValues(alpha: 0.85), borderRadius: BorderRadius.circular(40), border: Border.all(color: ArjColors.gold300.withValues(alpha: 0.6))),
-          child: const Text('Ph.D. in Astrology · Patna and online', style: TextStyle(color: ArjColors.gold200, fontSize: 12, fontWeight: FontWeight.w600)),
+          child: Text(tr('Ph.D. in Astrology · Patna and online'), style: TextStyle(color: ArjColors.gold200, fontSize: 12, fontWeight: FontWeight.w600)),
         ),
       ),
     ]);
     final ctas = Wrap(spacing: 10, runSpacing: 10, crossAxisAlignment: WrapCrossAlignment.center, children: [
-      GoldButton(label: 'Book a consultation', icon: Icons.calendar_month_outlined, onPressed: widget.onOpenServices),
-      GlassButton(label: 'Get free Kundli', icon: Icons.auto_awesome, onPressed: () => _push(() => KundliScreen(state: state))),
+      GoldButton(label: tr('Book a consultation'), icon: Icons.calendar_month_outlined, onPressed: widget.onOpenServices),
+      GlassButton(label: tr('Get free Kundli'), icon: Icons.auto_awesome, onPressed: () => _push(() => KundliScreen(state: state))),
     ]);
     final hero = Container(
       decoration: BoxDecoration(
@@ -459,19 +502,19 @@ class _HomeTabState extends State<HomeTab> {
       child: Row(children: [
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(first.isEmpty ? 'Namaste 🙏' : 'Namaste, $first 🙏', style: tt.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
+            Text(tr(first.isEmpty ? 'Namaste 🙏' : 'Namaste, $first 🙏'), style: tt.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
             const SizedBox(height: 4),
-            Text('${days[now.weekday - 1]}, ${now.day} ${months[now.month - 1]}${_today == null ? '' : ' · $_today'}', style: const TextStyle(color: ArjColors.ink600, fontSize: 13)),
+            Text(tr('${days[now.weekday - 1]}, ${now.day} ${months[now.month - 1]}${_today == null ? '' : ' · $_today'}'), style: const TextStyle(color: ArjColors.ink600, fontSize: 13)),
           ]),
         ),
-        IconButton.filledTonal(tooltip: "Today's Panchang", onPressed: () => _push(() => PanchangScreen(state: state)), icon: const Icon(Icons.wb_sunny_outlined, color: ArjColors.gold700)),
+        IconButton.filledTonal(tooltip: tr("Today's Panchang"), onPressed: () => _push(() => PanchangScreen(state: state)), icon: const Icon(Icons.wb_sunny_outlined, color: ArjColors.gold700)),
       ]),
     );
     final quick = <(IconData, String, VoidCallback)>[
       if (state.assistantEnabled) (Icons.auto_awesome, 'Ask AI', () => openAssistant(context, state)),
       if (state.featureOn('consultation')) (Icons.videocam_outlined, 'Book a call', () => _push(() => ServiceDetailScreen(state: state, slug: 'consultation-with-acharya-ji'))),
       if (state.featureOn('palm')) (Icons.back_hand_outlined, 'Palm reading', () => _push(() => ServiceDetailScreen(state: state, slug: 'palmistry'))),
-      if (state.featureOn('puja')) (Icons.temple_hindu_outlined, 'Book a puja', () => _push(() => _family('Online puja', 'puja'))),
+      if (state.featureOn('puja')) (Icons.temple_hindu_outlined, 'Request a puja', () => _push(() => PujaRequestScreen(state: state))),
       if (state.featureOn('store')) (Icons.storefront_outlined, 'Shop', () => _push(() => StoreScreen(state: state))),
       (Icons.home_work_outlined, 'Vastu', () => _push(() => ServiceDetailScreen(state: state, slug: 'vastu-consultation'))),
     ];
@@ -491,7 +534,7 @@ class _HomeTabState extends State<HomeTab> {
               child: Column(children: [
                 IconOrb(size: 58, child: Icon(icon, color: ArjColors.gold300)),
                 const SizedBox(height: 7),
-                Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                Text(tr(label), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
               ]),
             ),
           );
@@ -539,14 +582,14 @@ class _HomeTabState extends State<HomeTab> {
                         AspectRatio(aspectRatio: 16 / 10, child: NetImage('${o['image_url'] ?? ''}', framed: true, fallback: Container(color: ArjColors.ivory100))),
                         Padding(
                           padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
-                          child: Text('${o['title']}', maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w700, height: 1.25)),
+                          child: Text(tr('${o['title']}'), maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w700, height: 1.25)),
                         ),
                         const Spacer(),
                         Padding(
                           padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
                           child: Row(children: [
                             Expanded(child: PriceChip(o['from_price_minor'] == null ? 'Price on request' : 'From ${formatPaise((o['from_price_minor'] as num).toInt())}')),
-                            const Text('View →', style: TextStyle(color: ArjColors.gold700, fontWeight: FontWeight.w700, fontSize: 12.5)),
+                            Text(tr('View →'), style: TextStyle(color: ArjColors.gold700, fontWeight: FontWeight.w700, fontSize: 12.5)),
                           ]),
                         ),
                       ]),
@@ -580,9 +623,9 @@ class _HomeTabState extends State<HomeTab> {
                     child: SizedBox(
                       width: 72,
                       child: Column(children: [
-                        IconOrb(child: Text(_signInitials[i], style: const TextStyle(color: ArjColors.gold200, fontSize: 18, fontWeight: FontWeight.w700))),
+                        IconOrb(child: Text(tr(_signInitials[i]), style: const TextStyle(color: ArjColors.gold200, fontSize: 18, fontWeight: FontWeight.w700))),
                         const SizedBox(height: 6),
-                        Text(signNames[i].split(' ').first, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
+                        Text(tr(signNames[i].split(' ').first), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
                       ]),
                     ),
                   ),
@@ -596,7 +639,7 @@ class _HomeTabState extends State<HomeTab> {
         if (_products.isNotEmpty) ...[
           Row(children: [
             const Expanded(child: SectionTitle('From our store', eyebrow: 'Certified gemstones · Rudraksha · Puja samagri')),
-            TextButton(onPressed: () => _push(() => StoreScreen(state: state)), child: const Text('See all')),
+            TextButton(onPressed: () => _push(() => StoreScreen(state: state)), child: Text(tr('See all'))),
           ]),
           SizedBox(
             height: 236,
@@ -613,7 +656,7 @@ class _HomeTabState extends State<HomeTab> {
         if (_articles.isNotEmpty) ...[
           Row(children: [
             const Expanded(child: SectionTitle('Latest articles')),
-            TextButton(onPressed: () => _push(() => BlogScreen(state: state)), child: const Text('See all')),
+            TextButton(onPressed: () => _push(() => BlogScreen(state: state)), child: Text(tr('See all'))),
           ]),
           SizedBox(
             height: 290,
@@ -633,16 +676,16 @@ class _HomeTabState extends State<HomeTab> {
           child: Column(children: [
             ListTile(
                 leading: const Icon(Icons.brightness_3_outlined),
-                title: const Text('Rashifal'),
-                subtitle: const Text('Daily, weekly, monthly and yearly'),
+                title: Text(tr('Rashifal')),
+                subtitle: Text(tr('Daily, weekly, monthly and yearly')),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => _push(() => HoroscopeScreen(state: state))),
             if (state.featureOn('gallery')) ...[
               const Divider(height: 1),
               ListTile(
                   leading: const Icon(Icons.photo_library_outlined),
-                  title: const Text('Photo gallery'),
-                  subtitle: const Text('Pujas, events and awards'),
+                  title: Text(tr('Photo gallery')),
+                  subtitle: Text(tr('Pujas, events and awards')),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () => _push(() => GalleryScreen(state: state))),
             ],
@@ -650,8 +693,8 @@ class _HomeTabState extends State<HomeTab> {
               const Divider(height: 1),
               ListTile(
                   leading: const Icon(Icons.chat_bubble_outline),
-                  title: const Text('Ask our assistant'),
-                  subtitle: const Text('Answers, prices and bookings in your language'),
+                  title: Text(tr('Ask our assistant')),
+                  subtitle: Text(tr('Answers, prices and bookings in your language')),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () => openAssistant(context, state)),
             ],
@@ -666,7 +709,7 @@ class _HomeTabState extends State<HomeTab> {
       if (state.updateAvailable && !_hideUpdate) UpdateNote(state: state, onClose: () => setState(() => _hideUpdate = true)),
       for (final key in state.homeSections(_defaultSections)) ...?sections[key],
       const SizedBox(height: 24),
-      const Text('Astrological guidance is traditional and interpretive. It does not replace medical, legal or financial advice.', style: TextStyle(fontSize: 12, color: ArjColors.ink600)),
+      Text(tr('Astrological guidance is traditional and interpretive. It does not replace medical, legal or financial advice.'), style: TextStyle(fontSize: 12, color: ArjColors.ink600)),
     ]);
   }
 }

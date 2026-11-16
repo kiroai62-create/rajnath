@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../api/api_client.dart';
 import '../state/app_state.dart';
 import '../theme/app_theme.dart';
+import '../util/i18n.dart';
 import '../util/validators.dart';
 import '../widgets/common.dart';
 import 'assistant_screen.dart';
@@ -45,7 +46,7 @@ class _ToolsTabState extends State<ToolsTab> {
 
   Widget _card(String title, String subtitle, Widget Function() page) => Card(
         margin: const EdgeInsets.only(bottom: 8),
-        child: ListTile(title: Text(title), subtitle: Text(subtitle), trailing: const Icon(Icons.chevron_right), onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => page()))),
+        child: ListTile(title: Text(tr(title)), subtitle: Text(tr(subtitle)), trailing: const Icon(Icons.chevron_right), onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => page()))),
       );
 
   @override
@@ -87,8 +88,8 @@ class _ToolsTabState extends State<ToolsTab> {
                 Card(
                   margin: const EdgeInsets.only(bottom: 8),
                   child: ListTile(
-                    title: Text('${t['title']}'),
-                    subtitle: Text('${t['description'] ?? ''}'),
+                    title: Text(tr('${t['title']}')),
+                    subtitle: Text(tr('${t['description'] ?? ''}')),
                     trailing: const Icon(Icons.chevron_right),
                     onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => screenForTool(s, t))),
                   ),
@@ -112,7 +113,7 @@ class _DateButton extends StatelessWidget {
   Widget build(BuildContext context) => Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         OutlinedButton.icon(
           icon: const Icon(Icons.calendar_today),
-          label: Text(value == null ? label : DateFormat('d MMM yyyy').format(value!)),
+          label: Text(tr(value == null ? label : DateFormat('d MMM yyyy').format(value!))),
           onPressed: () async {
             final d = await showDatePicker(context: context, firstDate: DateTime(1800), lastDate: DateTime.now(), initialDate: value ?? DateTime(1990));
             if (d != null) onChanged(d);
@@ -216,12 +217,12 @@ class _ToolScreenState extends State<ToolScreen> {
 
   Widget _text(TextEditingController c, String key, String label, {TextCapitalization caps = TextCapitalization.words, TextInputType? type}) => Padding(
         padding: const EdgeInsets.only(bottom: 12),
-        child: TextField(controller: c, textCapitalization: caps, keyboardType: type, decoration: InputDecoration(labelText: label, errorText: _errors[key])),
+        child: TextField(controller: c, textCapitalization: caps, keyboardType: type, decoration: InputDecoration(labelText: trn(label), errorText: trn(_errors[key]))),
       );
 
   Widget _dobField() => Padding(
         padding: const EdgeInsets.only(bottom: 12),
-        child: _DateButton(label: 'Date of birth', value: _dob, error: _errors['birth_date'], onChanged: (d) => setState(() => _dob = d)),
+        child: _DateButton(label: tr('Date of birth'), value: _dob, error: _errors['birth_date'], onChanged: (d) => setState(() => _dob = d)),
       );
 
   List<Widget> _form() => switch (_input) {
@@ -256,36 +257,36 @@ class _ToolScreenState extends State<ToolScreen> {
     final t = widget.tool;
     final supported = supportedToolInputs.contains(_input);
     return Scaffold(
-      appBar: AppBar(title: Text('${t['title']}')),
+      appBar: AppBar(title: Text(tr('${t['title']}'))),
       body: SafeArea(
         child: ListView(padding: const EdgeInsets.all(16), children: [
-          if (t['description'] != null) Text('${t['description']}', style: const TextStyle(color: ArjColors.ink600)),
+          if (t['description'] != null) Text(tr('${t['description']}'), style: const TextStyle(color: ArjColors.ink600)),
           if (toolKindLabels[t['kind']] != null) ...[
             const SizedBox(height: 8),
             Row(children: [ToneChip(toolKindLabels[t['kind']]!, t['kind'] == 'entertainment' ? ArjColors.gold700 : ArjColors.ink600)]),
           ],
           const SizedBox(height: 16),
           if (!supported) ...[
-            const Text('This calculator is available on the website.'),
+            Text(tr('This calculator is available on the website.')),
             const SizedBox(height: 12),
-            OutlinedButton.icon(onPressed: () => openExternal(context, '$siteOrigin/tools/$_slug'), icon: const Icon(Icons.open_in_new), label: const Text('Open on the website')),
+            OutlinedButton.icon(onPressed: () => openExternal(context, '$siteOrigin/tools/$_slug'), icon: const Icon(Icons.open_in_new), label: Text(tr('Open on the website'))),
           ] else ...[
             ..._form(),
             FormError(_errors['_']),
             const SizedBox(height: 16),
-            FilledButton(onPressed: _busy ? null : _calc, child: Text(_busy ? 'Calculating…' : 'Calculate')),
+            FilledButton(onPressed: _busy ? null : _calc, child: Text(tr(_busy ? 'Calculating…' : 'Calculate'))),
           ],
           if (_display != null && _pdfUrl != null)
             Padding(
               padding: const EdgeInsets.only(bottom: 12),
               child: Align(
                 alignment: Alignment.centerRight,
-                child: OutlinedButton.icon(onPressed: () => openExternal(context, _pdfUrl!), icon: const Icon(Icons.picture_as_pdf_outlined), label: const Text('Download PDF')),
+                child: OutlinedButton.icon(onPressed: () => openExternal(context, _pdfUrl!), icon: const Icon(Icons.picture_as_pdf_outlined), label: Text(tr('Download PDF'))),
               ),
             ),
           if (_display != null) ToolDisplayView(_display!),
           if (_display != null)
-            AskAiCard(state: widget.state, page: 'tool:$_slug', label: 'Explain my result with AI', question: 'Explain my ${widget.tool['title']} result in simple words. What does it mean for me?',
+            AskAiCard(state: widget.state, page: 'tool:$_slug', label: tr('Explain my result with AI'), question: 'Explain my ${widget.tool['title']} result in simple words. What does it mean for me?',
                 suggestions: const ['What remedies are suggested?', 'Should I book a consultation?']),
         ]),
       ),

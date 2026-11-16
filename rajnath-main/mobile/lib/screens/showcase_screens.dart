@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../api/api_client.dart';
 import '../state/app_state.dart';
 import '../theme/app_theme.dart';
+import '../util/i18n.dart';
 import '../util/validators.dart';
 import '../widgets/common.dart';
 import 'activity_screens.dart';
@@ -66,9 +67,9 @@ class ProfileStats extends StatelessWidget {
       Widget body((String, String) i) => Padding(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(i.$1, style: tt.titleLarge?.copyWith(fontWeight: FontWeight.w700, letterSpacing: -0.3, color: onDark ? ArjColors.gold400 : ArjColors.ink900)),
+              Text(tr(i.$1), style: tt.titleLarge?.copyWith(fontWeight: FontWeight.w700, letterSpacing: -0.3, color: onDark ? ArjColors.gold400 : ArjColors.ink900)),
               const SizedBox(height: 2),
-              Text(i.$2, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: onDark ? Colors.white.withValues(alpha: 0.75) : ArjColors.ink600)),
+              Text(tr(i.$2), style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: onDark ? Colors.white.withValues(alpha: 0.75) : ArjColors.ink600)),
             ]),
           );
       return Wrap(spacing: 8, runSpacing: 8, children: [
@@ -117,8 +118,8 @@ class AboutScreen extends StatelessWidget {
     final sub = _secondary(e), link = _s(e['link_url']);
     return ListTile(
       contentPadding: EdgeInsets.zero,
-      title: Text(_s(e['title']), style: const TextStyle(fontWeight: FontWeight.w600)),
-      subtitle: sub.isEmpty ? null : Text(sub, style: const TextStyle(color: ArjColors.ink600)),
+      title: Text(tr(_s(e['title'])), style: const TextStyle(fontWeight: FontWeight.w600)),
+      subtitle: sub.isEmpty ? null : Text(tr(sub), style: const TextStyle(color: ArjColors.ink600)),
       trailing: link.isEmpty ? null : const Icon(Icons.open_in_new, size: 18),
       onTap: link.isEmpty ? null : () => openExternal(context, link),
     );
@@ -126,7 +127,7 @@ class AboutScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('About')),
+        appBar: AppBar(title: Text(tr('About'))),
         body: SafeArea(
           child: AsyncView<Map<String, dynamic>>(
             load: () => loadProfile(state),
@@ -144,13 +145,13 @@ class AboutScreen extends StatelessWidget {
                   child: NetImage(_s((p['photos'] as Map?)?['about']), semanticLabel: name, fallback: Image.asset(portraitAsset, fit: BoxFit.cover, semanticLabel: name)),
                 ),
                 const SizedBox(height: 16),
-                Text(name, style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w600)),
-                if (job.isNotEmpty) Text(job, style: const TextStyle(color: ArjColors.ink600)),
-                if (headline.isNotEmpty && headline != job) Text(headline, style: const TextStyle(color: ArjColors.ink600)),
+                Text(tr(name), style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w600)),
+                if (job.isNotEmpty) Text(tr(job), style: const TextStyle(color: ArjColors.ink600)),
+                if (headline.isNotEmpty && headline != job) Text(tr(headline), style: const TextStyle(color: ArjColors.ink600)),
                 const SizedBox(height: 12),
                 for (final para in bio.isEmpty && _s(p['summary']).isNotEmpty ? [_s(p['summary'])] : bio)
                   Padding(padding: const EdgeInsets.only(bottom: 10), child: SelectableText(para, style: const TextStyle(height: 1.5))),
-                if (languages.isNotEmpty) Text('Languages: ${languages.join(', ')}', style: const TextStyle(color: ArjColors.ink600)),
+                if (languages.isNotEmpty) Text(tr('Languages: ${languages.join(', ')}'), style: const TextStyle(color: ArjColors.ink600)),
                 const SizedBox(height: 12),
                 ProfileStats(p['stats']),
                 if (expertise.isNotEmpty) ...[
@@ -168,25 +169,25 @@ class AboutScreen extends StatelessWidget {
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 3),
                       child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        const Text('•  ', style: TextStyle(color: ArjColors.gold700)),
-                        Expanded(child: Text(_s(a['line']).isEmpty ? _s(a['title']) : _s(a['line']))),
+                        Text(tr('•  '), style: TextStyle(color: ArjColors.gold700)),
+                        Expanded(child: Text(tr(_s(a['line']).isEmpty ? _s(a['title']) : _s(a['line'])))),
                       ]),
                     ),
                   const SizedBox(height: 8),
                   OutlinedButton.icon(
                     onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => AwardsScreen(state: state, profile: p))),
                     icon: const Icon(Icons.emoji_events_outlined),
-                    label: const Text('All awards'),
+                    label: Text(tr('All awards')),
                   ),
                 ],
                 const SizedBox(height: 8),
                 OutlinedButton.icon(
                   onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => GalleryScreen(state: state))),
                   icon: const Icon(Icons.photo_library_outlined),
-                  label: const Text('Open the gallery'),
+                  label: Text(tr('Open the gallery')),
                 ),
                 const SizedBox(height: 8),
-                OutlinedButton.icon(onPressed: () => openExternal(context, _s(web['about']).isEmpty ? '$siteOrigin/about' : _s(web['about'])), icon: const Icon(Icons.open_in_new), label: const Text('Read more on the website')),
+                OutlinedButton.icon(onPressed: () => openExternal(context, _s(web['about']).isEmpty ? '$siteOrigin/about' : _s(web['about'])), icon: const Icon(Icons.open_in_new), label: Text(tr('Read more on the website'))),
               ]);
             },
           ),
@@ -208,7 +209,7 @@ class AwardsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('Awards and honours')),
+        appBar: AppBar(title: Text(tr('Awards and honours'))),
         body: SafeArea(
           child: AsyncView<Map<String, dynamic>>(
             load: () async => profile ?? await loadProfile(state),
@@ -238,8 +239,8 @@ class AwardsScreen extends StatelessWidget {
                             Padding(
                               padding: const EdgeInsets.all(10),
                               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                                Text(_s(a['title']), maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w600)),
-                                if (_s(a['year']).isNotEmpty) Text(_s(a['year']), style: const TextStyle(fontSize: 12, color: ArjColors.gold700)),
+                                Text(tr(_s(a['title'])), maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w600)),
+                                if (_s(a['year']).isNotEmpty) Text(tr(_s(a['year'])), style: const TextStyle(fontSize: 12, color: ArjColors.gold700)),
                               ]),
                             ),
                           ]),
@@ -253,15 +254,15 @@ class AwardsScreen extends StatelessWidget {
                       contentPadding: EdgeInsets.zero,
                       leading: _s(a['year']).isEmpty
                           ? const Icon(Icons.emoji_events_outlined, color: ArjColors.gold700)
-                          : SizedBox(width: 48, child: Text(_s(a['year']), style: const TextStyle(color: ArjColors.gold700, fontWeight: FontWeight.w600))),
-                      title: Text(_s(a['title']), style: const TextStyle(fontWeight: FontWeight.w600)),
-                      subtitle: _s(a['detail']).isEmpty ? null : Text(_s(a['detail']), style: const TextStyle(color: ArjColors.ink600)),
+                          : SizedBox(width: 48, child: Text(tr(_s(a['year'])), style: const TextStyle(color: ArjColors.gold700, fontWeight: FontWeight.w600))),
+                      title: Text(tr(_s(a['title'])), style: const TextStyle(fontWeight: FontWeight.w600)),
+                      subtitle: _s(a['detail']).isEmpty ? null : Text(tr(_s(a['detail'])), style: const TextStyle(color: ArjColors.ink600)),
                       trailing: _s(a['link_url']).isEmpty ? null : const Icon(Icons.open_in_new, size: 18),
                       onTap: _s(a['link_url']).isEmpty ? null : () => openExternal(context, _s(a['link_url'])),
                     ),
                 ],
                 const SizedBox(height: 16),
-                OutlinedButton.icon(onPressed: () => openExternal(context, web.isEmpty ? '$siteOrigin/awards' : web), icon: const Icon(Icons.open_in_new), label: const Text('See on the website')),
+                OutlinedButton.icon(onPressed: () => openExternal(context, web.isEmpty ? '$siteOrigin/awards' : web), icon: const Icon(Icons.open_in_new), label: Text(tr('See on the website'))),
               ]);
             },
           ),
@@ -291,12 +292,12 @@ class _GalleryScreenState extends State<GalleryScreen> {
 
   Widget _chip(String label, String? key) => Padding(
         padding: const EdgeInsets.only(right: 8),
-        child: ChoiceChip(label: Text(label), selected: _category == key, onSelected: (_) => setState(() => _category = key)),
+        child: ChoiceChip(label: Text(tr(label)), selected: _category == key, onSelected: (_) => setState(() => _category = key)),
       );
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('Gallery')),
+        appBar: AppBar(title: Text(tr('Gallery'))),
         body: SafeArea(
           child: Column(children: [
             if (_categories.isNotEmpty)
@@ -348,9 +349,9 @@ class _AlbumCard extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.all(10),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(_s(a['title']), maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w600)),
-              if (meta.isNotEmpty) Text(meta, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, color: ArjColors.ink600)),
-              if (counts.isNotEmpty) Text(counts, style: const TextStyle(fontSize: 12, color: ArjColors.gold700)),
+              Text(tr(_s(a['title'])), maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w600)),
+              if (meta.isNotEmpty) Text(tr(meta), maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, color: ArjColors.ink600)),
+              if (counts.isNotEmpty) Text(tr(counts), style: const TextStyle(fontSize: 12, color: ArjColors.gold700)),
             ]),
           ),
         ]),
@@ -368,7 +369,7 @@ class AlbumScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('Gallery')),
+        appBar: AppBar(title: Text(tr('Gallery'))),
         body: SafeArea(
           child: AsyncView<Map<String, dynamic>>(
             load: () async => unwrap(await state.api.get('/gallery/${Uri.encodeComponent(slug)}')),
@@ -381,10 +382,10 @@ class AlbumScreen extends StatelessWidget {
                 SliverPadding(
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
                   sliver: SliverList.list(children: [
-                    Text(_s(a['title']), style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w600)),
-                    if (meta.isNotEmpty) Text(meta, style: const TextStyle(color: ArjColors.ink600)),
+                    Text(tr(_s(a['title'])), style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w600)),
+                    if (meta.isNotEmpty) Text(tr(meta), style: const TextStyle(color: ArjColors.ink600)),
                     if (_s(a['description']).isNotEmpty) ...[const SizedBox(height: 8), SelectableText(_s(a['description']), style: const TextStyle(height: 1.5))],
-                    if (items.isEmpty) const Padding(padding: EdgeInsets.only(top: 24), child: Text('No photos in this album yet.')),
+                    if (items.isEmpty) Padding(padding: EdgeInsets.only(top: 24), child: Text(tr('No photos in this album yet.'))),
                   ]),
                 ),
                 SliverPadding(
@@ -403,10 +404,10 @@ class AlbumScreen extends StatelessWidget {
                           child: Stack(fit: StackFit.expand, children: [
                             NetImage(_s(it['thumb_url']), semanticLabel: caption.isNotEmpty ? caption : (video ? 'Video' : 'Photo ${photoItems.indexOf(it) + 1}')),
                             if (video)
-                              const Center(
+                              Center(
                                 child: DecoratedBox(
                                   decoration: BoxDecoration(color: Colors.black54, shape: BoxShape.circle),
-                                  child: Padding(padding: EdgeInsets.all(6), child: Icon(Icons.play_arrow, color: Colors.white, size: 32, semanticLabel: 'Play video')),
+                                  child: Padding(padding: EdgeInsets.all(6), child: Icon(Icons.play_arrow, color: Colors.white, size: 32, semanticLabel: tr('Play video'))),
                                 ),
                               ),
                           ]),
@@ -465,8 +466,8 @@ class _PhotoViewerScreenState extends State<PhotoViewerScreen> {
               if (z != _zoomed) setState(() => _zoomed = z);
             }),
           ),
-          if (n > 0) Positioned(top: 16, left: 16, child: Text('${_i + 1} / $n', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600))),
-          Positioned(top: 4, right: 4, child: IconButton(tooltip: 'Close', color: Colors.white, icon: const Icon(Icons.close), onPressed: () => Navigator.of(context).pop())),
+          if (n > 0) Positioned(top: 16, left: 16, child: Text(tr('${_i + 1} / $n'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600))),
+          Positioned(top: 4, right: 4, child: IconButton(tooltip: tr('Close'), color: Colors.white, icon: const Icon(Icons.close), onPressed: () => Navigator.of(context).pop())),
           if (caption.isNotEmpty)
             Positioned(
               left: 0,
@@ -475,7 +476,7 @@ class _PhotoViewerScreenState extends State<PhotoViewerScreen> {
               child: Container(
                 color: Colors.black54,
                 padding: const EdgeInsets.all(16),
-                child: Text(caption, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, height: 1.4)),
+                child: Text(tr(caption), textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, height: 1.4)),
               ),
             ),
         ]),

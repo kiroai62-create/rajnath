@@ -87,6 +87,21 @@ class OperationsController extends Controller
         return back()->with('status', 'Booking updated.');
     }
 
+    /** Moves a confirmed booking to another time, for example today or right now, and tells the customer. */
+    public function moveBooking(Request $request, string $ref, Slots $slots): RedirectResponse
+    {
+        $this->authorize('bookings.manage');
+        $d = $request->validate([
+            'when' => ['required', Rule::in(['now', 'time'])],
+            'start_local' => ['required_if:when,time', 'nullable', 'date_format:Y-m-d\TH:i'],
+            'note' => ['nullable', 'string', 'max:300'],
+        ]);
+        $start = $d['when'] === 'now' ? CarbonImmutable::now(Slots::TZ)->format('Y-m-d\TH:i') : $d['start_local'];
+        $b = $slots->moveByStaff($this->row('bookings', $ref), $start, $d['note'] ?? null, $request->user());
+
+        return back()->with('status', 'Booking moved to '.Slots::when($b).'. The customer has been told by notification and email.');
+    }
+
     // ---------- Suppliers ----------
     public function suppliers(): View
     {

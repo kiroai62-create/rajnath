@@ -300,6 +300,50 @@ class OperationsTest extends TestCase
         $this->asStaff($this->makeStaff(['content_author']))->get(route('admin.ops.bookings'))->assertForbidden();
     }
 
+    public function test_admin_moves_tomorrows_booking_to_today(): void
+    {
+        $this->hours();
+        $staff = $this->makeStaff(['administrator']);
+        $v = $this->consultVariant();
+        $u = $this->customer();
+        // Booked for Tuesday 10:00 IST; it is Monday 08:30 IST now
+        [$b, $r] = app(Slots::class)->hold($u, $v, '2026-11-03T04:30Z', null, null, 'm1');
+        $this->capture($r['order']);
+        [$other, $r2] = app(Slots::class)->hold($this->customer(), $v, '2026-11-03T05:00Z', null, null, 'm2');
+        $this->capture($r2['order']);
+
+        // Monday has no office hours and is inside the 24-hour window: the team can still move it to today
+        $this->asStaff($staff)->post(route('admin.ops.booking.move', $b->ref), ['when' => 'time', 'start_local' => '2026-11-02T14:10', 'note' => 'As discussed on the phone.'])
+            ->assertSessionHasNoErrors()->assertRedirect();
+        $moved = DB::table('bookings')->find($b->id);
+        $this->assertSame('2026-11-02 08:40:00', (string) $moved->start_utc);
+        $this->assertSame('2026-11-02 09:10:00', (string) $moved->end_utc);
+        $this->assertSame('2026-11-03 04:30:00', (string) $moved->moved_from_utc);
+        $this->assertSame(0, (int) $moved->reschedules);
+        $this->assertNotNull($moved->reminded_24h_at);
+        $this->assertSame(1, DB::table('user_notifications')->where('user_id', $u->id)->where('title', 'Your consultation is today')->count());
+        // The old Tuesday slot is free again for other customers
+        $this->assertContains('2026-11-03T04:30Z', collect(app(Slots::class)->available(30)['2026-11-03'] ?? [])->pluck('start')->all());
+
+        // The app sees the new time and the earlier one
+        $this->flushSession();
+        $this->app['auth']->forgetGuards();
+        $token = $u->createToken('Phone', ['customer'])->plainTextToken;
+        $this->withToken($token)->getJson('/api/v1/bookings')->assertOk()
+            ->assertJsonFragment(['ref' => $b->ref, 'start_utc' => '2026-11-02T08:40:00Z', 'moved_from_utc' => '2026-11-03T04:30:00Z', 'moved_note' => 'As discussed on the phone.']);
+
+        // Overlapping another booking is refused; a past time is refused; "Start now" works
+        $this->asStaff($staff)->post(route('admin.ops.booking.move', $b->ref), ['when' => 'time', 'start_local' => '2026-11-03T10:45'])->assertSessionHasErrors('start_local');
+        $this->asStaff($staff)->post(route('admin.ops.booking.move', $b->ref), ['when' => 'time', 'start_local' => '2026-11-01T10:00'])->assertSessionHasErrors('start_local');
+        $this->asStaff($staff)->post(route('admin.ops.booking.move', $b->ref), ['when' => 'now'])->assertSessionHasNoErrors();
+        $this->assertSame('2026-11-02 03:00:00', (string) DB::table('bookings')->find($b->id)->start_utc);
+        $this->assertSame('2026-11-03 04:30:00', (string) DB::table('bookings')->find($b->id)->moved_from_utc);
+        $this->assertSame('2026-11-03 05:00:00', (string) DB::table('bookings')->find($other->id)->start_utc);
+
+        // Only staff who manage bookings
+        $this->asStaff($this->makeStaff(['fulfilment']))->post(route('admin.ops.booking.move', $b->ref), ['when' => 'now'])->assertForbidden();
+    }
+
     // ------------------------------------------------------------------ puja
 
     private function supplier(array $over = []): object

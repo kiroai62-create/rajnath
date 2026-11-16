@@ -41,6 +41,11 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
     Route::get('catalogue/offerings/{slug}', [V1\CatalogueController::class, 'offering']);
     Route::get('places', [V1\CatalogueController::class, 'places'])->middleware('throttle:places');
     Route::post('enquiries', [V1\EnquiryApiController::class, 'store'])->middleware('throttle:enquiry');
+    // Puja on request (the website's /puja form): online puja and chadhava are requested, not bought.
+    // The app's screen text in the chosen language (same translation memory as the website).
+    Route::get('app-strings', V1\AppStringsController::class);
+    Route::get('puja-requests/form', [V1\PujaRequestApiController::class, 'form']);
+    Route::post('puja-requests', [V1\PujaRequestApiController::class, 'store'])->middleware('throttle:enquiry');
     Route::get('tools', fn () => response()->json(['data' => collect(Tools::TOOLS)->map(fn ($t, $k) => ['slug' => $k, 'title' => $t[0], 'input' => $t[1], 'kind' => $t[2], 'description' => $t[3]])->values()]));
     Route::post('tools/{slug}', [V1\ToolApiController::class, 'compute'])->middleware('throttle:tools');
     Route::post('analytics/events', [V1\AppAnalyticsController::class, 'store'])->middleware('throttle:analytics');
@@ -116,6 +121,7 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
         Route::get('reports/{ref}', [V1\ActivityController::class, 'reportShow']);
         Route::get('puja', [V1\ActivityController::class, 'pujas']);
         Route::get('puja/{ref}', [V1\ActivityController::class, 'pujaShow']);
+        Route::get('me/puja-requests', [V1\PujaRequestApiController::class, 'index']);
         Route::get('practitioner-applications', [V1\ApplicationApiController::class, 'index']);
         Route::post('practitioner-applications', [V1\ApplicationApiController::class, 'store'])->middleware('throttle:checkout');
         Route::post('practitioner-applications/{ref}/withdraw', [V1\ApplicationApiController::class, 'withdraw']);

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
+import '../util/i18n.dart';
 
 /// Renders a calculator result's `display` block from POST /tools/{slug}:
 /// `{sections: [{title?, highlight?, text?, table?: {head, rows}, rows?: [[label, value]], items?}], note?}`.
@@ -24,7 +25,7 @@ class ToolDisplayView extends StatelessWidget {
             padding: const EdgeInsets.all(16),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               if (_s(s['title']).isNotEmpty)
-                Padding(padding: const EdgeInsets.only(bottom: 6), child: Text(_s(s['title']), style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600))),
+                Padding(padding: const EdgeInsets.only(bottom: 6), child: Text(tr(_s(s['title'])), style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600))),
               if (_s(s['highlight']).isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 6),
@@ -36,23 +37,23 @@ class ToolDisplayView extends StatelessWidget {
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 4),
                   child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Expanded(flex: 2, child: Text(r.isNotEmpty ? _s(r[0]) : '', style: const TextStyle(color: ArjColors.ink600))),
+                    Expanded(flex: 2, child: Text(tr(r.isNotEmpty ? _s(r[0]) : ''), style: const TextStyle(color: ArjColors.ink600))),
                     const SizedBox(width: 12),
-                    Expanded(flex: 3, child: Text(r.length > 1 ? _s(r[1]) : '', style: const TextStyle(fontWeight: FontWeight.w600))),
+                    Expanded(flex: 3, child: Text(tr(r.length > 1 ? _s(r[1]) : ''), style: const TextStyle(fontWeight: FontWeight.w600))),
                   ]),
                 ),
               for (final i in (s['items'] as List?) ?? const [])
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 3),
                   child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    const Text('•  ', style: TextStyle(color: ArjColors.gold700)),
-                    Expanded(child: Text(_s(i), style: const TextStyle(height: 1.4))),
+                    Text(tr('•  '), style: TextStyle(color: ArjColors.gold700)),
+                    Expanded(child: Text(tr(_s(i)), style: const TextStyle(height: 1.4))),
                   ]),
                 ),
             ]),
           ),
         ),
-      if (_s(note).isNotEmpty) Padding(padding: const EdgeInsets.only(top: 12), child: Text(_s(note), style: const TextStyle(fontSize: 12, color: ArjColors.ink600))),
+      if (_s(note).isNotEmpty) Padding(padding: const EdgeInsets.only(top: 12), child: Text(tr(_s(note)), style: const TextStyle(fontSize: 12, color: ArjColors.ink600))),
     ]);
   }
 
@@ -64,7 +65,7 @@ class ToolDisplayView extends StatelessWidget {
     List<String> pad(List<String> r) => [...r, for (var i = r.length; i < cols; i++) ''];
     Widget cell(String v, {bool bold = false}) => Padding(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-          child: Text(v, style: TextStyle(fontWeight: bold ? FontWeight.w600 : FontWeight.normal)),
+          child: Text(tr(v), style: TextStyle(fontWeight: bold ? FontWeight.w600 : FontWeight.normal)),
         );
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),

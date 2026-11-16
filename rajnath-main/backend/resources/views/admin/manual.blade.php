@@ -51,7 +51,7 @@
         ]],
         'customers' => ['Customers, enquiries and bookings', [
             '<a href="'.e(route('admin.enquiries.index')).'">Enquiries</a>: messages from the contact and service forms. Call back, then mark Contacted or Closed.',
-            '<a href="'.e(route('admin.ops.bookings')).'">Bookings &amp; hours</a>: consultation slots, weekly hours, leave days and booked consultations.',
+            '<a href="'.e(route('admin.ops.bookings')).'">Bookings &amp; hours</a>: consultation slots, weekly hours, leave days and booked consultations. To give a booked consultation earlier (for example today instead of tomorrow), agree the time with the customer, then open <strong>Move / serve today</strong> on the booking and press <strong>Start now</strong> or choose a new time. The customer is told by notification and email, and the website and app show the new time.',
             '<a href="'.e(route('admin.ops.tickets')).'">Support</a>: customer help requests; reply from the ticket page.',
             '<a href="'.e(route('admin.customers.index')).'">Customers</a>: look up an account, its orders and bookings; restrict an abusive account.',
             '<a href="'.e(route('admin.reviews.index')).'">Reviews</a>: approve or hide reviews before they show on the website.',

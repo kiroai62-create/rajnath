@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Domain\Translation\PageTranslator;
+use App\Http\Controllers\Api\V1\AppStringsController;
 use App\Http\Middleware\SetLocale;
 use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -43,6 +44,8 @@ class ScanSitePages implements ShouldQueue
                     report($e);
                 }
             }
+            // The mobile app's own screen text is translated with the website.
+            AppStringsController::translate(app(PageTranslator::class), $locale);
             PageTranslator::kick($locale);
         }
     }

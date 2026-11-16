@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../api/api_client.dart';
 import '../state/app_state.dart';
 import '../theme/app_theme.dart';
+import '../util/i18n.dart';
 import '../util/validators.dart';
 import '../widgets/common.dart';
 import 'sign_in_screen.dart';
@@ -17,14 +18,14 @@ class SupportGate extends StatelessWidget {
         builder: (context, _) => state.signedIn
             ? SupportScreen(state: state)
             : Scaffold(
-                appBar: AppBar(title: const Text('Help & support')),
+                appBar: AppBar(title: Text(tr('Help & support'))),
                 body: Center(
                   child: Padding(
                     padding: const EdgeInsets.all(24),
                     child: Column(mainAxisSize: MainAxisSize.min, children: [
-                      const Text('Sign in to send us a support request and follow the replies.', textAlign: TextAlign.center),
+                      Text(tr('Sign in to send us a support request and follow the replies.'), textAlign: TextAlign.center),
                       const SizedBox(height: 16),
-                      FilledButton(onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => SignInScreen(state: state))), child: const Text('Sign in')),
+                      FilledButton(onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => SignInScreen(state: state))), child: Text(tr('Sign in'))),
                     ]),
                   ),
                 ),
@@ -57,11 +58,11 @@ class _SupportScreenState extends State<SupportScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('Help & support')),
+        appBar: AppBar(title: Text(tr('Help & support'))),
         floatingActionButton: FloatingActionButton.extended(
           onPressed: () => _open(NewTicketScreen(state: widget.state, categories: _categories)),
           icon: const Icon(Icons.add),
-          label: const Text('New request'),
+          label: Text(tr('New request')),
         ),
         body: SafeArea(
           child: AsyncView<List<Map<String, dynamic>>>(
@@ -74,15 +75,15 @@ class _SupportScreenState extends State<SupportScreen> {
                 Card(
                   margin: const EdgeInsets.only(bottom: 8),
                   child: ListTile(
-                    title: Text('${t['subject']}'),
+                    title: Text(tr('${t['subject']}')),
                     subtitle: Padding(
                       padding: const EdgeInsets.only(top: 4),
                       child: Wrap(spacing: 8, crossAxisAlignment: WrapCrossAlignment.center, children: [
                         ToneChip('${t['status_label'] ?? humanize(t['status'])}', _statusColor(t['status'])),
-                        Text('${t['category_label'] ?? ''} · ${formatWhen(t['updated_at'], pattern: 'd MMM yyyy')}'),
+                        Text(tr('${t['category_label'] ?? ''} · ${formatWhen(t['updated_at'], pattern: 'd MMM yyyy')}')),
                       ]),
                     ),
-                    trailing: const Icon(Icons.chevron_right, semanticLabel: 'Open'),
+                    trailing: Icon(Icons.chevron_right, semanticLabel: tr('Open')),
                     onTap: () => _open(TicketScreen(state: widget.state, ref: '${t['ref']}')),
                   ),
                 ),
@@ -150,21 +151,21 @@ class _NewTicketScreenState extends State<NewTicketScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('New support request')),
+        appBar: AppBar(title: Text(tr('New support request'))),
         body: SafeArea(
           child: ListView(padding: const EdgeInsets.all(16), children: [
             DropdownButtonFormField<String>(
               initialValue: _category,
-              decoration: InputDecoration(labelText: 'What is this about?', errorText: _errors['category']),
-              items: [for (final c in _cats) DropdownMenuItem(value: '${c['key']}', child: Text('${c['label']}'))],
+              decoration: InputDecoration(labelText: tr('What is this about?'), errorText: trn(_errors['category'])),
+              items: [for (final c in _cats) DropdownMenuItem(value: '${c['key']}', child: Text(tr('${c['label']}')))],
               onChanged: (v) => setState(() => _category = v),
             ),
             const SizedBox(height: 12),
-            TextField(controller: _subject, maxLength: 160, decoration: InputDecoration(labelText: 'Subject', errorText: _errors['subject'])),
-            TextField(controller: _body, maxLines: 6, maxLength: 5000, decoration: InputDecoration(labelText: 'Message', errorText: _errors['body'])),
+            TextField(controller: _subject, maxLength: 160, decoration: InputDecoration(labelText: tr('Subject'), errorText: trn(_errors['subject']))),
+            TextField(controller: _body, maxLines: 6, maxLength: 5000, decoration: InputDecoration(labelText: tr('Message'), errorText: trn(_errors['body']))),
             FormError(_errors['_']),
             const SizedBox(height: 12),
-            FilledButton(onPressed: _busy ? null : _submit, child: Text(_busy ? 'Sending…' : 'Send')),
+            FilledButton(onPressed: _busy ? null : _submit, child: Text(tr(_busy ? 'Sending…' : 'Send'))),
           ]),
         ),
       );
@@ -225,9 +226,9 @@ class _TicketScreenState extends State<TicketScreen> {
   Future<void> _close() async {
     final ok = await showDialog<bool>(
       context: context,
-      builder: (c) => AlertDialog(title: const Text('Close this request?'), content: const Text('You can open a new one any time.'), actions: [
-        TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Keep open')),
-        FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Close request')),
+      builder: (c) => AlertDialog(title: Text(tr('Close this request?')), content: Text(tr('You can open a new one any time.')), actions: [
+        TextButton(onPressed: () => Navigator.pop(c, false), child: Text(tr('Keep open'))),
+        FilledButton(onPressed: () => Navigator.pop(c, true), child: Text(tr('Close request'))),
       ]),
     );
     if (ok == true) await _act('/support/${widget.ref}/close', {}, 'Request closed.');
@@ -238,8 +239,8 @@ class _TicketScreenState extends State<TicketScreen> {
     final t = _ticket;
     final closed = t?['status'] == 'closed';
     return Scaffold(
-      appBar: AppBar(title: const Text('Support request'), actions: [
-        if (t != null && !closed) TextButton(onPressed: _busy ? null : _close, child: const Text('Close')),
+      appBar: AppBar(title: Text(tr('Support request')), actions: [
+        if (t != null && !closed) TextButton(onPressed: _busy ? null : _close, child: Text(tr('Close'))),
       ]),
       body: SafeArea(
         child: t == null
@@ -249,11 +250,11 @@ class _TicketScreenState extends State<TicketScreen> {
             : Column(children: [
                 Expanded(
                   child: ListView(padding: const EdgeInsets.all(16), children: [
-                    Text('${t['subject']}', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600)),
+                    Text(tr('${t['subject']}'), style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600)),
                     const SizedBox(height: 6),
                     Wrap(spacing: 8, crossAxisAlignment: WrapCrossAlignment.center, children: [
                       ToneChip('${t['status_label'] ?? humanize(t['status'])}', _statusColor(t['status'])),
-                      Text('${t['category_label'] ?? ''}', style: const TextStyle(color: ArjColors.ink600)),
+                      Text(tr('${t['category_label'] ?? ''}'), style: const TextStyle(color: ArjColors.ink600)),
                     ]),
                     const SizedBox(height: 12),
                     for (final m in ((t['messages'] as List?) ?? const []).whereType<Map>())
@@ -269,11 +270,11 @@ class _TicketScreenState extends State<TicketScreen> {
                             border: Border.all(color: m['from'] == 'you' ? ArjColors.ivory200 : ArjColors.gold200),
                           ),
                           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                            Text(m['from'] == 'you' ? 'You' : '${m['name'] ?? 'Our team'}', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12)),
+                            Text(tr(m['from'] == 'you' ? 'You' : '${m['name'] ?? 'Our team'}'), style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12)),
                             const SizedBox(height: 4),
                             SelectableText('${m['body'] ?? ''}'),
                             const SizedBox(height: 4),
-                            Text(formatWhen(m['at']), style: const TextStyle(fontSize: 11, color: ArjColors.ink600)),
+                            Text(tr(formatWhen(m['at'])), style: const TextStyle(fontSize: 11, color: ArjColors.ink600)),
                           ]),
                         ),
                       ),
@@ -283,9 +284,9 @@ class _TicketScreenState extends State<TicketScreen> {
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 4, 8, 8),
                     child: Row(children: [
-                      Expanded(child: TextField(controller: _reply, minLines: 1, maxLines: 4, maxLength: 5000, decoration: const InputDecoration(labelText: 'Write a reply', counterText: ''))),
+                      Expanded(child: TextField(controller: _reply, minLines: 1, maxLines: 4, maxLength: 5000, decoration: InputDecoration(labelText: tr('Write a reply'), counterText: tr('')))),
                       IconButton(
-                        tooltip: 'Send reply',
+                        tooltip: tr('Send reply'),
                         onPressed: _busy
                             ? null
                             : () {
@@ -297,7 +298,7 @@ class _TicketScreenState extends State<TicketScreen> {
                     ]),
                   )
                 else
-                  const Padding(padding: EdgeInsets.all(16), child: Text('This request is closed. Open a new one if you need more help.', style: TextStyle(color: ArjColors.ink600))),
+                  Padding(padding: EdgeInsets.all(16), child: Text(tr('This request is closed. Open a new one if you need more help.'), style: TextStyle(color: ArjColors.ink600))),
               ]),
       ),
     );

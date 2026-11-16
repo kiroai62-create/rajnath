@@ -7,6 +7,7 @@ import '../api/api_client.dart';
 import '../call/booking_call.dart';
 import '../call/call_platform.dart';
 import '../theme/app_theme.dart';
+import '../util/i18n.dart';
 import '../widgets/common.dart';
 
 enum _Phase { preparing, connecting, live, ended, failed }
@@ -258,9 +259,9 @@ class _CallScreenState extends State<CallScreen> {
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             top,
             const SizedBox(height: 20),
-            Text(widget.title, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600)),
+            Text(tr(widget.title), textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600)),
             const SizedBox(height: 8),
-            Text(text, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white70)),
+            Text(tr(text), textAlign: TextAlign.center, style: const TextStyle(color: Colors.white70)),
             if (actions.isNotEmpty) ...[const SizedBox(height: 24), Wrap(spacing: 12, runSpacing: 12, alignment: WrapAlignment.center, children: actions)],
           ]),
         ),
@@ -277,12 +278,12 @@ class _CallScreenState extends State<CallScreen> {
                 _leaving = false;
                 unawaited(_start());
               },
-              child: Text(_phase == _Phase.ended ? 'Rejoin' : 'Try again'),
+              child: Text(tr(_phase == _Phase.ended ? 'Rejoin' : 'Try again')),
             ),
           OutlinedButton(
             style: OutlinedButton.styleFrom(foregroundColor: Colors.white, side: const BorderSide(color: Colors.white54)),
             onPressed: () => Navigator.of(context).maybePop(),
-            child: const Text('Close'),
+            child: Text(tr('Close')),
           ),
         ],
       );
@@ -312,8 +313,8 @@ class _CallScreenState extends State<CallScreen> {
         left: 8,
         right: 8,
         child: Row(children: [
-          IconButton(tooltip: 'Leave call', onPressed: _hangUp, icon: const Icon(Icons.arrow_back, color: Colors.white)),
-          Expanded(child: Text(remote?.name.isNotEmpty == true ? remote!.name : widget.title, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600))),
+          IconButton(tooltip: tr('Leave call'), onPressed: _hangUp, icon: const Icon(Icons.arrow_back, color: Colors.white)),
+          Expanded(child: Text(tr(remote?.name.isNotEmpty == true ? remote!.name : widget.title), overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600))),
         ]),
       ),
       if (_reconnecting)
@@ -325,7 +326,7 @@ class _CallScreenState extends State<CallScreen> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               decoration: BoxDecoration(color: ArjColors.gold700, borderRadius: BorderRadius.circular(99)),
-              child: const Text('Reconnecting…', style: TextStyle(color: Colors.white)),
+              child: Text(tr('Reconnecting…'), style: TextStyle(color: Colors.white)),
             ),
           ),
         ),

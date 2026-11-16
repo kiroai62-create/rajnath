@@ -6,10 +6,12 @@ import '../api/api_client.dart';
 import '../call/booking_call.dart';
 import '../state/app_state.dart';
 import '../theme/app_theme.dart';
+import '../util/i18n.dart';
 import '../util/validators.dart';
 import '../widgets/common.dart';
 import 'account_screens.dart';
 import 'call_screen.dart';
+import 'puja_request_screens.dart';
 import 'purchase_screens.dart';
 import 'review_screens.dart';
 import 'app_control.dart';
@@ -48,7 +50,7 @@ Future<String?> freshPdfUrl(AppState state, String path) async {
 Widget pdfButton(BuildContext context, AppState state, String path) => OutlinedButton.icon(
       onPressed: () => openFreshLink(context, () => freshPdfUrl(state, path)),
       icon: const Icon(Icons.picture_as_pdf_outlined),
-      label: const Text('Download PDF'),
+      label: Text(tr('Download PDF')),
     );
 
 // ───────────────────────────── Orders ─────────────────────────────
@@ -59,7 +61,7 @@ class OrdersScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('Orders')),
+        appBar: AppBar(title: Text(tr('Orders'))),
         body: SafeArea(
           child: AsyncView<List<Map<String, dynamic>>>(
             load: () async => unwrapList(await state.api.get('/orders')),
@@ -70,12 +72,12 @@ class OrdersScreen extends StatelessWidget {
                 Card(
                   margin: const EdgeInsets.only(bottom: 8),
                   child: ListTile(
-                    title: Text('${o['label'] ?? humanize(o['kind'])}'),
+                    title: Text(tr('${o['label'] ?? humanize(o['kind'])}')),
                     subtitle: Padding(
                       padding: const EdgeInsets.only(top: 4),
-                      child: Wrap(spacing: 8, crossAxisAlignment: WrapCrossAlignment.center, children: [StatusChip(o['status']), Text(_date(o['created_at']))]),
+                      child: Wrap(spacing: 8, crossAxisAlignment: WrapCrossAlignment.center, children: [StatusChip(o['status']), Text(tr(_date(o['created_at'])))]),
                     ),
-                    trailing: Text(formatPaise((o['subtotal_minor'] as num?)?.toInt() ?? 0), style: const TextStyle(fontWeight: FontWeight.w600)),
+                    trailing: Text(tr(formatPaise((o['subtotal_minor'] as num?)?.toInt() ?? 0)), style: const TextStyle(fontWeight: FontWeight.w600)),
                     onTap: () async {
                       await Navigator.of(context).push(MaterialPageRoute(builder: (_) => OrderDetailScreen(state: state, ref: '${o['ref']}')));
                       await reload();
@@ -112,7 +114,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('Order')),
+        appBar: AppBar(title: Text(tr('Order'))),
         body: SafeArea(
           child: AsyncView<Map<String, dynamic>>(
             key: ValueKey(_v),
@@ -121,7 +123,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               int? m(String k) => (o[k] as num?)?.toInt();
               final next = screenForNext(widget.state, o);
               return ListView(padding: const EdgeInsets.all(16), children: [
-                Text('${o['label'] ?? humanize(o['kind'])}', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600)),
+                Text(tr('${o['label'] ?? humanize(o['kind'])}'), style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600)),
                 const SizedBox(height: 8),
                 Row(children: [StatusChip(o['status'])]),
                 const SizedBox(height: 16),
@@ -137,7 +139,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                 _kv('Paid online', formatPaise(m('payable_minor') ?? 0), bold: true),
                 if ((m('refunded_minor') ?? 0) > 0) _kv('Refunded', formatPaise(m('refunded_minor'))),
                 if ((m('tax_minor') ?? 0) > 0)
-                  Text('Includes GST ${formatPaise(m('tax_minor'))}', style: const TextStyle(fontSize: 12, color: ArjColors.ink600)),
+                  Text(tr('Includes GST {0}', [formatPaise(m('tax_minor'))]), style: const TextStyle(fontSize: 12, color: ArjColors.ink600)),
                 if (o['invoices'] is List && (o['invoices'] as List).isNotEmpty) ...[
                   const SectionTitle('Invoices'),
                   for (final inv in (o['invoices'] as List).whereType<Map>())
@@ -145,7 +147,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                       Expanded(child: _kv('${inv['type'] == 'credit_note' ? 'Credit note' : 'Invoice'} ${inv['number'] ?? ''}'.trim(), formatPaise((inv['total_minor'] as num?)?.toInt() ?? 0))),
                       if (inv['ref'] != null)
                         IconButton(
-                          tooltip: 'Download PDF',
+                          tooltip: tr('Download PDF'),
                           icon: const Icon(Icons.picture_as_pdf_outlined),
                           onPressed: () => openFreshLink(context, () async {
                             final fresh = unwrap(await widget.state.api.get('/orders/${widget.ref}'));
@@ -156,17 +158,17 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                     ]),
                 ],
                 const SizedBox(height: 8),
-                Text('Reference ${o['ref']}', style: const TextStyle(fontSize: 12, color: ArjColors.ink600)),
+                Text(tr('Reference {0}', [o['ref']]), style: const TextStyle(fontSize: 12, color: ArjColors.ink600)),
                 const SizedBox(height: 20),
                 if (next != null && o['status'] == 'paid' && (o['next'] as Map?)?['type'] != 'shipment')
-                  FilledButton(onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => next)), child: const Text('Continue')),
-                if (o['status'] == 'pending_payment') OutlinedButton(onPressed: _cancel, child: const Text('Cancel order')),
+                  FilledButton(onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => next)), child: Text(tr('Continue'))),
+                if (o['status'] == 'pending_payment') OutlinedButton(onPressed: _cancel, child: Text(tr('Cancel order'))),
                 if (o['review'] is Map) ...[
                   const SizedBox(height: 8),
                   OutlinedButton.icon(
                     onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => MyReviewsScreen(state: widget.state))),
                     icon: const Icon(Icons.reviews_outlined),
-                    label: const Text('Your review'),
+                    label: Text(tr('Your review')),
                   ),
                 ] else if (const ['paid', 'partially_refunded'].contains(o['status']) && const ['service', 'product'].contains(o['kind'])) ...[
                   const SizedBox(height: 8),
@@ -175,7 +177,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                       MaterialPageRoute(builder: (_) => WriteReviewScreen(state: widget.state, orderRef: widget.ref, orderLabel: o['label'] == null ? null : '${o['label']}')),
                     ),
                     icon: const Icon(Icons.rate_review_outlined),
-                    label: const Text('Write a review'),
+                    label: Text(tr('Write a review')),
                   ),
                 ],
               ]);
@@ -187,15 +189,15 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
 
 Widget _kv(String k, String v, {bool bold = false}) => Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(children: [Expanded(child: Text(k, style: const TextStyle(color: ArjColors.ink600))), Text(v, style: TextStyle(fontWeight: bold ? FontWeight.w600 : FontWeight.normal))]),
+      child: Row(children: [Expanded(child: Text(tr(k), style: const TextStyle(color: ArjColors.ink600))), Text(tr(v), style: TextStyle(fontWeight: bold ? FontWeight.w600 : FontWeight.normal))]),
     );
 
 Future<bool> confirm(BuildContext context, String title, String body, String action) async =>
     await showDialog<bool>(
       context: context,
-      builder: (c) => AlertDialog(title: Text(title), content: Text(body), actions: [
-        TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Keep it')),
-        FilledButton(onPressed: () => Navigator.pop(c, true), child: Text(action)),
+      builder: (c) => AlertDialog(title: Text(tr(title)), content: Text(tr(body)), actions: [
+        TextButton(onPressed: () => Navigator.pop(c, false), child: Text(tr('Keep it'))),
+        FilledButton(onPressed: () => Navigator.pop(c, true), child: Text(tr(action))),
       ]),
     ) ==
     true;
@@ -248,7 +250,7 @@ class _BookingsScreenState extends State<BookingsScreen> {
 
   List<Widget> _callSection(Map b) {
     final spec = callButtonFor(BookingCall.fromJson(b));
-    final hint = spec.hint == null ? null : Text(spec.hint!, style: const TextStyle(color: ArjColors.ink600, fontSize: 13));
+    final hint = spec.hint == null ? null : Text(tr(spec.hint!), style: const TextStyle(color: ArjColors.ink600, fontSize: 13));
     return switch (spec.kind) {
       CallButtonKind.hidden => const [],
       CallButtonKind.inApp => [
@@ -256,7 +258,7 @@ class _BookingsScreenState extends State<BookingsScreen> {
             key: ValueKey('join-call-${b['ref']}'),
             onPressed: spec.enabled ? () => _joinCall(b) : null,
             icon: Icon(b['mode'] == 'phone' || b['mode'] == 'audio' ? Icons.call_outlined : Icons.videocam_outlined),
-            label: Text(spec.label!),
+            label: Text(tr(spec.label!)),
           ),
           if (hint != null) Padding(padding: const EdgeInsets.only(top: 6), child: hint),
           const SizedBox(height: 8),
@@ -266,7 +268,7 @@ class _BookingsScreenState extends State<BookingsScreen> {
             key: ValueKey('join-link-${b['ref']}'),
             onPressed: () => openExternal(context, spec.link),
             icon: const Icon(Icons.open_in_new),
-            label: Text(spec.label!),
+            label: Text(tr(spec.label!)),
           ),
           const SizedBox(height: 8),
         ],
@@ -274,9 +276,33 @@ class _BookingsScreenState extends State<BookingsScreen> {
     };
   }
 
+  /// The team moved this booking (Admin › Bookings › Move / serve today): say so, with the earlier time and their note.
+  Widget _movedNote(Map b) {
+    final start = DateTime.tryParse('${b['start_utc']}')?.toLocal();
+    final now = DateTime.now();
+    final today = start != null && start.year == now.year && start.month == now.month && start.day == now.day;
+    final note = '${b['moved_note'] ?? ''}'.trim();
+    return Container(
+      margin: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(color: ArjColors.gold50, borderRadius: BorderRadius.circular(12), border: Border.all(color: ArjColors.gold200)),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        const Icon(Icons.update, size: 20, color: ArjColors.gold700),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(tr(today ? 'Moved to today by our team' : 'Time changed by our team'), style: const TextStyle(fontWeight: FontWeight.w700, color: ArjColors.gold700)),
+            Text(tr('Earlier time: {0}', [formatWhen(b['moved_from_utc'], pattern: 'EEE, d MMM · h:mm a')]), style: const TextStyle(fontSize: 13, color: ArjColors.ink600)),
+            if (note.isNotEmpty) Text(note, style: const TextStyle(fontSize: 13)),
+          ]),
+        ),
+      ]),
+    );
+  }
+
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('Bookings')),
+        appBar: AppBar(title: Text(tr('Bookings'))),
         body: SafeArea(
           child: AsyncView<List<Map<String, dynamic>>>(
             key: ValueKey(_v),
@@ -294,17 +320,18 @@ class _BookingsScreenState extends State<BookingsScreen> {
                     padding: const EdgeInsets.all(16),
                     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                       Row(children: [
-                        Expanded(child: Text('${b['title']}', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600))),
+                        Expanded(child: Text(tr('${b['title']}'), style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600))),
                         StatusChip(b['status']),
                       ]),
                       const SizedBox(height: 6),
-                      Text(formatWhen(b['start_utc'], pattern: 'EEE, d MMM yyyy · h:mm a'), style: const TextStyle(fontWeight: FontWeight.w600)),
-                      Text([humanize(b['mode']), if (b['practitioner'] != null) 'with ${b['practitioner']}'].where((s) => s.isNotEmpty).join(' · '), style: const TextStyle(color: ArjColors.ink600)),
+                      Text(tr(formatWhen(b['start_utc'], pattern: 'EEE, d MMM yyyy · h:mm a')), style: const TextStyle(fontWeight: FontWeight.w600)),
+                      if (b['moved_from_utc'] != null) _movedNote(b),
+                      Text(tr([humanize(b['mode']), if (b['practitioner'] != null) 'with ${b['practitioner']}'].where((s) => s.isNotEmpty).join(' · ')), style: const TextStyle(color: ArjColors.ink600)),
                       const SizedBox(height: 8),
                       ..._callSection(b),
                       Wrap(spacing: 8, runSpacing: 8, children: [
-                        if (b['can_reschedule'] == true) OutlinedButton(onPressed: () => _reschedule(b), child: const Text('Reschedule')),
-                        if (b['can_cancel'] == true) TextButton(onPressed: () => _cancel(b), child: const Text('Cancel')),
+                        if (b['can_reschedule'] == true) OutlinedButton(onPressed: () => _reschedule(b), child: Text(tr('Reschedule'))),
+                        if (b['can_cancel'] == true) TextButton(onPressed: () => _cancel(b), child: Text(tr('Cancel'))),
                       ]),
                     ]),
                   ),
@@ -323,7 +350,7 @@ class ReportsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('Reports')),
+        appBar: AppBar(title: Text(tr('Reports'))),
         body: SafeArea(
           child: AsyncView<List<Map<String, dynamic>>>(
             load: () async => unwrapList(await state.api.get('/reports')),
@@ -334,16 +361,16 @@ class ReportsScreen extends StatelessWidget {
                 Card(
                   margin: const EdgeInsets.only(bottom: 8),
                   child: ListTile(
-                    title: Text('${r['title']}'),
+                    title: Text(tr('${r['title']}')),
                     subtitle: Padding(padding: const EdgeInsets.only(top: 4), child: Row(children: [StatusChip(r['status'])])),
                     trailing: Row(mainAxisSize: MainAxisSize.min, children: [
                       if (r['pdf_url'] != null)
                         IconButton(
-                          tooltip: 'Download PDF',
+                          tooltip: tr('Download PDF'),
                           icon: const Icon(Icons.picture_as_pdf_outlined),
                           onPressed: () => openFreshLink(context, () => freshPdfUrl(state, '/reports/${r['ref']}')),
                         ),
-                      const Icon(Icons.chevron_right, semanticLabel: 'Open'),
+                      Icon(Icons.chevron_right, semanticLabel: tr('Open')),
                     ]),
                     onTap: () async {
                       await Navigator.of(context).push(MaterialPageRoute(builder: (_) => ReportDetailScreen(state: state, ref: '${r['ref']}')));
@@ -370,21 +397,21 @@ class _ReportDetailScreenState extends State<ReportDetailScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('Report')),
+        appBar: AppBar(title: Text(tr('Report'))),
         body: SafeArea(
           child: AsyncView<Map<String, dynamic>>(
             key: ValueKey(_v),
             load: () async => unwrap(await widget.state.api.get('/reports/${widget.ref}')),
             builder: (context, r, _) => ListView(padding: const EdgeInsets.all(16), children: [
-              Text('${r['title']}', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600)),
+              Text(tr('${r['title']}'), style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600)),
               const SizedBox(height: 8),
               Row(children: [StatusChip(r['status'])]),
               if (r['status'] == 'awaiting_details')
                 ReportDetailsForm(state: widget.state, ref: widget.ref, twoProfiles: r['needs_two_profiles'] == true, onDone: () => setState(() => _v++))
               else if (r['status'] == 'in_preparation')
-                const Padding(padding: EdgeInsets.only(top: 16), child: Text('Your report is being prepared. We will notify you when it is ready.'))
+                Padding(padding: EdgeInsets.only(top: 16), child: Text(tr('Your report is being prepared. We will notify you when it is ready.')))
               else ...[
-                if (r['completed_at'] != null) Padding(padding: const EdgeInsets.only(top: 8), child: Text('Completed ${_date(r['completed_at'])}', style: const TextStyle(color: ArjColors.ink600))),
+                if (r['completed_at'] != null) Padding(padding: const EdgeInsets.only(top: 8), child: Text(tr('Completed {0}', [_date(r['completed_at'])]), style: const TextStyle(color: ArjColors.ink600))),
                 if (r['pdf_url'] != null) Padding(padding: const EdgeInsets.only(top: 12), child: Align(alignment: Alignment.centerLeft, child: pdfButton(context, widget.state, '/reports/${widget.ref}'))),
                 SectionsView((r['sections'] as List?) ?? const []),
               ],
@@ -442,17 +469,17 @@ class _ReportDetailsFormState extends State<ReportDetailsForm> {
         key: ValueKey(_v),
         load: () async => unwrapList(await widget.state.api.get('/birth-profiles')),
         builder: (context, profiles, _) {
-          final items = [for (final p in profiles) DropdownMenuItem<String>(value: '${p['ref']}', child: Text('${p['name']}'))];
+          final items = [for (final p in profiles) DropdownMenuItem<String>(value: '${p['ref']}', child: Text(tr('${p['name']}')))];
           return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
             const SectionTitle('Details for your report'),
-            if (profiles.isEmpty) const Text('Add a birth profile first, then come back here.'),
+            if (profiles.isEmpty) Text(tr('Add a birth profile first, then come back here.')),
             if (profiles.isNotEmpty) ...[
               DropdownButtonFormField<String>(initialValue: _a, items: items, onChanged: (v) => setState(() => _a = v),
-                  decoration: InputDecoration(labelText: widget.twoProfiles ? 'First person' : 'Birth profile', errorText: _errors['profile_a'])),
+                  decoration: InputDecoration(labelText: trn(widget.twoProfiles ? 'First person' : 'Birth profile'), errorText: trn(_errors['profile_a']))),
               if (widget.twoProfiles) ...[
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(initialValue: _b, items: items, onChanged: (v) => setState(() => _b = v),
-                    decoration: InputDecoration(labelText: 'Second person', errorText: _errors['profile_b'])),
+                    decoration: InputDecoration(labelText: tr('Second person'), errorText: trn(_errors['profile_b']))),
               ],
             ],
             TextButton.icon(
@@ -461,15 +488,15 @@ class _ReportDetailsFormState extends State<ReportDetailsForm> {
                 if (saved == true) setState(() => _v++);
               },
               icon: const Icon(Icons.add),
-              label: const Text('Add a birth profile'),
+              label: Text(tr('Add a birth profile')),
             ),
             const SizedBox(height: 8),
             _LanguagePicker(value: _lang, onChanged: (v) => setState(() => _lang = v)),
             const SizedBox(height: 12),
-            TextField(controller: _question, maxLines: 3, maxLength: 500, decoration: InputDecoration(labelText: 'Anything specific to look at? (optional)', errorText: _errors['question'])),
+            TextField(controller: _question, maxLines: 3, maxLength: 500, decoration: InputDecoration(labelText: tr('Anything specific to look at? (optional)'), errorText: trn(_errors['question']))),
             FormError(_errors['_'] ?? _errors['language']),
             const SizedBox(height: 12),
-            FilledButton(onPressed: _busy || profiles.isEmpty ? null : _submit, child: Text(_busy ? 'Sending…' : 'Submit details')),
+            FilledButton(onPressed: _busy || profiles.isEmpty ? null : _submit, child: Text(tr(_busy ? 'Sending…' : 'Submit details'))),
           ]);
         },
       );
@@ -481,10 +508,10 @@ class _LanguagePicker extends StatelessWidget {
   final ValueChanged<String> onChanged;
   @override
   Widget build(BuildContext context) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const Text('Language'),
+        Text(tr('Language')),
         const SizedBox(height: 6),
         SegmentedButton<String>(
-          segments: const [ButtonSegment(value: 'en', label: Text('English')), ButtonSegment(value: 'hi', label: Text('हिन्दी'))],
+          segments: [ButtonSegment(value: 'en', label: Text(tr('English'))), ButtonSegment(value: 'hi', label: Text(tr('हिन्दी')))],
           selected: {value},
           onSelectionChanged: (s) => onChanged(s.first),
         ),
@@ -493,29 +520,47 @@ class _LanguagePicker extends StatelessWidget {
 
 // ───────────────────────────── Puja ─────────────────────────────
 
+/// Puja requests (puja on request, as on the website) and earlier online puja bookings.
 class PujaListScreen extends StatelessWidget {
-  const PujaListScreen({super.key, required this.state});
+  const PujaListScreen({super.key, required this.state, this.highlight});
   final AppState state;
+
+  /// Ref of a request or booking to outline (from a notification).
+  final String? highlight;
+
+  Future<(List<Map<String, dynamic>>, List<Map<String, dynamic>>)> _load() async {
+    final results = await Future.wait([state.api.get('/me/puja-requests'), state.api.get('/puja')]);
+    return (unwrapList(results[0]), unwrapList(results[1]));
+  }
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('Puja')),
+        appBar: AppBar(title: Text(tr('Puja requests'))),
+        floatingActionButton: FloatingActionButton.extended(
+          onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => PujaRequestScreen(state: state))),
+          icon: const Icon(Icons.temple_hindu_outlined),
+          label: Text(tr('Request a puja')),
+        ),
         body: SafeArea(
-          child: AsyncView<List<Map<String, dynamic>>>(
-            load: () async => unwrapList(await state.api.get('/puja')),
-            isEmpty: (l) => l.isEmpty,
-            emptyText: 'No puja bookings yet.',
-            builder: (context, list, reload) => ListView(padding: const EdgeInsets.all(16), children: [
-              for (final p in list)
+          child: AsyncView<(List<Map<String, dynamic>>, List<Map<String, dynamic>>)>(
+            load: _load,
+            isEmpty: (l) => l.$1.isEmpty && l.$2.isEmpty,
+            emptyText: 'No puja requested yet.',
+            builder: (context, data, reload) => ListView(padding: const EdgeInsets.fromLTRB(16, 16, 16, 88), children: [
+              Text(tr('Tell us the puja you need; our team calls you to fix the date, place and dakshina.'), style: const TextStyle(color: ArjColors.ink600)),
+              const SizedBox(height: 12),
+              for (final q in data.$1) PujaRequestTile(request: q, highlight: q['ref'] == highlight),
+              if (data.$2.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 16, bottom: 8), child: Text(tr('Earlier puja bookings'), style: const TextStyle(fontWeight: FontWeight.w700))),
+              for (final p in data.$2)
                 Card(
                   margin: const EdgeInsets.only(bottom: 8),
                   child: ListTile(
-                    title: Text('${p['title']}'),
+                    title: Text(tr('${p['title']}')),
                     subtitle: Padding(
                       padding: const EdgeInsets.only(top: 4),
-                      child: Wrap(spacing: 8, crossAxisAlignment: WrapCrossAlignment.center, children: [StatusChip(p['status']), if (p['scheduled_at'] != null) Text(formatWhen(p['scheduled_at']))]),
+                      child: Wrap(spacing: 8, crossAxisAlignment: WrapCrossAlignment.center, children: [StatusChip(p['status']), if (p['scheduled_at'] != null) Text(tr(formatWhen(p['scheduled_at'])))]),
                     ),
-                    trailing: const Icon(Icons.chevron_right, semanticLabel: 'Open'),
+                    trailing: Icon(Icons.chevron_right, semanticLabel: tr('Open')),
                     onTap: () async {
                       await Navigator.of(context).push(MaterialPageRoute(builder: (_) => PujaDetailScreen(state: state, ref: '${p['ref']}')));
                       await reload();
@@ -541,17 +586,17 @@ class _PujaDetailScreenState extends State<PujaDetailScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('Puja')),
+        appBar: AppBar(title: Text(tr('Puja'))),
         body: SafeArea(
           child: AsyncView<Map<String, dynamic>>(
             key: ValueKey(_v),
             load: () async => unwrap(await widget.state.api.get('/puja/${widget.ref}')),
             builder: (context, p, _) => ListView(padding: const EdgeInsets.all(16), children: [
-              Text('${p['title']}', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600)),
+              Text(tr('${p['title']}'), style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600)),
               const SizedBox(height: 8),
               Row(children: [StatusChip(p['status'])]),
-              if (p['scheduled_at'] != null) Padding(padding: const EdgeInsets.only(top: 12), child: Text('Scheduled for ${formatWhen(p['scheduled_at'], pattern: 'EEE, d MMM yyyy · h:mm a')}')),
-              if (p['customer_note'] != null) Padding(padding: const EdgeInsets.only(top: 12), child: Text('${p['customer_note']}')),
+              if (p['scheduled_at'] != null) Padding(padding: const EdgeInsets.only(top: 12), child: Text(tr('Scheduled for {0}', [formatWhen(p['scheduled_at'], pattern: 'EEE, d MMM yyyy · h:mm a')]))),
+              if (p['customer_note'] != null) Padding(padding: const EdgeInsets.only(top: 12), child: Text(tr('${p['customer_note']}'))),
               if ((p['photo_urls'] as List? ?? const []).isNotEmpty) ...[
                 const SectionTitle('Photos from the puja'),
                 Wrap(spacing: 8, runSpacing: 8, children: [
@@ -562,15 +607,15 @@ class _PujaDetailScreenState extends State<PujaDetailScreen> {
                         return i < urls.length ? '${urls[i]}' : null;
                       }),
                       icon: const Icon(Icons.photo_outlined),
-                      label: Text((p['photo_urls'] as List).length == 1 ? 'View photo' : 'View photo ${i + 1}'),
+                      label: Text(tr((p['photo_urls'] as List).length == 1 ? 'View photo' : 'View photo ${i + 1}')),
                     ),
                 ]),
               ] else if ((p['photo_count'] as num? ?? 0) > 0)
-                Padding(padding: const EdgeInsets.only(top: 8), child: Text('${p['photo_count']} photos shared.', style: const TextStyle(color: ArjColors.ink600))),
+                Padding(padding: const EdgeInsets.only(top: 8), child: Text(tr('{0} photos shared.', [p['photo_count']]), style: const TextStyle(color: ArjColors.ink600))),
               const SizedBox(height: 12),
               Wrap(spacing: 8, runSpacing: 8, children: [
-                if (p['live_link'] != null) FilledButton.icon(onPressed: () => openExternal(context, '${p['live_link']}'), icon: const Icon(Icons.live_tv_outlined), label: const Text('Watch live')),
-                if (p['video_url'] != null) OutlinedButton.icon(onPressed: () => openExternal(context, '${p['video_url']}'), icon: const Icon(Icons.play_circle_outline), label: const Text('Watch recording')),
+                if (p['live_link'] != null) FilledButton.icon(onPressed: () => openExternal(context, '${p['live_link']}'), icon: const Icon(Icons.live_tv_outlined), label: Text(tr('Watch live'))),
+                if (p['video_url'] != null) OutlinedButton.icon(onPressed: () => openExternal(context, '${p['video_url']}'), icon: const Icon(Icons.play_circle_outline), label: Text(tr('Watch recording'))),
               ]),
               if (p['status'] == 'awaiting_details') SankalpForm(state: widget.state, ref: widget.ref, onDone: () => setState(() => _v++)),
             ]),
@@ -656,17 +701,17 @@ class _SankalpFormState extends State<SankalpForm> {
   @override
   Widget build(BuildContext context) => Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         const SectionTitle('Sankalp details'),
-        const Text('Names are recited in the sankalp. Add up to 8 devotees.', style: TextStyle(color: ArjColors.ink600)),
+        Text(tr('Names are recited in the sankalp. Add up to 8 devotees.'), style: TextStyle(color: ArjColors.ink600)),
         const SizedBox(height: 8),
         for (var i = 0; i < _devotees.length; i++)
           Padding(
             padding: const EdgeInsets.only(bottom: 8),
             child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Expanded(flex: 3, child: TextField(controller: _devotees[i].name, textCapitalization: TextCapitalization.words, decoration: InputDecoration(labelText: 'Devotee ${i + 1} name'))),
+              Expanded(flex: 3, child: TextField(controller: _devotees[i].name, textCapitalization: TextCapitalization.words, decoration: InputDecoration(labelText: tr('Devotee {0} name', [i + 1])))),
               const SizedBox(width: 8),
-              Expanded(flex: 2, child: TextField(controller: _devotees[i].relation, textCapitalization: TextCapitalization.words, decoration: const InputDecoration(labelText: 'Relation'))),
+              Expanded(flex: 2, child: TextField(controller: _devotees[i].relation, textCapitalization: TextCapitalization.words, decoration: InputDecoration(labelText: tr('Relation')))),
               IconButton(
-                tooltip: 'Remove devotee ${i + 1}',
+                tooltip: tr('Remove devotee {0}', [i + 1]),
                 onPressed: _devotees.length == 1 ? null : () => setState(() => _devotees.removeAt(i).dispose()),
                 icon: const Icon(Icons.remove_circle_outline),
               ),
@@ -678,40 +723,40 @@ class _SankalpFormState extends State<SankalpForm> {
           child: TextButton.icon(
             onPressed: _devotees.length >= SankalpForm.maxDevotees ? null : () => setState(() => _devotees.add(_Devotee())),
             icon: const Icon(Icons.person_add_alt),
-            label: Text(_devotees.length >= SankalpForm.maxDevotees ? 'Maximum 8 devotees' : 'Add devotee'),
+            label: Text(tr(_devotees.length >= SankalpForm.maxDevotees ? 'Maximum 8 devotees' : 'Add devotee')),
           ),
         ),
-        TextField(controller: _gotra, textCapitalization: TextCapitalization.words, decoration: InputDecoration(labelText: 'Gotra (optional)', errorText: _errors['gotra'])),
+        TextField(controller: _gotra, textCapitalization: TextCapitalization.words, decoration: InputDecoration(labelText: tr('Gotra (optional)'), errorText: trn(_errors['gotra']))),
         const SizedBox(height: 12),
-        TextField(controller: _wish, maxLines: 2, maxLength: 300, decoration: InputDecoration(labelText: 'Your wish / sankalp (optional)', errorText: _errors['wish'])),
-        const Text('Where should the puja be performed?'),
+        TextField(controller: _wish, maxLines: 2, maxLength: 300, decoration: InputDecoration(labelText: tr('Your wish / sankalp (optional)'), errorText: trn(_errors['wish']))),
+        Text(tr('Where should the puja be performed?')),
         const SizedBox(height: 6),
         SegmentedButton<String>(
-          segments: const [ButtonSegment(value: 'online', label: Text('Online')), ButtonSegment(value: 'temple', label: Text('Temple')), ButtonSegment(value: 'home', label: Text('At home'))],
+          segments: [ButtonSegment(value: 'online', label: Text(tr('Online'))), ButtonSegment(value: 'temple', label: Text(tr('Temple'))), ButtonSegment(value: 'home', label: Text(tr('At home')))],
           selected: {_location},
           onSelectionChanged: (s) => setState(() => _location = s.first),
         ),
         if (_location == 'home') ...[
           const SizedBox(height: 12),
-          TextField(controller: _address, maxLines: 3, decoration: InputDecoration(labelText: 'Address for the puja', errorText: _errors['address'])),
+          TextField(controller: _address, maxLines: 3, decoration: InputDecoration(labelText: tr('Address for the puja'), errorText: trn(_errors['address']))),
         ],
         const SizedBox(height: 12),
         ListTile(
           contentPadding: EdgeInsets.zero,
           leading: const Icon(Icons.event_outlined),
-          title: Text(_date == null ? 'Preferred date (optional)' : DateFormat('EEE, d MMM yyyy').format(_date!)),
-          subtitle: _errors['preferred_date'] != null ? Text(_errors['preferred_date']!, style: TextStyle(color: Theme.of(context).colorScheme.error)) : null,
-          trailing: _date == null ? null : IconButton(tooltip: 'Clear date', onPressed: () => setState(() => _date = null), icon: const Icon(Icons.clear)),
+          title: Text(tr(_date == null ? 'Preferred date (optional)' : DateFormat('EEE, d MMM yyyy').format(_date!))),
+          subtitle: _errors['preferred_date'] != null ? Text(tr(_errors['preferred_date']!), style: TextStyle(color: Theme.of(context).colorScheme.error)) : null,
+          trailing: _date == null ? null : IconButton(tooltip: tr('Clear date'), onPressed: () => setState(() => _date = null), icon: const Icon(Icons.clear)),
           onTap: () async {
             final now = DateTime.now();
             final d = await showDatePicker(context: context, firstDate: now, lastDate: now.add(const Duration(days: 365)), initialDate: _date ?? now.add(const Duration(days: 3)));
             if (d != null) setState(() => _date = d);
           },
         ),
-        TextField(controller: _phone, keyboardType: TextInputType.phone, decoration: InputDecoration(labelText: 'Mobile number', errorText: _errors['phone'])),
+        TextField(controller: _phone, keyboardType: TextInputType.phone, decoration: InputDecoration(labelText: tr('Mobile number'), errorText: trn(_errors['phone']))),
         FormError(_errors['_'] ?? _errors['location']),
         const SizedBox(height: 16),
-        FilledButton(onPressed: _busy ? null : _submit, child: Text(_busy ? 'Sending…' : 'Submit details')),
+        FilledButton(onPressed: _busy ? null : _submit, child: Text(tr(_busy ? 'Sending…' : 'Submit details'))),
       ]);
 }
 
@@ -764,10 +809,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('Notifications'), actions: [
-          IconButton(tooltip: 'Mark all as read', onPressed: _readAll, icon: const Icon(Icons.done_all)),
+        appBar: AppBar(title: Text(tr('Notifications')), actions: [
+          IconButton(tooltip: tr('Mark all as read'), onPressed: _readAll, icon: const Icon(Icons.done_all)),
           IconButton(
-            tooltip: 'Notification settings',
+            tooltip: tr('Notification settings'),
             onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => NotificationPrefsScreen(state: widget.state))),
             icon: const Icon(Icons.tune),
           ),
@@ -787,8 +832,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 return ListTile(
                   tileColor: unread ? ArjColors.gold50 : null,
                   leading: Icon(unread ? Icons.circle : Icons.circle_outlined, size: 12, color: unread ? ArjColors.gold700 : ArjColors.ink200, semanticLabel: unread ? 'Unread' : 'Read'),
-                  title: Text('${n['title']}', style: TextStyle(fontWeight: unread ? FontWeight.w600 : FontWeight.normal)),
-                  subtitle: Text('${n['body'] ?? ''}\n${formatWhen(n['created_at'])}'),
+                  title: Text(tr('${n['title']}'), style: TextStyle(fontWeight: unread ? FontWeight.w600 : FontWeight.normal)),
+                  subtitle: Text(tr('${n['body'] ?? ''}\n${formatWhen(n['created_at'])}')),
                   isThreeLine: true,
                   onTap: () => _open(n),
                 );

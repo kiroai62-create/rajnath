@@ -46,7 +46,10 @@ class ActivityController extends Controller
             'meeting_link' => $b->status === 'confirmed' && $b->meeting_provider !== 'livekit' ? $b->meeting_link : null,
             'meeting_provider' => $b->status === 'confirmed' ? $b->meeting_provider : null,
             'call_open' => $b->status === 'confirmed' && now()->between($start->subMinutes(LiveKit::EARLY_MINUTES), CarbonImmutable::parse($b->end_utc, 'UTC')->addMinutes(LiveKit::LATE_MINUTES)), 'practitioner' => $p?->display_name, 'practitioner_ref' => $p?->ref,
-            'can_cancel' => $changeable, 'can_reschedule' => $changeable && $b->reschedules < config('booking.max_reschedules')];
+            'can_cancel' => $changeable, 'can_reschedule' => $changeable && $b->reschedules < config('booking.max_reschedules'),
+            // Set when the team moved the booking (for example to today); the app shows the earlier time and the note.
+            'moved_from_utc' => ($b->moved_from_utc ?? null) ? CarbonImmutable::parse($b->moved_from_utc, 'UTC')->toIso8601ZuluString() : null,
+            'moved_note' => $b->moved_note ?? null];
     }
 
     public function bookings(Request $r): JsonResponse

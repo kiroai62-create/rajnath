@@ -4,6 +4,7 @@ import '../api/api_client.dart';
 import '../payments/checkout.dart';
 import '../state/app_state.dart';
 import '../theme/app_theme.dart';
+import '../util/i18n.dart';
 import '../util/validators.dart';
 import '../widgets/common.dart';
 
@@ -38,7 +39,7 @@ class _WalletScreenState extends State<WalletScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('Wallet')),
+        appBar: AppBar(title: Text(tr('Wallet'))),
         body: SafeArea(
           child: AsyncView<Map<String, dynamic>>(
             key: ValueKey(_v),
@@ -52,12 +53,12 @@ class _WalletScreenState extends State<WalletScreen> {
                   child: Padding(
                     padding: const EdgeInsets.all(20),
                     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      const Text('Wallet balance', style: TextStyle(color: ArjColors.gold200)),
+                      Text(tr('Wallet balance'), style: TextStyle(color: ArjColors.gold200)),
                       const SizedBox(height: 4),
-                      Text(formatPaise((w['balance_minor'] as num?)?.toInt() ?? 0),
+                      Text(tr(formatPaise((w['balance_minor'] as num?)?.toInt() ?? 0)),
                           style: Theme.of(context).textTheme.headlineMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.w600)),
                       const SizedBox(height: 4),
-                      const Text('Used automatically at checkout when you choose "Use wallet balance".', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                      Text(tr('Used automatically at checkout when you choose "Use wallet balance".'), style: TextStyle(color: Colors.white70, fontSize: 12)),
                     ]),
                   ),
                 ),
@@ -83,9 +84,9 @@ class _WalletScreenState extends State<WalletScreen> {
                                 if (_busyId == p['id'])
                                   const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, semanticsLabel: 'Working'))
                                 else
-                                  Text(formatPaise((p['amount_minor'] as num?)?.toInt() ?? 0), style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600)),
+                                  Text(tr(formatPaise((p['amount_minor'] as num?)?.toInt() ?? 0)), style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600)),
                                 if (((p['bonus_minor'] as num?) ?? 0) > 0)
-                                  Text('+ ${formatPaise((p['bonus_minor'] as num).toInt())} bonus', style: const TextStyle(color: ArjColors.success700, fontWeight: FontWeight.w600)),
+                                  Text(tr('+ {0} bonus', [formatPaise((p['bonus_minor'] as num).toInt())]), style: const TextStyle(color: ArjColors.success700, fontWeight: FontWeight.w600)),
                               ]),
                             ),
                           ),
@@ -94,15 +95,15 @@ class _WalletScreenState extends State<WalletScreen> {
                   ),
                 ],
                 const SectionTitle('Recent activity'),
-                if (tx.isEmpty) const Text('No wallet activity yet.', style: TextStyle(color: ArjColors.ink600)),
+                if (tx.isEmpty) Text(tr('No wallet activity yet.'), style: TextStyle(color: ArjColors.ink600)),
                 for (final t in tx)
                   ListTile(
                     contentPadding: EdgeInsets.zero,
                     leading: Icon(t['direction'] == 'credit' ? Icons.south_west : Icons.north_east,
                         color: t['direction'] == 'credit' ? ArjColors.success700 : ArjColors.ink600, semanticLabel: t['direction'] == 'credit' ? 'Credit' : 'Debit'),
-                    title: Text('${t['memo'] ?? humanize(t['kind'])}'),
-                    subtitle: Text(formatWhen(t['at'])),
-                    trailing: Text('${t['direction'] == 'credit' ? '+' : '−'} ${formatPaise((t['amount_minor'] as num?)?.toInt() ?? 0)}',
+                    title: Text(tr('${t['memo'] ?? humanize(t['kind'])}')),
+                    subtitle: Text(tr(formatWhen(t['at']))),
+                    trailing: Text(tr('${t['direction'] == 'credit' ? '+' : '−'} ${formatPaise((t['amount_minor'] as num?)?.toInt() ?? 0)}'),
                         style: TextStyle(fontWeight: FontWeight.w600, color: t['direction'] == 'credit' ? ArjColors.success700 : ArjColors.ink900)),
                   ),
               ]);

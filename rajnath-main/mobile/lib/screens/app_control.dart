@@ -4,11 +4,13 @@ import 'package:url_launcher/url_launcher.dart';
 import '../api/api_client.dart';
 import '../state/app_state.dart';
 import '../theme/app_theme.dart';
+import '../util/i18n.dart';
 import '../widgets/common.dart';
 import 'activity_screens.dart';
 import 'assistant_screen.dart';
 import 'astro_screens.dart';
 import 'content_screens.dart';
+import 'puja_request_screens.dart';
 import 'services_screens.dart';
 import 'store_screens.dart';
 
@@ -20,12 +22,12 @@ Widget? screenForAppLink(AppState state, String link) {
   final slash = path.indexOf('/');
   final kind = slash < 0 ? path : path.substring(0, slash);
   final ref = slash < 0 ? '' : path.substring(slash + 1);
-  Widget family(String title, String f) => Scaffold(appBar: AppBar(title: Text(title)), body: SafeArea(child: ServicesScreen(state: state, initialFamily: f)));
   return switch (kind) {
     'store' => StoreScreen(state: state),
-    'puja' => family('Online puja', 'puja'),
-    'chadhava' => family('Chadhava', 'chadhava'),
-    'services' => Scaffold(appBar: AppBar(title: const Text('Our services')), body: SafeArea(child: ServicesScreen(state: state))),
+    // Online puja and chadhava are requested with one form, as on the website.
+    'puja' => PujaRequestScreen(state: state, puja: ref.isEmpty ? null : Uri.decodeComponent(ref)),
+    'chadhava' => PujaRequestScreen(state: state),
+    'services' => Scaffold(appBar: AppBar(title: Text(tr('Our services'))), body: SafeArea(child: ServicesScreen(state: state))),
     'kundli' => KundliScreen(state: state),
     'matching' => KundliScreen(state: state, matching: true),
     'panchang' => PanchangScreen(state: state),
@@ -82,13 +84,13 @@ class AnnouncementBanner extends StatelessWidget {
             child: Row(children: [
               Icon(Icons.campaign_outlined, color: dark ? ArjColors.gold300 : ArjColors.ink900),
               const SizedBox(width: 10),
-              Expanded(child: Text('${data['text']}', style: TextStyle(color: fg, fontWeight: FontWeight.w600, height: 1.3))),
+              Expanded(child: Text(tr('${data['text']}'), style: TextStyle(color: fg, fontWeight: FontWeight.w600, height: 1.3))),
               if (link.isNotEmpty) ...[
                 const SizedBox(width: 8),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
                   decoration: BoxDecoration(color: dark ? ArjColors.gold300 : ArjColors.ink900, borderRadius: BorderRadius.circular(40)),
-                  child: Text(cta.isEmpty ? 'Open' : cta, style: TextStyle(color: dark ? ArjColors.ink950 : Colors.white, fontWeight: FontWeight.w700, fontSize: 13)),
+                  child: Text(tr(cta.isEmpty ? 'Open' : cta), style: TextStyle(color: dark ? ArjColors.ink950 : Colors.white, fontWeight: FontWeight.w700, fontSize: 13)),
                 ),
               ],
             ]),
@@ -113,9 +115,9 @@ class UpdateNote extends StatelessWidget {
         child: Row(children: [
           const Icon(Icons.system_update_outlined, color: ArjColors.gold700),
           const SizedBox(width: 10),
-          Expanded(child: Text('${state.updateInfo['message'] ?? 'A new version of the app is available.'}', style: const TextStyle(fontSize: 13.5))),
-          TextButton(onPressed: () => openExternal(context, '${state.updateInfo['url'] ?? ''}'), child: const Text('Update')),
-          IconButton(tooltip: 'Close', onPressed: onClose, icon: const Icon(Icons.close, size: 18)),
+          Expanded(child: Text(tr('${state.updateInfo['message'] ?? 'A new version of the app is available.'}'), style: const TextStyle(fontSize: 13.5))),
+          TextButton(onPressed: () => openExternal(context, '${state.updateInfo['url'] ?? ''}'), child: Text(tr('Update'))),
+          IconButton(tooltip: tr('Close'), onPressed: onClose, icon: const Icon(Icons.close, size: 18)),
         ]),
       );
 }
@@ -140,29 +142,29 @@ class AppGateScreen extends StatelessWidget {
               child: Column(mainAxisSize: MainAxisSize.min, children: [
                 Image.asset('assets/images/logo-mark-light.png', width: 84, height: 84, excludeFromSemantics: true),
                 const SizedBox(height: 20),
-                Text(update ? 'Please update the app' : 'We will be back soon',
+                Text(tr(update ? 'Please update the app' : 'We will be back soon'),
                     textAlign: TextAlign.center, style: Theme.of(context).textTheme.headlineSmall?.copyWith(color: Colors.white, fontWeight: FontWeight.w700)),
                 const SizedBox(height: 12),
-                Text(update ? '${state.updateInfo['message'] ?? 'This version is no longer supported.'}' : state.maintenanceMessage ?? '',
+                Text(tr(update ? '${state.updateInfo['message'] ?? 'This version is no longer supported.'}' : state.maintenanceMessage ?? ''),
                     textAlign: TextAlign.center, style: TextStyle(color: Colors.white.withValues(alpha: 0.82), height: 1.5)),
                 const SizedBox(height: 24),
                 if (update)
-                  GoldButton(label: 'Update now', icon: Icons.system_update, onPressed: () => openExternal(context, '${state.updateInfo['url'] ?? ''}'))
+                  GoldButton(label: tr('Update now'), icon: Icons.system_update, onPressed: () => openExternal(context, '${state.updateInfo['url'] ?? ''}'))
                 else
-                  GoldButton(label: 'Try again', icon: Icons.refresh, onPressed: () => state.loadMeta()),
+                  GoldButton(label: tr('Try again'), icon: Icons.refresh, onPressed: () => state.loadMeta()),
                 const SizedBox(height: 12),
                 if (wa.isNotEmpty)
                   TextButton.icon(
                       style: TextButton.styleFrom(foregroundColor: ArjColors.gold200),
                       onPressed: () => launchUrl(Uri.parse('https://wa.me/$wa'), mode: LaunchMode.externalApplication),
                       icon: const Icon(Icons.chat_outlined),
-                      label: const Text('WhatsApp us')),
+                      label: Text(tr('WhatsApp us'))),
                 if (phone.isNotEmpty)
                   TextButton.icon(
                       style: TextButton.styleFrom(foregroundColor: ArjColors.gold200),
                       onPressed: () => launchUrl(Uri.parse('tel:$phone')),
                       icon: const Icon(Icons.call_outlined),
-                      label: Text('Call $phone')),
+                      label: Text(tr('Call {0}', [phone]))),
               ]),
             ),
           ),

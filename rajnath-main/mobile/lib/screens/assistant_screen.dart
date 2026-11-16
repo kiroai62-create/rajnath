@@ -6,6 +6,7 @@ import '../api/api_client.dart';
 import '../payments/checkout.dart';
 import '../state/app_state.dart';
 import '../theme/app_theme.dart';
+import '../util/i18n.dart';
 import '../widgets/common.dart';
 import 'astro_screens.dart';
 import 'content_screens.dart';
@@ -234,14 +235,14 @@ class _AssistantScreenState extends State<AssistantScreen> {
                           ),
                           onPressed: () => _action(a),
                           icon: const Icon(Icons.lock_outline, size: 18),
-                          label: Text('${a['label']}'),
+                          label: Text(tr('${a['label']}')),
                         )
                       : OutlinedButton(
                           style: OutlinedButton.styleFrom(
                             minimumSize: const Size(0, 40),
                           ),
                           onPressed: () => _action(a),
-                          child: Text('${a['label']}'),
+                          child: Text(tr('${a['label']}')),
                         ),
               ],
             ),
@@ -264,7 +265,7 @@ class _AssistantScreenState extends State<AssistantScreen> {
             excludeFromSemantics: true,
           ),
           const SizedBox(width: 10),
-          const Flexible(child: Text('Jyotish AI assistant')),
+          Flexible(child: Text(tr('Jyotish AI assistant'))),
         ],
       ),
     ),
@@ -292,7 +293,7 @@ class _AssistantScreenState extends State<AssistantScreen> {
                             size: 16,
                             color: ArjColors.gold700,
                           ),
-                          label: Text(s),
+                          label: Text(tr(s)),
                           onPressed: _blocked ? null : () => _send(s),
                         ),
                     ],
@@ -333,7 +334,7 @@ class _AssistantScreenState extends State<AssistantScreen> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      _notice!,
+                      tr(_notice!),
                       style: const TextStyle(color: ArjColors.gold700, fontSize: 13, height: 1.35),
                     ),
                   ),
@@ -346,7 +347,7 @@ class _AssistantScreenState extends State<AssistantScreen> {
               child: OutlinedButton.icon(
                 onPressed: _openSupport,
                 icon: const Icon(Icons.support_agent),
-                label: const Text('Talk to our team'),
+                label: Text(tr('Talk to our team')),
               ),
             ),
           Container(
@@ -369,9 +370,9 @@ class _AssistantScreenState extends State<AssistantScreen> {
                     maxLength: 1000,
                     textInputAction: TextInputAction.send,
                     onSubmitted: (_) => _send(),
-                    decoration: const InputDecoration(
-                      hintText: 'Type your question',
-                      counterText: '',
+                    decoration: InputDecoration(
+                      hintText: tr('Type your question'),
+                      counterText: tr(''),
                       filled: false,
                       border: InputBorder.none,
                       enabledBorder: InputBorder.none,
@@ -380,7 +381,7 @@ class _AssistantScreenState extends State<AssistantScreen> {
                   ),
                 ),
                 IconButton.filled(
-                  tooltip: 'Send',
+                  tooltip: tr('Send'),
                   style: IconButton.styleFrom(
                     backgroundColor: ArjColors.ink900,
                     foregroundColor: Colors.white,
@@ -395,7 +396,7 @@ class _AssistantScreenState extends State<AssistantScreen> {
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
             child: Text(
-              _disclaimer ?? 'Automated answers can be wrong. For personal guidance, book a consultation.',
+              tr(_disclaimer ?? 'Automated answers can be wrong. For personal guidance, book a consultation.'),
               textAlign: TextAlign.center,
               style: const TextStyle(fontSize: 11, color: ArjColors.ink600),
             ),
@@ -432,17 +433,17 @@ class AskAiCard extends StatelessWidget {
         border: Border.all(color: ArjColors.gold200),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const Row(children: [
+        Row(children: [
           Icon(Icons.auto_awesome, color: ArjColors.gold700, size: 20),
           SizedBox(width: 8),
-          Expanded(child: Text('Have a question? Ask our AI assistant', style: TextStyle(fontWeight: FontWeight.w700))),
+          Expanded(child: Text(tr('Have a question? Ask our AI assistant'), style: TextStyle(fontWeight: FontWeight.w700))),
         ]),
         const SizedBox(height: 10),
         GoldButton(label: label, icon: Icons.chat_bubble_outline, onPressed: () => _open(context, question)),
         if (suggestions.isNotEmpty) ...[
           const SizedBox(height: 8),
           Wrap(spacing: 8, runSpacing: 6, children: [
-            for (final s in suggestions) ActionChip(label: Text(s), onPressed: () => _open(context, s)),
+            for (final s in suggestions) ActionChip(label: Text(tr(s)), onPressed: () => _open(context, s)),
           ]),
         ],
       ]),

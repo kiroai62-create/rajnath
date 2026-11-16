@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 
 import '../api/api_client.dart';
 import '../state/app_state.dart';
+import '../util/i18n.dart';
 
 /// Email / mobile OTP sign-in and sign-up, matching the website flow.
 class SignInScreen extends StatefulWidget {
@@ -80,36 +81,36 @@ class _SignInScreenState extends State<SignInScreen> {
   Widget build(BuildContext context) {
     final c = _challenge;
     return Scaffold(
-      appBar: AppBar(title: Text(c == null ? 'Sign in' : 'Enter code')),
+      appBar: AppBar(title: Text(tr(c == null ? 'Sign in' : 'Enter code'))),
       body: SafeArea(
         child: ListView(padding: const EdgeInsets.all(20), children: [
-          Center(child: Image.asset('assets/images/logo-full.png', width: 260, semanticLabel: 'Acharya Rajnath Jha')),
+          Center(child: Image.asset('assets/images/logo-full.png', width: 260, semanticLabel: tr('Acharya Rajnath Jha'))),
           const SizedBox(height: 20),
           if (c == null) ...[
-            const Text('Enter your email or mobile number. We will send you a 6-digit code — no password needed.'),
+            Text(tr('Enter your email or mobile number. We will send you a 6-digit code — no password needed.')),
             const SizedBox(height: 20),
             TextField(controller: _id, keyboardType: TextInputType.emailAddress, autofillHints: const [AutofillHints.username, AutofillHints.telephoneNumber],
-                decoration: const InputDecoration(labelText: 'Email or mobile number', hintText: '98xxxxxxxx or you@example.com'), onSubmitted: (_) => _send()),
+                decoration: InputDecoration(labelText: tr('Email or mobile number'), hintText: tr('98xxxxxxxx or you@example.com')), onSubmitted: (_) => _send()),
             const SizedBox(height: 20),
-            FilledButton(onPressed: _busy ? null : _send, child: Text(_busy ? 'Sending…' : 'Send code')),
+            FilledButton(onPressed: _busy ? null : _send, child: Text(tr(_busy ? 'Sending…' : 'Send code'))),
           ] else ...[
-            Text('We sent a code to ${c['sent_to']}. It is valid for 10 minutes.'),
+            Text(tr('We sent a code to {0}. It is valid for 10 minutes.', [c['sent_to']])),
             const SizedBox(height: 20),
             TextField(controller: _code, keyboardType: TextInputType.number, maxLength: 6, autofillHints: const [AutofillHints.oneTimeCode],
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly], decoration: const InputDecoration(labelText: '6-digit code', counterText: '')),
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly], decoration: InputDecoration(labelText: tr('6-digit code'), counterText: tr(''))),
             if (c['is_new_account'] == true) ...[
               const SizedBox(height: 16),
-              TextField(controller: _name, textCapitalization: TextCapitalization.words, decoration: const InputDecoration(labelText: 'Your name')),
+              TextField(controller: _name, textCapitalization: TextCapitalization.words, decoration: InputDecoration(labelText: tr('Your name'))),
               CheckboxListTile(contentPadding: EdgeInsets.zero, value: _terms, onChanged: (v) => setState(() => _terms = v ?? false),
-                  title: const Text('I accept the Terms of use and Privacy policy'), controlAffinity: ListTileControlAffinity.leading),
+                  title: Text(tr('I accept the Terms of use and Privacy policy')), controlAffinity: ListTileControlAffinity.leading),
             ],
             const SizedBox(height: 16),
-            FilledButton(onPressed: _busy ? null : _verify, child: Text(c['is_new_account'] == true ? 'Create account' : 'Sign in')),
+            FilledButton(onPressed: _busy ? null : _verify, child: Text(tr(c['is_new_account'] == true ? 'Create account' : 'Sign in'))),
             const SizedBox(height: 8),
-            TextButton(onPressed: _busy || _resendIn > 0 ? null : _resend, child: Text(_resendIn > 0 ? 'Resend code in ${_resendIn}s' : 'Resend code')),
-            TextButton(onPressed: () => setState(() { _challenge = null; _code.clear(); }), child: const Text('Use a different email or number')),
+            TextButton(onPressed: _busy || _resendIn > 0 ? null : _resend, child: Text(tr(_resendIn > 0 ? 'Resend code in ${_resendIn}s' : 'Resend code'))),
+            TextButton(onPressed: () => setState(() { _challenge = null; _code.clear(); }), child: Text(tr('Use a different email or number'))),
           ],
-          if (_error != null) Padding(padding: const EdgeInsets.only(top: 12), child: Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error), semanticsLabel: 'Error: $_error')),
+          if (_error != null) Padding(padding: const EdgeInsets.only(top: 12), child: Text(tr(_error!), style: TextStyle(color: Theme.of(context).colorScheme.error), semanticsLabel: 'Error: $_error')),
         ]),
       ),
     );

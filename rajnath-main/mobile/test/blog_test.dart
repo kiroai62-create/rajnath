@@ -178,7 +178,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Everything in one place'), findsOneWidget);
-    for (final t in ['Free Kundli', 'Kundli matching', 'Online puja', 'Chadhava', 'Gemstones & samagri', 'Panchang', 'Muhurat', 'Grah gochar', 'Festivals', 'Calculators', 'Articles', 'Courses']) {
+    for (final t in ['Free Kundli', 'Kundli matching', 'Puja on request', 'Gemstones & samagri', 'Panchang', 'Muhurat', 'Grah gochar', 'Festivals', 'Calculators', 'Articles', 'Courses']) {
       expect(find.text(t), findsOneWidget, reason: t);
     }
     expect(find.text('Your sign today'), findsOneWidget);

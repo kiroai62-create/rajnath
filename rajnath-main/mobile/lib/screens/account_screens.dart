@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import '../api/api_client.dart';
 import '../state/app_state.dart';
 import '../theme/app_theme.dart';
+import '../util/i18n.dart';
 import '../util/validators.dart';
 import '../widgets/common.dart';
 import 'activity_screens.dart';
@@ -32,24 +33,24 @@ class AccountScreen extends StatelessWidget {
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             const Icon(Icons.person_outline, size: 48, color: ArjColors.ink600),
             const SizedBox(height: 12),
-            const Text('Sign in to save birth profiles and track your requests.', textAlign: TextAlign.center),
+            Text(tr('Sign in to save birth profiles and track your requests.'), textAlign: TextAlign.center),
             const SizedBox(height: 16),
-            FilledButton(onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => SignInScreen(state: state))), child: const Text('Sign in or create account')),
+            FilledButton(onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => SignInScreen(state: state))), child: Text(tr('Sign in or create account'))),
           ]),
         ),
       );
     }
     final u = state.user!;
     return ListView(padding: const EdgeInsets.all(16), children: [
-      Text('Namaste, ${u['name']}', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w600)),
+      Text(tr('Namaste, ${u['name']}'), style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w600)),
       const SizedBox(height: 4),
-      Text([u['email'], u['phone']].whereType<String>().join(' · '), style: const TextStyle(color: ArjColors.ink600)),
+      Text(tr([u['email'], u['phone']].whereType<String>().join(' · ')), style: const TextStyle(color: ArjColors.ink600)),
       const SizedBox(height: 16),
       const SectionTitle('My activity'),
       _tile(context, Icons.receipt_long_outlined, 'Orders', () => OrdersScreen(state: state)),
       _tile(context, Icons.event_outlined, 'Bookings', () => BookingsScreen(state: state)),
       _tile(context, Icons.description_outlined, 'Reports', () => ReportsScreen(state: state)),
-      _tile(context, Icons.local_fire_department_outlined, 'Puja', () => PujaListScreen(state: state)),
+      _tile(context, Icons.local_fire_department_outlined, 'Puja requests', () => PujaListScreen(state: state)),
       _tile(context, Icons.back_hand_outlined, 'Palmistry', () => PalmListScreen(state: state)),
       _tile(context, Icons.account_balance_wallet_outlined, 'Wallet', () => WalletScreen(state: state)),
       _tile(context, Icons.notifications_outlined, 'Notifications', () => NotificationsScreen(state: state),
@@ -68,15 +69,15 @@ class AccountScreen extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 8),
         child: ListTile(
           leading: const Icon(Icons.workspace_premium_outlined),
-          title: const Text('Apply as astrologer'),
+          title: Text(tr('Apply as astrologer')),
           trailing: const Icon(Icons.chevron_right),
           onTap: () => openAstrologerApplication(context, state),
         ),
       ),
       const SizedBox(height: 16),
-      OutlinedButton(onPressed: () => state.signOut(), child: const Text('Sign out')),
+      OutlinedButton(onPressed: () => state.signOut(), child: Text(tr('Sign out'))),
       const SizedBox(height: 8),
-      TextButton(onPressed: () => signOutOtherDevices(context, state), child: const Text('Sign out all other devices')),
+      TextButton(onPressed: () => signOutOtherDevices(context, state), child: Text(tr('Sign out all other devices'))),
       const SizedBox(height: 24),
     ]);
   }
@@ -85,9 +86,9 @@ class AccountScreen extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 8),
         child: ListTile(
           leading: Icon(icon),
-          title: Text(title),
+          title: Text(tr(title)),
           trailing: Row(mainAxisSize: MainAxisSize.min, children: [
-            if (badge != null) Badge(label: Text(badge, semanticsLabel: '$badge unread')),
+            if (badge != null) Badge(label: Text(tr(badge), semanticsLabel: '$badge unread')),
             const SizedBox(width: 4),
             const Icon(Icons.chevron_right),
           ]),
@@ -110,14 +111,14 @@ class _BirthProfilesScreenState extends State<BirthProfilesScreen> {
   int _v = 0;
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('Birth profiles')),
+        appBar: AppBar(title: Text(tr('Birth profiles'))),
         floatingActionButton: FloatingActionButton.extended(
           onPressed: () async {
             final saved = await Navigator.of(context).push<bool>(MaterialPageRoute(builder: (_) => AddBirthProfileScreen(state: widget.state)));
             if (saved == true) setState(() => _v++);
           },
           icon: const Icon(Icons.add),
-          label: const Text('Add'),
+          label: Text(tr('Add')),
         ),
         body: SafeArea(
           child: AsyncView<List>(
@@ -129,20 +130,20 @@ class _BirthProfilesScreenState extends State<BirthProfilesScreen> {
               for (final p in list)
                 Card(
                   child: ListTile(
-                    title: Text('${p['name']}${p['is_primary'] == true ? '  ★' : ''}'),
-                    subtitle: Text('${p['birth_date']}${p['birth_time'] != null ? ' ${p['birth_time']}' : ' (time unknown)'}\n${p['place']['label']}'),
+                    title: Text(tr('${p['name']}${p['is_primary'] == true ? '  ★' : ''}')),
+                    subtitle: Text(tr('${p['birth_date']}${p['birth_time'] != null ? ' ${p['birth_time']}' : ' (time unknown)'}\n${p['place']['label']}')),
                     isThreeLine: true,
                     onTap: () async {
                       final saved = await Navigator.of(context).push<bool>(MaterialPageRoute(builder: (_) => AddBirthProfileScreen(state: widget.state, profile: p as Map)));
                       if (saved == true) await reload();
                     },
                     trailing: IconButton(
-                      tooltip: 'Delete',
+                      tooltip: tr('Delete'),
                       icon: const Icon(Icons.delete_outline),
                       onPressed: () async {
-                        final ok = await showDialog<bool>(context: context, builder: (_) => AlertDialog(title: const Text('Delete profile?'), actions: [
-                              TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-                              TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Delete')),
+                        final ok = await showDialog<bool>(context: context, builder: (_) => AlertDialog(title: Text(tr('Delete profile?')), actions: [
+                              TextButton(onPressed: () => Navigator.pop(context, false), child: Text(tr('Cancel'))),
+                              TextButton(onPressed: () => Navigator.pop(context, true), child: Text(tr('Delete'))),
                             ]));
                         if (ok == true) {
                           await widget.state.api.delete('/birth-profiles/${p['ref']}');
@@ -208,19 +209,19 @@ class _AddBirthProfileScreenState extends State<AddBirthProfileScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: Text(widget.profile == null ? 'Add birth profile' : 'Edit birth profile')),
+        appBar: AppBar(title: Text(tr(widget.profile == null ? 'Add birth profile' : 'Edit birth profile'))),
         body: SafeArea(
           child: ListView(padding: const EdgeInsets.all(16), children: [
-            TextField(controller: _name, textCapitalization: TextCapitalization.words, decoration: const InputDecoration(labelText: 'Full name')),
+            TextField(controller: _name, textCapitalization: TextCapitalization.words, decoration: InputDecoration(labelText: tr('Full name'))),
             const SizedBox(height: 12),
-            DropdownButtonFormField<String>(initialValue: _label, decoration: const InputDecoration(labelText: 'Relation'),
-                items: _labels.entries.map((e) => DropdownMenuItem(value: e.key, child: Text(e.value))).toList(),
+            DropdownButtonFormField<String>(initialValue: _label, decoration: InputDecoration(labelText: tr('Relation')),
+                items: _labels.entries.map((e) => DropdownMenuItem(value: e.key, child: Text(tr(e.value)))).toList(),
                 onChanged: (v) => setState(() => _label = v ?? 'self')),
             const SizedBox(height: 12),
             BirthFields(api: widget.state.api, input: _input),
-            if (_error != null) Padding(padding: const EdgeInsets.only(top: 12), child: Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error))),
+            if (_error != null) Padding(padding: const EdgeInsets.only(top: 12), child: Text(tr(_error!), style: TextStyle(color: Theme.of(context).colorScheme.error))),
             const SizedBox(height: 16),
-            FilledButton(onPressed: _busy ? null : _save, child: Text(_busy ? 'Saving…' : 'Save')),
+            FilledButton(onPressed: _busy ? null : _save, child: Text(tr(_busy ? 'Saving…' : 'Save'))),
           ]),
         ),
       );
@@ -238,8 +239,8 @@ class _DevicesScreenState extends State<DevicesScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('Devices'), actions: [
-          IconButton(tooltip: 'Sign out all other devices', onPressed: () => signOutOtherDevices(context, widget.state).then((done) {
+        appBar: AppBar(title: Text(tr('Devices')), actions: [
+          IconButton(tooltip: tr('Sign out all other devices'), onPressed: () => signOutOtherDevices(context, widget.state).then((done) {
             if (done && mounted) setState(() => _v++);
           }), icon: const Icon(Icons.logout)),
         ]),
@@ -251,14 +252,14 @@ class _DevicesScreenState extends State<DevicesScreen> {
               for (final d in list)
                 Card(
                   child: ListTile(
-                    title: Text('${d['name']}${d['current'] == true ? ' (this device)' : ''}'),
-                    subtitle: Text(d['last_used_at'] != null ? 'Last used ${DateFormat('d MMM yyyy, h:mm a').format(DateTime.parse(d['last_used_at']).toLocal())}' : 'Not used yet'),
+                    title: Text(tr('${d['name']}${d['current'] == true ? ' (this device)' : ''}')),
+                    subtitle: Text(tr(d['last_used_at'] != null ? 'Last used ${DateFormat('d MMM yyyy, h:mm a').format(DateTime.parse(d['last_used_at']).toLocal())}' : 'Not used yet')),
                     trailing: d['current'] == true
                         ? null
                         : TextButton(onPressed: () async {
                             await widget.state.api.delete('/me/devices/${d['id']}');
                             await reload();
-                          }, child: const Text('Sign out')),
+                          }, child: Text(tr('Sign out'))),
                   ),
                 ),
             ]),
@@ -293,8 +294,8 @@ class _NotificationPrefsScreenState extends State<NotificationPrefsScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('Notifications')),
-        body: SafeArea(child: ListView(children: [for (final e in labels.entries) SwitchListTile(title: Text(e.value), value: _prefs[e.key] == true, onChanged: (v) => _set(e.key, v))])),
+        appBar: AppBar(title: Text(tr('Notifications'))),
+        body: SafeArea(child: ListView(children: [for (final e in labels.entries) SwitchListTile(title: Text(tr(e.value)), value: _prefs[e.key] == true, onChanged: (v) => _set(e.key, v))])),
       );
 }
 
@@ -305,11 +306,11 @@ Future<bool> signOutOtherDevices(BuildContext context, AppState state) async {
   final ok = await showDialog<bool>(
     context: context,
     builder: (c) => AlertDialog(
-      title: const Text('Sign out all other devices?'),
-      content: const Text('Every other phone and browser signed in to your account will be signed out. This device stays signed in.'),
+      title: Text(tr('Sign out all other devices?')),
+      content: Text(tr('Every other phone and browser signed in to your account will be signed out. This device stays signed in.')),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancel')),
-        FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Sign out others')),
+        TextButton(onPressed: () => Navigator.pop(c, false), child: Text(tr('Cancel'))),
+        FilledButton(onPressed: () => Navigator.pop(c, true), child: Text(tr('Sign out others'))),
       ],
     ),
   );
@@ -360,7 +361,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('Profile')),
+        appBar: AppBar(title: Text(tr('Profile'))),
         body: SafeArea(
           child: ListenableBuilder(
             listenable: widget.state,
@@ -370,22 +371,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     margin: const EdgeInsets.only(bottom: 8),
                     child: ListTile(
                       leading: Icon(icon),
-                      title: Text(value == null || '$value'.isEmpty ? 'Not added' : '$value'),
-                      subtitle: Text(value == null ? label : '$label${verified ? ' · verified' : ''}'),
+                      title: Text(tr(value == null || '$value'.isEmpty ? 'Not added' : '$value')),
+                      subtitle: Text(tr(value == null ? label : tr('$label${verified ? ' · verified' : ''}'))),
                       trailing: TextButton(
                         onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => ContactChangeScreen(state: widget.state, email: icon == Icons.email_outlined))),
-                        child: Text(value == null ? 'Add' : 'Change'),
+                        child: Text(tr(value == null ? 'Add' : 'Change')),
                       ),
                     ),
                   );
               return ListView(padding: const EdgeInsets.all(16), children: [
-                TextField(controller: _name, textCapitalization: TextCapitalization.words, decoration: InputDecoration(labelText: 'Your name', errorText: _error)),
+                TextField(controller: _name, textCapitalization: TextCapitalization.words, decoration: InputDecoration(labelText: tr('Your name'), errorText: trn(_error))),
                 const SizedBox(height: 12),
-                FilledButton(onPressed: _busy ? null : _save, child: Text(_busy ? 'Saving…' : 'Save name')),
+                FilledButton(onPressed: _busy ? null : _save, child: Text(tr(_busy ? 'Saving…' : 'Save name'))),
                 const SectionTitle('Email and mobile'),
                 contact(Icons.email_outlined, 'Email', u['email'], u['email_verified'] == true),
                 contact(Icons.phone_outlined, 'Mobile', u['phone'], u['phone_verified'] == true),
-                const Text('We send a code to the new email or mobile to confirm it is yours.', style: TextStyle(fontSize: 12, color: ArjColors.ink600)),
+                Text(tr('We send a code to the new email or mobile to confirm it is yours.'), style: TextStyle(fontSize: 12, color: ArjColors.ink600)),
               ]);
             },
           ),
@@ -446,28 +447,28 @@ class _ContactChangeScreenState extends State<ContactChangeScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: Text(widget.email ? 'Change email' : 'Change mobile')),
+        appBar: AppBar(title: Text(tr(widget.email ? 'Change email' : 'Change mobile'))),
         body: SafeArea(
           child: ListView(padding: const EdgeInsets.all(16), children: [
             TextField(
               controller: _contact,
               enabled: _challenge == null,
               keyboardType: widget.email ? TextInputType.emailAddress : TextInputType.phone,
-              decoration: InputDecoration(labelText: widget.email ? 'New email address' : 'New mobile number', errorText: _errors['contact']),
+              decoration: InputDecoration(labelText: trn(widget.email ? 'New email address' : 'New mobile number'), errorText: trn(_errors['contact'])),
             ),
             if (_challenge == null) ...[
               FormError(_errors['_']),
               const SizedBox(height: 12),
-              FilledButton(onPressed: _busy ? null : _send, child: Text(_busy ? 'Sending…' : 'Send code')),
+              FilledButton(onPressed: _busy ? null : _send, child: Text(tr(_busy ? 'Sending…' : 'Send code'))),
             ] else ...[
               const SizedBox(height: 12),
-              Text('We sent a code to $_sentTo.'),
+              Text(tr('We sent a code to {0}.', [_sentTo])),
               const SizedBox(height: 8),
-              TextField(controller: _code, keyboardType: TextInputType.number, autofillHints: const [AutofillHints.oneTimeCode], decoration: InputDecoration(labelText: 'Code', errorText: _errors['code'])),
+              TextField(controller: _code, keyboardType: TextInputType.number, autofillHints: const [AutofillHints.oneTimeCode], decoration: InputDecoration(labelText: tr('Code'), errorText: trn(_errors['code']))),
               FormError(_errors['_']),
               const SizedBox(height: 12),
-              FilledButton(onPressed: _busy ? null : _confirm, child: Text(_busy ? 'Checking…' : 'Confirm')),
-              TextButton(onPressed: _busy ? null : () => setState(() { _challenge = null; _code.clear(); }), child: const Text('Use a different address')),
+              FilledButton(onPressed: _busy ? null : _confirm, child: Text(tr(_busy ? 'Checking…' : 'Confirm'))),
+              TextButton(onPressed: _busy ? null : () => setState(() { _challenge = null; _code.clear(); }), child: Text(tr('Use a different address'))),
             ],
           ]),
         ),
@@ -532,7 +533,7 @@ class _PrivacyScreenState extends State<PrivacyScreen> {
         final nav = Navigator.of(context);
         await widget.state.signOutLocal();
         nav.popUntil((r) => r.isFirst);
-        messenger.showSnackBar(const SnackBar(content: Text('Your account has been deleted.')));
+        messenger.showSnackBar(SnackBar(content: Text(tr('Your account has been deleted.'))));
       }
     } on ApiException catch (e) {
       setState(() => _errors = e.fieldErrors.isEmpty ? {'_': e.message} : e.fieldErrors);
@@ -543,7 +544,7 @@ class _PrivacyScreenState extends State<PrivacyScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('Privacy and your data')),
+        appBar: AppBar(title: Text(tr('Privacy and your data'))),
         body: SafeArea(
           child: AsyncView<Map<String, dynamic>>(
             load: () async => unwrap(await widget.state.api.get('/privacy')),
@@ -551,23 +552,23 @@ class _PrivacyScreenState extends State<PrivacyScreen> {
               final blockers = ((p['blockers'] as List?) ?? const []).map((b) => '$b').toList();
               return ListView(padding: const EdgeInsets.all(16), children: [
                 const SectionTitle('Download your data'),
-                const Text('Get a copy of your account, birth profiles, orders, bookings, reports and messages.'),
+                Text(tr('Get a copy of your account, birth profiles, orders, bookings, reports and messages.')),
                 const SizedBox(height: 8),
                 Align(
                   alignment: Alignment.centerLeft,
-                  child: FilledButton.tonalIcon(onPressed: _busy || _action != null ? null : () => _start('export'), icon: const Icon(Icons.download_outlined), label: const Text('Download my data')),
+                  child: FilledButton.tonalIcon(onPressed: _busy || _action != null ? null : () => _start('export'), icon: const Icon(Icons.download_outlined), label: Text(tr('Download my data'))),
                 ),
                 const SectionTitle('Delete your account'),
                 if (blockers.isNotEmpty) ...[
-                  const Text('Your account cannot be deleted yet:'),
+                  Text(tr('Your account cannot be deleted yet:')),
                   for (final b in blockers)
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 3),
-                      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text('•  ', style: TextStyle(color: ArjColors.danger700)), Expanded(child: Text(b))]),
+                      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(tr('•  '), style: TextStyle(color: ArjColors.danger700)), Expanded(child: Text(tr(b)))]),
                     ),
                 ] else
-                  const Text('This removes your name, contact details, birth profiles and history. It cannot be undone.'),
-                if (p['kept'] != null) Padding(padding: const EdgeInsets.only(top: 8), child: Text('${p['kept']}', style: const TextStyle(fontSize: 12, color: ArjColors.ink600))),
+                  Text(tr('This removes your name, contact details, birth profiles and history. It cannot be undone.')),
+                if (p['kept'] != null) Padding(padding: const EdgeInsets.only(top: 8), child: Text(tr('${p['kept']}'), style: const TextStyle(fontSize: 12, color: ArjColors.ink600))),
                 const SizedBox(height: 8),
                 Align(
                   alignment: Alignment.centerLeft,
@@ -575,7 +576,7 @@ class _PrivacyScreenState extends State<PrivacyScreen> {
                     style: OutlinedButton.styleFrom(foregroundColor: ArjColors.danger700),
                     onPressed: _busy || _action != null || blockers.isNotEmpty ? null : () => _start('delete'),
                     icon: const Icon(Icons.delete_forever_outlined),
-                    label: const Text('Delete my account'),
+                    label: Text(tr('Delete my account')),
                   ),
                 ),
                 if (_action == null) FormError(_errors['_']),
@@ -585,24 +586,24 @@ class _PrivacyScreenState extends State<PrivacyScreen> {
                     child: Padding(
                       padding: const EdgeInsets.all(16),
                       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                        Text(_action == 'export' ? 'Confirm the download' : 'Confirm account deletion', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
+                        Text(tr(_action == 'export' ? 'Confirm the download' : 'Confirm account deletion'), style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
                         const SizedBox(height: 6),
-                        Text(_sentTo == null ? 'We sent you a confirmation code.' : 'We sent a confirmation code to $_sentTo.'),
+                        Text(tr(_sentTo == null ? 'We sent you a confirmation code.' : 'We sent a confirmation code to $_sentTo.')),
                         const SizedBox(height: 8),
-                        TextField(controller: _code, keyboardType: TextInputType.number, autofillHints: const [AutofillHints.oneTimeCode], decoration: InputDecoration(labelText: 'Code', errorText: _errors['code'])),
+                        TextField(controller: _code, keyboardType: TextInputType.number, autofillHints: const [AutofillHints.oneTimeCode], decoration: InputDecoration(labelText: tr('Code'), errorText: trn(_errors['code']))),
                         if (_action == 'delete') ...[
                           const SizedBox(height: 8),
-                          TextField(controller: _confirmText, textCapitalization: TextCapitalization.characters, decoration: InputDecoration(labelText: 'Type DELETE to confirm', errorText: _errors['confirm'])),
+                          TextField(controller: _confirmText, textCapitalization: TextCapitalization.characters, decoration: InputDecoration(labelText: tr('Type DELETE to confirm'), errorText: trn(_errors['confirm']))),
                         ],
                         FormError(_errors['_']),
                         const SizedBox(height: 12),
                         Row(children: [
-                          TextButton(onPressed: _busy ? null : _cancel, child: const Text('Cancel')),
+                          TextButton(onPressed: _busy ? null : _cancel, child: Text(tr('Cancel'))),
                           const Spacer(),
                           FilledButton(
                             style: _action == 'delete' ? FilledButton.styleFrom(backgroundColor: ArjColors.danger700) : null,
                             onPressed: _busy ? null : _submit,
-                            child: Text(_busy ? 'Please wait…' : (_action == 'export' ? 'Download' : 'Delete account')),
+                            child: Text(tr(_busy ? 'Please wait…' : (_action == 'export' ? 'Download' : 'Delete account'))),
                           ),
                         ]),
                       ]),
@@ -623,9 +624,9 @@ class PrivacyExportScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final text = const JsonEncoder.withIndent('  ').convert(data);
     return Scaffold(
-      appBar: AppBar(title: const Text('Your data'), actions: [
+      appBar: AppBar(title: Text(tr('Your data')), actions: [
         IconButton(
-          tooltip: 'Copy',
+          tooltip: tr('Copy'),
           icon: const Icon(Icons.copy),
           onPressed: () async {
             await Clipboard.setData(ClipboardData(text: text));
@@ -635,7 +636,7 @@ class PrivacyExportScreen extends StatelessWidget {
       ]),
       body: SafeArea(
         child: ListView(padding: const EdgeInsets.all(16), children: [
-          const Text('This is everything we hold about your account. It is not saved on this phone unless you copy it.', style: TextStyle(color: ArjColors.ink600)),
+          Text(tr('This is everything we hold about your account. It is not saved on this phone unless you copy it.'), style: TextStyle(color: ArjColors.ink600)),
           const SizedBox(height: 12),
           SelectableText(text, style: const TextStyle(fontFamily: 'monospace', fontSize: 12)),
         ]),

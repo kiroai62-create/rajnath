@@ -14,7 +14,23 @@
                         <button name="provider" value="livekit" class="btn-ghost px-3">In-app call</button><button name="provider" value="zoom" class="btn-ghost px-3">Zoom</button><button name="provider" value="google_meet" class="btn-ghost px-3">Google Meet</button>
                         <button name="status" value="completed" class="btn-ghost px-3">Done</button><button name="status" value="no_show" class="btn-ghost px-3">No-show</button></form>
                         @if ($b->meeting_provider)<p class="mt-1 text-xs text-ink-600">{{ \App\Domain\Meetings\Meetings::PROVIDERS[$b->meeting_provider] ?? '' }}@if ($b->meeting_provider === 'livekit') · <a href="{{ route('call.join', $b->ref) }}">join</a>@endif</p>@endif
-                        @if ($b->meeting_error)<p class="mt-1 text-xs text-danger-700">{{ $b->meeting_error }}</p>@endif @endcan</td></tr>
+                        @if ($b->meeting_error)<p class="mt-1 text-xs text-danger-700">{{ $b->meeting_error }}</p>@endif
+                        <details class="mt-2" @if (old('move_ref') === $b->ref) open @endif><summary class="cursor-pointer text-sm font-semibold text-gold-700">Move / serve today</summary>
+                            <form method="POST" action="{{ route('admin.ops.booking.move', $b->ref) }}" class="mt-2 grid gap-2 sm:grid-cols-[auto_1fr]">@csrf
+                                <input type="hidden" name="move_ref" value="{{ $b->ref }}">
+                                <label class="text-sm" for="mv-{{ $b->id }}">New date and time (IST)</label>
+                                <input id="mv-{{ $b->id }}" type="datetime-local" name="start_local" value="{{ old('move_ref') === $b->ref ? old('start_local') : now('Asia/Kolkata')->addMinutes(30)->format('Y-m-d\TH:i') }}" min="{{ now('Asia/Kolkata')->format('Y-m-d\TH:i') }}" class="input min-h-9 py-1.5 text-sm">
+                                <label class="text-sm" for="mn-{{ $b->id }}">Note for the customer (optional)</label>
+                                <input id="mn-{{ $b->id }}" name="note" maxlength="300" value="{{ old('move_ref') === $b->ref ? old('note') : '' }}" placeholder="As discussed on the phone, Acharya Ji will see you today." class="input min-h-9 py-1.5 text-sm">
+                                <div class="flex flex-wrap gap-2 sm:col-span-2">
+                                    <button name="when" value="time" class="btn-outline px-3">Move to this time</button>
+                                    <button name="when" value="now" class="btn-primary px-3">Start now</button>
+                                </div>
+                                <p class="text-xs text-ink-600 sm:col-span-2">Agree the new time with the customer first. Office hours, leave days and the 24-hour rule do not apply here; another booking at the same time does. The customer gets a notification and an email, and the app shows the new time.</p>
+                                @if (old('move_ref') === $b->ref)@error('start_local')<p class="field-error sm:col-span-2" role="alert">{{ $message }}</p>@enderror @endif
+                            </form>
+                        </details>@endcan
+                        @if ($b->moved_from_utc)<p class="mt-1 text-xs text-ink-600">Moved by the team (was {{ \Illuminate\Support\Carbon::parse($b->moved_from_utc, 'UTC')->tz('Asia/Kolkata')->format('D d M, g:i A') }})</p>@endif</td></tr>
                 @empty<tr><td colspan="4" class="py-8 text-center text-ink-600">No upcoming bookings.</td></tr>@endforelse</tbody>
             </table></div>
         </section>

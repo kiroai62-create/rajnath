@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 
 import '../state/app_state.dart';
 import '../theme/app_theme.dart';
+import '../util/i18n.dart';
 import '../util/validators.dart';
 import '../widgets/common.dart';
 import 'astro_screens.dart';
@@ -33,7 +34,7 @@ class _Note extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(color: ArjColors.gold50, borderRadius: BorderRadius.circular(12), border: Border.all(color: ArjColors.gold200)),
-        child: Text(text),
+        child: Text(tr(text)),
       );
 }
 
@@ -65,12 +66,12 @@ class _HoroscopeScreenState extends State<HoroscopeScreen> {
 
   List<Widget> _chips(Object? items, String selected, ValueChanged<String> onSelected) => [
         for (final t in (items as List? ?? const []).whereType<Map>())
-          ChoiceChip(label: Text(_label(t)), selected: t['key'] == selected, onSelected: (_) => setState(() => onSelected('${t['key']}'))),
+          ChoiceChip(label: Text(tr(_label(t))), selected: t['key'] == selected, onSelected: (_) => setState(() => onSelected('${t['key']}'))),
       ];
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('Rashifal')),
+        appBar: AppBar(title: Text(tr('Rashifal'))),
         body: SafeArea(
           child: AsyncView<Map<String, dynamic>>(
             load: () async => unwrap(await widget.state.api.get('/horoscopes/types')),
@@ -78,7 +79,7 @@ class _HoroscopeScreenState extends State<HoroscopeScreen> {
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
                 child: SegmentedButton<String>(
-                  segments: const [ButtonSegment(value: 'hi', label: Text('हिन्दी')), ButtonSegment(value: 'en', label: Text('English'))],
+                  segments: [ButtonSegment(value: 'hi', label: Text(tr('हिन्दी'))), ButtonSegment(value: 'en', label: Text(tr('English')))],
                   selected: {_lang},
                   onSelectionChanged: (s) => setState(() => _lang = s.first),
                 ),
@@ -89,7 +90,7 @@ class _HoroscopeScreenState extends State<HoroscopeScreen> {
               if (_yearly)
                 _chipRow([
                   for (final y in [DateTime.now().year, DateTime.now().year + 1])
-                    ChoiceChip(label: Text('$y'), selected: _year == y, onSelected: (_) => setState(() => _year = y)),
+                    ChoiceChip(label: Text(tr('$y')), selected: _year == y, onSelected: (_) => setState(() => _year = y)),
                 ]),
               Expanded(
                 child: AsyncView<Map<String, dynamic>>(
@@ -109,8 +110,8 @@ class _HoroscopeScreenState extends State<HoroscopeScreen> {
     final hi = (meta['lang'] ?? _lang) == 'hi';
     if (data.isEmpty) {
       return ListView(padding: const EdgeInsets.all(32), children: [
-        const Text('Not published yet', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.w600)),
-        if (hi) const Text('अभी प्रकाशित नहीं हुआ', textAlign: TextAlign.center, style: TextStyle(color: ArjColors.ink600)),
+        Text(tr('Not published yet'), textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.w600)),
+        if (hi) Text(tr('अभी प्रकाशित नहीं हुआ'), textAlign: TextAlign.center, style: TextStyle(color: ArjColors.ink600)),
       ]);
     }
     final raw = meta['subjects'];
@@ -138,12 +139,12 @@ class _HoroscopeScreenState extends State<HoroscopeScreen> {
             child: Builder(builder: (context) {
               final items = byName[s.$2] ?? (byName.isEmpty ? bySubject[s.$1] : null) ?? const [];
               return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(s.$2, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
+                Text(tr(s.$2), style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
                 const SizedBox(height: 6),
-                if (items.isEmpty) Text(hi ? 'जल्द आ रहा है' : 'Coming soon', style: const TextStyle(color: ArjColors.ink600)),
+                if (items.isEmpty) Text(tr(hi ? 'जल्द आ रहा है' : 'Coming soon'), style: const TextStyle(color: ArjColors.ink600)),
                 for (final i in items) ...[
                   if (i['starts_on'] != null && i['ends_on'] != null && i['starts_on'] != i['ends_on'])
-                    Text('${_date(i['starts_on'])} – ${_date(i['ends_on'])}', style: const TextStyle(fontSize: 12, color: ArjColors.ink600)),
+                    Text(tr('${_date(i['starts_on'])} – ${_date(i['ends_on'])}'), style: const TextStyle(fontSize: 12, color: ArjColors.ink600)),
                   SelectableText('${i['body'] ?? ''}', style: const TextStyle(height: 1.5)),
                   const SizedBox(height: 6),
                 ],
@@ -151,7 +152,7 @@ class _HoroscopeScreenState extends State<HoroscopeScreen> {
             }),
           ),
         ),
-      const Text('Rashifal is a general reading for each sign. Your own chart gives a fuller picture.', style: TextStyle(fontSize: 12, color: ArjColors.ink600)),
+      Text(tr('Rashifal is a general reading for each sign. Your own chart gives a fuller picture.'), style: TextStyle(fontSize: 12, color: ArjColors.ink600)),
     ]);
   }
 }
@@ -166,20 +167,20 @@ class GocharScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('Grah Gochar')),
+        appBar: AppBar(title: Text(tr('Grah Gochar'))),
         body: SafeArea(
           child: AsyncView<List<Map<String, dynamic>>>(
             load: () async => unwrapList(await state.api.get('/gochar')),
             isEmpty: (l) => l.isEmpty,
             builder: (context, list, _) => ListView(padding: const EdgeInsets.all(16), children: [
-              const Text('Where the planets are now (sidereal, Lahiri). Tap a planet for its dates and effects by Moon sign.', style: TextStyle(color: ArjColors.ink600)),
+              Text(tr('Where the planets are now (sidereal, Lahiri). Tap a planet for its dates and effects by Moon sign.'), style: TextStyle(color: ArjColors.ink600)),
               const SizedBox(height: 12),
               for (final p in list)
                 Card(
                   margin: const EdgeInsets.only(bottom: 8),
                   child: ListTile(
-                    title: Text('${p['name']}${_retroMark(p)}${p['hi'] != null ? ' · ${p['hi']}' : ''}'),
-                    subtitle: Text('${p['sign_name']} ${p['degree'] ?? ''} · ${p['nakshatra'] ?? ''}'),
+                    title: Text(tr('${p['name']}${_retroMark(p)}${p['hi'] != null ? ' · ${p['hi']}' : ''}')),
+                    subtitle: Text(tr('${p['sign_name']} ${p['degree'] ?? ''} · ${p['nakshatra'] ?? ''}')),
                     trailing: const Icon(Icons.chevron_right),
                     onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => GocharDetailScreen(state: state, planet: '${p['planet']}', title: '${p['name']}'))),
                   ),
@@ -247,7 +248,7 @@ class _GocharDetailScreenState extends State<GocharDetailScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: Text(widget.title ?? planetName(widget.planet))),
+        appBar: AppBar(title: Text(tr(widget.title ?? planetName(widget.planet)))),
         body: SafeArea(
           child: Column(children: [
             Padding(
@@ -273,31 +274,31 @@ class _GocharDetailScreenState extends State<GocharDetailScreen> {
                       child: Padding(
                         padding: const EdgeInsets.all(16),
                         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                          Text('${g['name']}${g['hi'] != null ? ' · ${g['hi']}' : ''}', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600)),
+                          Text(tr('${g['name']}${g['hi'] != null ? ' · ${g['hi']}' : ''}'), style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600)),
                           const SizedBox(height: 4),
-                          Text('Now in ${now['sign_name']} ${now['degree'] ?? ''}${now['retro'] == true && !const ['rahu', 'ketu'].contains(widget.planet) ? ' · Retrograde' : ''}'),
-                          if (now['nakshatra'] != null) Text('Nakshatra: ${now['nakshatra']}'),
+                          Text(tr('Now in {0} {1}{2}', [now['sign_name'], now['degree'] ?? '', now['retro'] == true && !const ['rahu', 'ketu'].contains(widget.planet) ? ' · Retrograde' : ''])),
+                          if (now['nakshatra'] != null) Text(tr('Nakshatra: ${now['nakshatra']}')),
                         ]),
                       ),
                     ),
                     SectionTitle(_moon ? 'Sign changes this month' : 'Dates in $_year'),
-                    const Text('Times are in Indian Standard Time (IST).', style: TextStyle(fontSize: 12, color: ArjColors.ink600)),
-                    if (events.isEmpty) const Padding(padding: EdgeInsets.symmetric(vertical: 8), child: Text('No sign changes or retrograde turns in this period.')),
+                    Text(tr('Times are in Indian Standard Time (IST).'), style: TextStyle(fontSize: 12, color: ArjColors.ink600)),
+                    if (events.isEmpty) Padding(padding: EdgeInsets.symmetric(vertical: 8), child: Text(tr('No sign changes or retrograde turns in this period.'))),
                     for (final e in events)
                       ListTile(
                         dense: true,
                         contentPadding: EdgeInsets.zero,
                         leading: Icon(e['type'] == 'ingress' ? Icons.login : Icons.sync, color: ArjColors.gold700),
-                        title: Text(_event(e)),
-                        subtitle: Text(formatAtOffset(e['at'])),
+                        title: Text(tr(_event(e))),
+                        subtitle: Text(tr(formatAtOffset(e['at']))),
                       ),
                     if (moons.isNotEmpty) ...[
                       const SectionTitle('Effect by Moon sign'),
                       for (final m in moons)
                         ListTile(
                           contentPadding: EdgeInsets.zero,
-                          title: Text('${m['name']}${m['hi'] != null ? ' · ${m['hi']}' : ''}'),
-                          subtitle: Text('House ${m['house']} from the Moon${m['note'] != null && '${m['note']}'.isNotEmpty ? '\n${m['note']}' : ''}'),
+                          title: Text(tr('${m['name']}${m['hi'] != null ? ' · ${m['hi']}' : ''}')),
+                          subtitle: Text(tr('House {0} from the Moon{1}', [m['house'], m['note'] != null && '${m['note']}'.isNotEmpty ? '\n${m['note']}' : ''])),
                           trailing: m['favourable'] == true ? const ToneChip('Favourable', ArjColors.success700) : const ToneChip('Needs care', ArjColors.gold700),
                         ),
                     ],
@@ -308,8 +309,8 @@ class _GocharDetailScreenState extends State<GocharDetailScreen> {
                           Padding(
                             padding: const EdgeInsets.symmetric(vertical: 4),
                             child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                              SizedBox(width: 140, child: Text(e.value, style: const TextStyle(color: ArjColors.ink600))),
-                              Expanded(child: Text(_fact(e.key, facts[e.key]))),
+                              SizedBox(width: 140, child: Text(tr(e.value), style: const TextStyle(color: ArjColors.ink600))),
+                              Expanded(child: Text(tr(_fact(e.key, facts[e.key])))),
                             ]),
                           ),
                     ],
@@ -332,20 +333,20 @@ class MuhuratScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('Muhurat')),
+        appBar: AppBar(title: Text(tr('Muhurat'))),
         body: SafeArea(
           child: AsyncView<List<Map<String, dynamic>>>(
             load: () async => unwrapList(await state.api.get('/muhurat')),
             isEmpty: (l) => l.isEmpty,
             builder: (context, list, _) => ListView(padding: const EdgeInsets.all(16), children: [
-              const Text('Auspicious dates for samskaras, worked out from the Panchang.', style: TextStyle(color: ArjColors.ink600)),
+              Text(tr('Auspicious dates for samskaras, worked out from the Panchang.'), style: TextStyle(color: ArjColors.ink600)),
               const SizedBox(height: 12),
               for (final e in list)
                 Card(
                   margin: const EdgeInsets.only(bottom: 8),
                   child: ListTile(
-                    title: Text('${e['name']}'),
-                    subtitle: e['hi'] != null ? Text('${e['hi']}') : null,
+                    title: Text(tr('${e['name']}')),
+                    subtitle: e['hi'] != null ? Text(tr('${e['hi']}')) : null,
                     trailing: const Icon(Icons.chevron_right),
                     onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => MuhuratDetailScreen(state: state, event: '${e['key']}', title: '${e['name']}'))),
                   ),
@@ -380,7 +381,7 @@ class _MuhuratDetailScreenState extends State<MuhuratDetailScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: Text(widget.title ?? 'Muhurat')),
+        appBar: AppBar(title: Text(tr(widget.title ?? 'Muhurat'))),
         body: SafeArea(
           child: Column(children: [
             Padding(
@@ -394,7 +395,7 @@ class _MuhuratDetailScreenState extends State<MuhuratDetailScreen> {
             ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: PlaceField(api: widget.state.api, labelText: 'City', initial: '${_place['label']}', onSelected: (p) => setState(() => _place = p)),
+              child: PlaceField(api: widget.state.api, labelText: tr('City'), initial: '${_place['label']}', onSelected: (p) => setState(() => _place = p)),
             ),
             Expanded(
               child: AsyncView<Map<String, dynamic>>(
@@ -407,17 +408,17 @@ class _MuhuratDetailScreenState extends State<MuhuratDetailScreen> {
                   return ListView(padding: const EdgeInsets.all(16), children: [
                     if (meta['note'] != null) _Note('${meta['note']}'),
                     const _Note('We do not give dates or times for childbirth; that is a decision for your doctors.'),
-                    if (place != null) Text('Times are local to $place.', style: const TextStyle(fontSize: 12, color: ArjColors.ink600)),
-                    if (days.isEmpty) const Padding(padding: EdgeInsets.all(24), child: Text('No suitable dates this month. Try the next month.', textAlign: TextAlign.center)),
+                    if (place != null) Text(tr('Times are local to {0}.', [place]), style: const TextStyle(fontSize: 12, color: ArjColors.ink600)),
+                    if (days.isEmpty) Padding(padding: EdgeInsets.all(24), child: Text(tr('No suitable dates this month. Try the next month.'), textAlign: TextAlign.center)),
                     for (final d in days)
                       Card(
                         margin: const EdgeInsets.only(top: 12),
                         child: Padding(
                           padding: const EdgeInsets.all(16),
                           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                            Text(_date(d['date'], 'EEE, d MMM yyyy'), style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
+                            Text(tr(_date(d['date'], 'EEE, d MMM yyyy')), style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
                             if (lunarMonthText(d['masa'], d['masa_purnimanta']) != null)
-                              Text(lunarMonthText(d['masa'], d['masa_purnimanta'])!, style: const TextStyle(color: ArjColors.ink600)),
+                              Text(tr(lunarMonthText(d['masa'], d['masa_purnimanta'])!), style: const TextStyle(color: ArjColors.ink600)),
                             const SizedBox(height: 6),
                             for (final w in ((d['windows'] as List?) ?? const []).whereType<Map>())
                               Padding(
@@ -426,7 +427,7 @@ class _MuhuratDetailScreenState extends State<MuhuratDetailScreen> {
                                   const Icon(Icons.schedule, size: 18, color: ArjColors.gold700),
                                   const SizedBox(width: 8),
                                   Expanded(
-                                    child: Text('${_window(w)}${[w['tithi'], w['nakshatra']].whereType<Object>().isEmpty ? '' : '\n${[w['tithi'], w['nakshatra']].whereType<Object>().join(' · ')}'}'),
+                                    child: Text(tr('${_window(w)}${[w['tithi'], w['nakshatra']].whereType<Object>().isEmpty ? '' : '\n${[w['tithi'], w['nakshatra']].whereType<Object>().join(' · ')}'}')),
                                   ),
                                 ]),
                               ),
@@ -460,16 +461,16 @@ class _FestivalsScreenState extends State<FestivalsScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('Festivals')),
+        appBar: AppBar(title: Text(tr('Festivals'))),
         body: SafeArea(
           child: Column(children: [
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: PeriodStepper(label: '$_year', onPrevious: () => setState(() => _year--), onNext: () => setState(() => _year++)),
+              child: PeriodStepper(label: tr('$_year'), onPrevious: () => setState(() => _year--), onNext: () => setState(() => _year++)),
             ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: PlaceField(api: widget.state.api, labelText: 'City', initial: _place == null ? null : '${_place!['label']}', onSelected: (p) => setState(() => _place = p)),
+              child: PlaceField(api: widget.state.api, labelText: tr('City'), initial: _place == null ? null : '${_place!['label']}', onSelected: (p) => setState(() => _place = p)),
             ),
             Expanded(
               child: AsyncView<Map<String, dynamic>>(
@@ -486,16 +487,16 @@ class _FestivalsScreenState extends State<FestivalsScreen> {
                   }
                   return ListView(padding: const EdgeInsets.symmetric(vertical: 8), children: [
                     _chipRow([
-                      ChoiceChip(label: const Text('All'), selected: _religion == null, onSelected: (_) => setState(() => _religion = null)),
+                      ChoiceChip(label: Text(tr('All')), selected: _religion == null, onSelected: (_) => setState(() => _religion = null)),
                       for (final e in religions.entries)
-                        ChoiceChip(label: Text(e.value), selected: _religion == e.key, onSelected: (_) => setState(() => _religion = e.key)),
+                        ChoiceChip(label: Text(tr(e.value)), selected: _religion == e.key, onSelected: (_) => setState(() => _religion = e.key)),
                     ]),
                     if ((meta['place'] as Map?)?['name'] != null)
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                        child: Text('Dates for ${(meta['place'] as Map)['name']}.', style: const TextStyle(fontSize: 12, color: ArjColors.ink600)),
+                        child: Text(tr('Dates for {0}.', [(meta['place'] as Map)['name']]), style: const TextStyle(fontSize: 12, color: ArjColors.ink600)),
                       ),
-                    if (list.isEmpty) const Padding(padding: EdgeInsets.all(24), child: Text('No festivals listed for this year.', textAlign: TextAlign.center)),
+                    if (list.isEmpty) Padding(padding: EdgeInsets.all(24), child: Text(tr('No festivals listed for this year.'), textAlign: TextAlign.center)),
                     for (final m in months.entries) ...[
                       Padding(padding: const EdgeInsets.symmetric(horizontal: 12), child: SectionTitle(m.key)),
                       for (final f in m.value)
@@ -503,12 +504,12 @@ class _FestivalsScreenState extends State<FestivalsScreen> {
                           leading: SizedBox(
                             width: 44,
                             child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                              Text(_date(f['date'], 'd'), style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 18)),
-                              Text(_date(f['date'], 'EEE'), style: const TextStyle(fontSize: 12, color: ArjColors.ink600)),
+                              Text(tr(_date(f['date'], 'd')), style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 18)),
+                              Text(tr(_date(f['date'], 'EEE')), style: const TextStyle(fontSize: 12, color: ArjColors.ink600)),
                             ]),
                           ),
-                          title: Text('${f['name']}'),
-                          subtitle: Text([religions['${f['religion']}'] ?? humanize(f['religion']), if (f['basis'] != null && '${f['basis']}'.isNotEmpty) '${f['basis']}'].join(' · ')),
+                          title: Text(tr('${f['name']}')),
+                          subtitle: Text(tr([religions['${f['religion']}'] ?? humanize(f['religion']), if (f['basis'] != null && '${f['basis']}'.isNotEmpty) '${f['basis']}'].join(' · '))),
                         ),
                     ],
                   ]);

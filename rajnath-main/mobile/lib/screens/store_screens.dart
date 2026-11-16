@@ -5,6 +5,7 @@ import '../api/api_client.dart';
 import '../payments/checkout.dart';
 import '../state/app_state.dart';
 import '../theme/app_theme.dart';
+import '../util/i18n.dart';
 import '../util/validators.dart';
 import '../widgets/common.dart';
 import 'assistant_screen.dart';
@@ -38,7 +39,7 @@ class _StoreScreenState extends State<StoreScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('Store'), bottom: const BrandStripe()),
+        appBar: AppBar(title: Text(tr('Store')), bottom: const BrandStripe()),
         body: SafeArea(
           child: AsyncView<List<Map<String, dynamic>>>(
             key: ValueKey(_cat),
@@ -60,13 +61,13 @@ class _StoreScreenState extends State<StoreScreen> {
                     for (final e in storeCategories.entries)
                       Padding(
                         padding: const EdgeInsets.only(right: 8),
-                        child: ChoiceChip(label: Text(e.value), selected: _cat == e.key, onSelected: (_) => setState(() => _cat = e.key)),
+                        child: ChoiceChip(label: Text(tr(e.value)), selected: _cat == e.key, onSelected: (_) => setState(() => _cat = e.key)),
                       ),
                   ]),
                 ),
               ),
               if (list.isEmpty)
-                const SliverToBoxAdapter(child: StatePanel(icon: Icons.inventory_2_outlined, message: 'Nothing is listed here right now. Please check back soon.'))
+                SliverToBoxAdapter(child: StatePanel(icon: Icons.inventory_2_outlined, message: tr('Nothing is listed here right now. Please check back soon.')))
               else
                 SliverPadding(
                   padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
@@ -103,12 +104,12 @@ class ProductCard extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 if (cat.isNotEmpty && cat != 'All')
-                  Text(cat.toUpperCase(), style: const TextStyle(fontSize: 10, letterSpacing: 1.2, fontWeight: FontWeight.w700, color: ArjColors.gold700)),
+                  Text(tr(cat.toUpperCase()), style: const TextStyle(fontSize: 10, letterSpacing: 1.2, fontWeight: FontWeight.w700, color: ArjColors.gold700)),
                 const SizedBox(height: 2),
-                Text('${p['name']}', maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w700, height: 1.2)),
+                Text(tr('${p['name']}'), maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w700, height: 1.2)),
                 const Spacer(),
-                Text(formatPaise((p['price_minor'] as num?)?.toInt()), style: const TextStyle(fontWeight: FontWeight.w800, color: ArjColors.maroon700, fontSize: 15)),
-                Text(p['in_stock'] == false ? 'Out of stock' : 'In stock',
+                Text(tr(formatPaise((p['price_minor'] as num?)?.toInt())), style: const TextStyle(fontWeight: FontWeight.w800, color: ArjColors.maroon700, fontSize: 15)),
+                Text(tr(p['in_stock'] == false ? 'Out of stock' : 'In stock'),
                     style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600, color: p['in_stock'] == false ? ArjColors.danger700 : ArjColors.success700)),
               ]),
             ),
@@ -136,7 +137,7 @@ class ProductDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('Product'), bottom: const BrandStripe()),
+        appBar: AppBar(title: Text(tr('Product')), bottom: const BrandStripe()),
         body: SafeArea(
           child: AsyncView<Map<String, dynamic>>(
             load: () async => unwrap(await state.api.get('/store/products/$slug')),
@@ -155,33 +156,33 @@ class ProductDetailScreen extends StatelessWidget {
                     if (credit != null)
                       Padding(
                         padding: const EdgeInsets.only(top: 6),
-                        child: Text('Photo of this type of item: ${credit['author']}, Wikimedia Commons, ${credit['license']}.', style: const TextStyle(fontSize: 11, color: ArjColors.ink600)),
+                        child: Text(tr('Photo of this type of item: {0}, Wikimedia Commons, {1}.', [credit['author'], credit['license']]), style: const TextStyle(fontSize: 11, color: ArjColors.ink600)),
                       ),
                     const SizedBox(height: 16),
                     if (g['category_label'] != null) Eyebrow('${g['category_label']}'),
                     const SizedBox(height: 6),
-                    Text('${p['name']}', style: tt.headlineSmall?.copyWith(fontWeight: FontWeight.w700)),
-                    if (p['summary'] != null) Padding(padding: const EdgeInsets.only(top: 6), child: Text('${p['summary']}', style: const TextStyle(color: ArjColors.ink600, height: 1.45))),
+                    Text(tr('${p['name']}'), style: tt.headlineSmall?.copyWith(fontWeight: FontWeight.w700)),
+                    if (p['summary'] != null) Padding(padding: const EdgeInsets.only(top: 6), child: Text(tr('${p['summary']}'), style: const TextStyle(color: ArjColors.ink600, height: 1.45))),
                     const SizedBox(height: 12),
                     Row(children: [
-                      Text(formatPaise((p['price_minor'] as num?)?.toInt()), style: tt.headlineSmall?.copyWith(fontWeight: FontWeight.w800, color: ArjColors.maroon700)),
+                      Text(tr(formatPaise((p['price_minor'] as num?)?.toInt())), style: tt.headlineSmall?.copyWith(fontWeight: FontWeight.w800, color: ArjColors.maroon700)),
                       const SizedBox(width: 10),
-                      Text(p['in_stock'] == true ? 'In stock' : 'Out of stock',
+                      Text(tr(p['in_stock'] == true ? 'In stock' : 'Out of stock'),
                           style: TextStyle(fontWeight: FontWeight.w700, color: p['in_stock'] == true ? ArjColors.success700 : ArjColors.danger700)),
                     ]),
-                    const Text('Inclusive of all taxes · free insured shipping in India', style: TextStyle(fontSize: 12.5, color: ArjColors.ink600)),
+                    Text(tr('Inclusive of all taxes · free insured shipping in India'), style: TextStyle(fontSize: 12.5, color: ArjColors.ink600)),
                     const SizedBox(height: 12),
                     for (final h in (g['highlights'] as List?) ?? const [])
                       Padding(
                         padding: const EdgeInsets.only(bottom: 6),
                         child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                          const Text('✦ ', style: TextStyle(color: ArjColors.gold700)),
-                          Expanded(child: Text('$h')),
+                          Text(tr('✦ '), style: TextStyle(color: ArjColors.gold700)),
+                          Expanded(child: Text(tr('$h'))),
                         ]),
                       ),
                     if ('${p['description'] ?? ''}'.trim().isNotEmpty) ...[
                       const SectionTitle('About this item'),
-                      Text('${p['description']}', style: const TextStyle(height: 1.55)),
+                      Text(tr('${p['description']}'), style: const TextStyle(height: 1.55)),
                     ],
                     for (final s in ((g['sections'] as List?) ?? const []).whereType<Map>()) _GuideSection(section: s),
                     AskAiCard(state: state, page: 'product:$slug', question: 'Is ${p['name']} right for me? What should I know before buying it?',
@@ -192,7 +193,7 @@ class ProductDetailScreen extends StatelessWidget {
                         margin: EdgeInsets.zero,
                         child: Column(children: [
                           for (final r in (g['specs'] as List).whereType<List>())
-                            ListTile(dense: true, title: Text('${r[0]}', style: const TextStyle(color: ArjColors.ink600, fontSize: 13)), subtitle: Text('${r[1]}', style: const TextStyle(color: ArjColors.ink900, fontSize: 15))),
+                            ListTile(dense: true, title: Text(tr('${r[0]}'), style: const TextStyle(color: ArjColors.ink600, fontSize: 13)), subtitle: Text(tr('${r[1]}'), style: const TextStyle(color: ArjColors.ink900, fontSize: 15))),
                         ]),
                       ),
                     ],
@@ -201,8 +202,8 @@ class ProductDetailScreen extends StatelessWidget {
                       for (final f in (g['faqs'] as List).whereType<Map>())
                         Card(
                           margin: const EdgeInsets.only(bottom: 8),
-                          child: ExpansionTile(title: Text('${f['q']}', style: const TextStyle(fontWeight: FontWeight.w600)), childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 14), children: [
-                            Align(alignment: Alignment.centerLeft, child: Text('${f['a']}', style: const TextStyle(color: ArjColors.ink600, height: 1.45))),
+                          child: ExpansionTile(title: Text(tr('${f['q']}'), style: const TextStyle(fontWeight: FontWeight.w600)), childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 14), children: [
+                            Align(alignment: Alignment.centerLeft, child: Text(tr('${f['a']}'), style: const TextStyle(color: ArjColors.ink600, height: 1.45))),
                           ]),
                         ),
                     ],
@@ -210,7 +211,7 @@ class ProductDetailScreen extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(color: ArjColors.gold50, borderRadius: BorderRadius.circular(14), border: Border.all(color: ArjColors.gold200)),
-                      child: const Text('Gemstones, rudraksha and yantras are traditional remedies and do not replace medical, legal or financial advice. Wear a gemstone only after a chart consultation.',
+                      child: Text(tr('Gemstones, rudraksha and yantras are traditional remedies and do not replace medical, legal or financial advice. Wear a gemstone only after a chart consultation.'),
                           style: TextStyle(fontSize: 12.5)),
                     ),
                   ]),
@@ -222,8 +223,8 @@ class ProductDetailScreen extends StatelessWidget {
                   child: Row(children: [
                     Expanded(
                       child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        Text(formatPaise((p['price_minor'] as num?)?.toInt()), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18, color: ArjColors.ink900)),
-                        const Text('Free shipping', style: TextStyle(fontSize: 12, color: ArjColors.success700)),
+                        Text(tr(formatPaise((p['price_minor'] as num?)?.toInt())), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18, color: ArjColors.ink900)),
+                        Text(tr('Free shipping'), style: TextStyle(fontSize: 12, color: ArjColors.success700)),
                       ]),
                     ),
                     GoldButton(
@@ -266,9 +267,9 @@ class _GuideSection extends StatelessWidget {
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 6),
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text('${it[0]}', style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: ArjColors.gold700)),
+                    Text(tr('${it[0]}'), style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: ArjColors.gold700)),
                     const SizedBox(height: 2),
-                    Text('${it[1]}', style: const TextStyle(height: 1.4)),
+                    Text(tr('${it[1]}'), style: const TextStyle(height: 1.4)),
                   ]),
                 )
               else
@@ -277,7 +278,7 @@ class _GuideSection extends StatelessWidget {
                   child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Icon(warn ? Icons.warning_amber_rounded : Icons.check_circle_outline, size: 18, color: warn ? ArjColors.danger700 : ArjColors.success700),
                     const SizedBox(width: 8),
-                    Expanded(child: Text('$it', style: const TextStyle(height: 1.4))),
+                    Expanded(child: Text(tr('$it'), style: const TextStyle(height: 1.4))),
                   ]),
                 ),
           ]),
@@ -378,7 +379,7 @@ class _ProductBuyScreenState extends State<ProductBuyScreen> {
           inputFormatters: fmt,
           maxLength: maxLength,
           textCapitalization: cap,
-          decoration: InputDecoration(labelText: label, errorText: _errors[key], counterText: ''),
+          decoration: InputDecoration(labelText: trn(label), errorText: trn(_errors[key]), counterText: tr('')),
         ),
       );
 
@@ -386,18 +387,18 @@ class _ProductBuyScreenState extends State<ProductBuyScreen> {
   Widget build(BuildContext context) {
     final p = widget.product;
     return Scaffold(
-      appBar: AppBar(title: const Text('Delivery details')),
+      appBar: AppBar(title: Text(tr('Delivery details'))),
       body: SafeArea(
         child: ListView(padding: const EdgeInsets.all(16), children: [
-          Text('${p['name']}', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600)),
+          Text(tr('${p['name']}'), style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600)),
           const SizedBox(height: 8),
           Row(children: [
-            const Expanded(child: Text('Quantity')),
-            IconButton(tooltip: 'Decrease quantity', onPressed: _qty > 1 ? () => _setQty(_qty - 1) : null, icon: const Icon(Icons.remove_circle_outline)),
-            Semantics(label: 'Quantity $_qty', child: ExcludeSemantics(child: Text('$_qty', style: Theme.of(context).textTheme.titleMedium))),
-            IconButton(tooltip: 'Increase quantity', onPressed: _qty < _max ? () => _setQty(_qty + 1) : null, icon: const Icon(Icons.add_circle_outline)),
+            Expanded(child: Text(tr('Quantity'))),
+            IconButton(tooltip: tr('Decrease quantity'), onPressed: _qty > 1 ? () => _setQty(_qty - 1) : null, icon: const Icon(Icons.remove_circle_outline)),
+            Semantics(label: tr('Quantity {0}', [_qty]), child: ExcludeSemantics(child: Text(tr('$_qty'), style: Theme.of(context).textTheme.titleMedium))),
+            IconButton(tooltip: tr('Increase quantity'), onPressed: _qty < _max ? () => _setQty(_qty + 1) : null, icon: const Icon(Icons.add_circle_outline)),
           ]),
-          if (_max > 1) Text('Up to $_max per order.', style: const TextStyle(fontSize: 12, color: ArjColors.ink600)),
+          if (_max > 1) Text(tr('Up to {0} per order.', [_max]), style: const TextStyle(fontSize: 12, color: ArjColors.ink600)),
           FormError(_errors['quantity'] ?? _errors['product']),
           const Divider(height: 32),
           _field(_name, 'Full name', 'address.name'),
@@ -420,12 +421,12 @@ class _ProductBuyScreenState extends State<ProductBuyScreen> {
           FormError(_errors['coupon']),
           const SizedBox(height: 12),
           Row(children: [
-            const Expanded(child: Text('Total')),
-            Text(formatPaise((_coupon?['total_minor'] as num?)?.toInt() ?? _price * _qty), style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600)),
+            Expanded(child: Text(tr('Total'))),
+            Text(tr(formatPaise((_coupon?['total_minor'] as num?)?.toInt() ?? _price * _qty)), style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600)),
           ]),
           FormError(_errors['_']),
           const SizedBox(height: 16),
-          FilledButton(onPressed: _busy ? null : _buy, child: Text(_busy ? 'Please wait…' : 'Pay securely')),
+          FilledButton(onPressed: _busy ? null : _buy, child: Text(tr(_busy ? 'Please wait…' : 'Pay securely'))),
         ]),
       ),
     );

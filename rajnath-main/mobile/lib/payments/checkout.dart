@@ -6,6 +6,7 @@ import 'package:uuid/uuid.dart';
 
 import '../api/api_client.dart';
 import '../theme/app_theme.dart';
+import '../util/i18n.dart';
 import '../widgets/common.dart';
 
 const _uuid = Uuid();
@@ -99,7 +100,7 @@ Future<PaymentOutcome> openRazorpay(Map<String, dynamic> options) {
   try {
     rp.open(options);
   } catch (e) {
-    finish(const PaymentOutcome.failed(message: 'Could not open the payment page.'));
+    finish(PaymentOutcome.failed(message: tr('Could not open the payment page.')));
   }
   return done.future.whenComplete(rp.clear);
 }
@@ -226,7 +227,7 @@ class _CheckoutFlowScreenState extends State<CheckoutFlowScreen> {
         if (!didPop && !working) _close();
       },
       child: Scaffold(
-        appBar: AppBar(title: const Text('Payment'), automaticallyImplyLeading: false),
+        appBar: AppBar(title: Text(tr('Payment')), automaticallyImplyLeading: false),
         body: SafeArea(
           child: Center(
             child: ListView(shrinkWrap: true, padding: const EdgeInsets.all(24), children: [
@@ -235,21 +236,21 @@ class _CheckoutFlowScreenState extends State<CheckoutFlowScreen> {
               else
                 Icon(icon, size: 56, color: color, semanticLabel: title),
               const SizedBox(height: 16),
-              Text(title, textAlign: TextAlign.center, style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w600)),
+              Text(tr(title), textAlign: TextAlign.center, style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w600)),
               const SizedBox(height: 8),
-              Text(body, textAlign: TextAlign.center, style: const TextStyle(color: ArjColors.ink600)),
+              Text(tr(body), textAlign: TextAlign.center, style: const TextStyle(color: ArjColors.ink600)),
               if (_order['label'] != null) ...[
                 const SizedBox(height: 16),
-                Text('${_order['label']}${amount != null ? ' · ${formatPaise(amount)}' : ''}', textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.w600)),
+                Text(tr('${_order['label']}${amount != null ? ' · ${formatPaise(amount)}' : ''}'), textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.w600)),
               ],
               const SizedBox(height: 24),
               if (_phase == _Phase.failed) ...[
-                FilledButton(onPressed: _busy ? null : _pay, child: const Text('Try again')),
+                FilledButton(onPressed: _busy ? null : _pay, child: Text(tr('Try again'))),
                 const SizedBox(height: 8),
-                OutlinedButton(onPressed: _busy ? null : _cancelOrder, child: Text(_busy ? 'Cancelling…' : 'Cancel order')),
-                TextButton(onPressed: _busy ? null : _close, child: const Text('Decide later')),
+                OutlinedButton(onPressed: _busy ? null : _cancelOrder, child: Text(tr(_busy ? 'Cancelling…' : 'Cancel order'))),
+                TextButton(onPressed: _busy ? null : _close, child: Text(tr('Decide later'))),
               ] else if (!working)
-                FilledButton(onPressed: _close, child: Text(_phase == _Phase.paid ? 'Continue' : 'Done')),
+                FilledButton(onPressed: _close, child: Text(tr(_phase == _Phase.paid ? 'Continue' : 'Done'))),
             ]),
           ),
         ),

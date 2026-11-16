@@ -9,6 +9,7 @@ import '../models/slots.dart';
 import '../payments/checkout.dart';
 import '../state/app_state.dart';
 import '../theme/app_theme.dart';
+import '../util/i18n.dart';
 import '../util/validators.dart';
 import '../widgets/common.dart';
 import 'routing.dart';
@@ -20,11 +21,11 @@ Future<bool> ensureSignedIn(BuildContext context, AppState state, {String? reaso
   final go = await showDialog<bool>(
     context: context,
     builder: (c) => AlertDialog(
-      title: const Text('Please sign in'),
-      content: Text(reason ?? 'Sign in to continue. It only takes a one-time code.'),
+      title: Text(tr('Please sign in')),
+      content: Text(tr(reason ?? 'Sign in to continue. It only takes a one-time code.')),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Not now')),
-        FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Sign in')),
+        TextButton(onPressed: () => Navigator.pop(c, false), child: Text(tr('Not now'))),
+        FilledButton(onPressed: () => Navigator.pop(c, true), child: Text(tr('Sign in'))),
       ],
     ),
   );
@@ -57,8 +58,8 @@ class _WalletSwitchState extends State<WalletSwitch> {
   @override
   Widget build(BuildContext context) => SwitchListTile(
         contentPadding: EdgeInsets.zero,
-        title: const Text('Use wallet balance'),
-        subtitle: Text(_balance == null ? 'Applied first; the rest is paid online.' : 'Available: ${formatPaise(_balance)}'),
+        title: Text(tr('Use wallet balance')),
+        subtitle: Text(tr(_balance == null ? 'Applied first; the rest is paid online.' : 'Available: ${formatPaise(_balance)}')),
         value: widget.value,
         onChanged: _balance == 0 ? null : widget.onChanged,
       );
@@ -123,23 +124,23 @@ class _CouponFieldState extends State<CouponField> {
             textCapitalization: TextCapitalization.characters,
             textInputAction: TextInputAction.done,
             onSubmitted: (_) => _apply(),
-            decoration: InputDecoration(labelText: 'Coupon code', helperText: q == null ? 'Optional' : null, errorText: _error, errorMaxLines: 2),
+            decoration: InputDecoration(labelText: tr('Coupon code'), helperText: trn(q == null ? 'Optional' : null), errorText: trn(_error), errorMaxLines: 2),
           ),
         ),
         const SizedBox(width: 8),
         Padding(
           padding: const EdgeInsets.only(top: 8),
           child: q == null
-              ? OutlinedButton(onPressed: _busy ? null : _apply, child: Text(_busy ? 'Checking…' : 'Apply'))
-              : TextButton(onPressed: _remove, child: const Text('Remove')),
+              ? OutlinedButton(onPressed: _busy ? null : _apply, child: Text(tr(_busy ? 'Checking…' : 'Apply')))
+              : TextButton(onPressed: _remove, child: Text(tr('Remove'))),
         ),
       ]),
       if (q != null) ...[
         const SizedBox(height: 8),
-        Text('${q['code']} applied: you save ${formatPaise((q['discount_minor'] as num?)?.toInt() ?? 0)}',
+        Text(tr('{0} applied: you save {1}', [q['code'], formatPaise((q['discount_minor'] as num?)?.toInt() ?? 0)]),
             style: const TextStyle(color: ArjColors.success700, fontWeight: FontWeight.w600)),
-        if (q['description'] != null) Text('${q['description']}', style: const TextStyle(fontSize: 12, color: ArjColors.ink600)),
-        Text('New total ${formatPaise((q['total_minor'] as num?)?.toInt())}'),
+        if (q['description'] != null) Text(tr('${q['description']}'), style: const TextStyle(fontSize: 12, color: ArjColors.ink600)),
+        Text(tr('New total {0}', [formatPaise((q['total_minor'] as num?)?.toInt())])),
       ],
     ]);
   }
@@ -199,12 +200,12 @@ class _ServiceBuyScreenState extends State<ServiceBuyScreen> {
   Widget build(BuildContext context) {
     final v = widget.variant;
     return Scaffold(
-      appBar: AppBar(title: Text(_kind == null ? 'Confirm and pay' : 'Details and payment')),
+      appBar: AppBar(title: Text(tr(_kind == null ? 'Confirm and pay' : 'Details and payment'))),
       body: SafeArea(
         child: ListView(padding: const EdgeInsets.all(20), children: [
-          Text(widget.title, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600)),
+          Text(tr(widget.title), style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600)),
           const SizedBox(height: 4),
-          Text('${v['name']}', style: const TextStyle(color: ArjColors.ink600)),
+          Text(tr('${v['name']}'), style: const TextStyle(color: ArjColors.ink600)),
           if (_kind != null) ...[
             const SizedBox(height: 16),
             Card(margin: EdgeInsets.zero, child: Padding(padding: const EdgeInsets.all(16), child: ServiceDetailsForm(key: _details, state: widget.state, kind: _kind!, variant: v))),
@@ -212,18 +213,18 @@ class _ServiceBuyScreenState extends State<ServiceBuyScreen> {
           const SizedBox(height: 16),
           // One child, so the coupon field below keeps its state when the total row appears.
           Column(children: [
-            _PriceRow(label: 'Price', minor: (v['price_minor'] as num?)?.toInt()),
-            if (_coupon != null) _PriceRow(label: 'To pay after coupon', minor: (_coupon!['total_minor'] as num?)?.toInt()),
+            _PriceRow(label: tr('Price'), minor: (v['price_minor'] as num?)?.toInt()),
+            if (_coupon != null) _PriceRow(label: tr('To pay after coupon'), minor: (_coupon!['total_minor'] as num?)?.toInt()),
           ]),
           const SizedBox(height: 16),
           CouponField(key: const ValueKey('coupon'), api: widget.state.api, target: {'variant': '${v['ref']}'}, onChanged: (q) => setState(() => _coupon = q)),
           const Divider(height: 32),
           WalletSwitch(api: widget.state.api, value: _useWallet, onChanged: (x) => setState(() => _useWallet = x)),
-          if (_error != null) Padding(padding: const EdgeInsets.only(top: 8), child: Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error))),
+          if (_error != null) Padding(padding: const EdgeInsets.only(top: 8), child: Text(tr(_error!), style: TextStyle(color: Theme.of(context).colorScheme.error))),
           const SizedBox(height: 20),
-          FilledButton(onPressed: _busy ? null : _buy, child: Text(_busy ? 'Please wait…' : 'Pay securely')),
+          FilledButton(onPressed: _busy ? null : _buy, child: Text(tr(_busy ? 'Please wait…' : 'Pay securely'))),
           const SizedBox(height: 8),
-          Text(_kind == null ? 'Payments are processed by Razorpay.' : 'Payment is the last step. Once paid, there is nothing more to do — we update you at every step.',
+          Text(tr(_kind == null ? 'Payments are processed by Razorpay.' : 'Payment is the last step. Once paid, there is nothing more to do — we update you at every step.'),
               textAlign: TextAlign.center, style: const TextStyle(fontSize: 12, color: ArjColors.ink600)),
         ]),
       ),
@@ -237,8 +238,8 @@ class _PriceRow extends StatelessWidget {
   final int? minor;
   @override
   Widget build(BuildContext context) => Row(children: [
-        Expanded(child: Text(label)),
-        Text(formatPaise(minor), style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 18)),
+        Expanded(child: Text(tr(label))),
+        Text(tr(formatPaise(minor)), style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 18)),
       ]);
 }
 
@@ -251,7 +252,7 @@ class PractitionerPickerScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('Choose an astrologer')),
+        appBar: AppBar(title: Text(tr('Choose an astrologer'))),
         body: SafeArea(
           child: AsyncView<List<Map<String, dynamic>>>(
             load: () async => unwrapList(await state.api.get('/practitioners', query: {'offering': offeringSlug})),
@@ -271,24 +272,24 @@ class PractitionerPickerScreen extends StatelessWidget {
                           radius: 28,
                           backgroundColor: ArjColors.ivory200,
                           foregroundImage: p['photo_url'] != null ? NetworkImage('${p['photo_url']}') : null,
-                          child: Text(initialOf(p['display_name']), semanticsLabel: ''),
+                          child: Text(tr(initialOf(p['display_name'])), semanticsLabel: ''),
                         ),
                         const SizedBox(width: 16),
                         Expanded(
                           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                            Text('${p['display_name']}', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
-                            Text([
+                            Text(tr('${p['display_name']}'), style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
+                            Text(tr([
                               if (p['experience_years'] != null) '${p['experience_years']} yrs experience',
                               if ((p['languages'] as List?)?.isNotEmpty ?? false) (p['languages'] as List).join(', '),
-                            ].join(' · '), style: const TextStyle(color: ArjColors.ink600)),
+                            ].join(' · ')), style: const TextStyle(color: ArjColors.ink600)),
                             if ((p['specialties'] as List?)?.isNotEmpty ?? false) ...[
                               const SizedBox(height: 6),
-                              Wrap(spacing: 6, runSpacing: 6, children: [for (final s in p['specialties'] as List) Chip(label: Text('$s'), visualDensity: VisualDensity.compact)]),
+                              Wrap(spacing: 6, runSpacing: 6, children: [for (final s in p['specialties'] as List) Chip(label: Text(tr('$s')), visualDensity: VisualDensity.compact)]),
                             ],
-                            if (p['bio'] != null) ...[const SizedBox(height: 6), Text('${p['bio']}', maxLines: 3, overflow: TextOverflow.ellipsis)],
+                            if (p['bio'] != null) ...[const SizedBox(height: 6), Text(tr('${p['bio']}'), maxLines: 3, overflow: TextOverflow.ellipsis)],
                           ]),
                         ),
-                        const Icon(Icons.chevron_right, semanticLabel: 'Choose'),
+                        Icon(Icons.chevron_right, semanticLabel: tr('Choose')),
                       ]),
                     ),
                   ),
@@ -350,7 +351,7 @@ class _SlotBookingScreenState extends State<SlotBookingScreen> {
       if (widget.rescheduling) {
         await api.post('/bookings/${widget.rescheduleRef}/reschedule', {'start': slot.start});
         if (!mounted) return;
-        showSnack(context, 'Rescheduled to ${slot.label}.');
+        showSnack(context, tr('Rescheduled to {0}.', [slot.label]));
         Navigator.of(context).pop(true);
         return;
       }
@@ -383,28 +384,28 @@ class _SlotBookingScreenState extends State<SlotBookingScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: Text(widget.rescheduling ? 'Choose a new time' : 'Choose a time')),
+        appBar: AppBar(title: Text(tr(widget.rescheduling ? 'Choose a new time' : 'Choose a time'))),
         body: SafeArea(
           child: AsyncView<(List<SlotDay>, List<Map<String, dynamic>>)>(
             load: _load,
             isEmpty: (d) => d.$1.isEmpty,
             emptyText: 'No times are open in the next few days. Please check again later.',
             builder: (context, d, _) => ListView(padding: const EdgeInsets.all(16), children: [
-              Text(widget.title, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600)),
-              Text([
+              Text(tr(widget.title), style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600)),
+              Text(tr([
                 if (widget.variantName != null) widget.variantName!,
                 if (widget.practitioner != null) 'with ${widget.practitioner!['display_name']}',
                 if (widget.priceMinor != null) formatPaise(widget.priceMinor),
-              ].join(' · '), style: const TextStyle(color: ArjColors.ink600)),
+              ].join(' · ')), style: const TextStyle(color: ArjColors.ink600)),
               const SizedBox(height: 4),
-              const Text('Times are shown in Indian Standard Time (IST).', style: TextStyle(fontSize: 12, color: ArjColors.ink600)),
+              Text(tr('Times are shown in Indian Standard Time (IST).'), style: TextStyle(fontSize: 12, color: ArjColors.ink600)),
               for (final day in d.$1) ...[
                 SectionTitle(day.title),
                 Wrap(spacing: 8, runSpacing: 8, children: [
                   for (final s in day.slots)
                     ChoiceChip(
-                      label: Text(s.label),
-                      tooltip: '${day.title}, ${s.label}',
+                      label: Text(tr(s.label)),
+                      tooltip: tr('${day.title}, ${s.label}'),
                       selected: _slot?.start == s.start,
                       onSelected: (_) => setState(() => _slot = s),
                     ),
@@ -415,24 +416,24 @@ class _SlotBookingScreenState extends State<SlotBookingScreen> {
                 if (d.$2.isNotEmpty)
                   DropdownButtonFormField<String?>(
                     initialValue: _profile,
-                    decoration: const InputDecoration(labelText: 'Birth profile'),
+                    decoration: InputDecoration(labelText: tr('Birth profile')),
                     items: [
-                      const DropdownMenuItem<String?>(value: null, child: Text('None')),
-                      for (final p in d.$2) DropdownMenuItem<String?>(value: '${p['ref']}', child: Text('${p['name']}')),
+                      DropdownMenuItem<String?>(value: null, child: Text(tr('None'))),
+                      for (final p in d.$2) DropdownMenuItem<String?>(value: '${p['ref']}', child: Text(tr('${p['name']}'))),
                     ],
                     onChanged: (v) => setState(() => _profile = v),
                   ),
                 const SizedBox(height: 12),
-                TextField(controller: _topic, maxLines: 2, maxLength: 300, decoration: const InputDecoration(labelText: 'What would you like to discuss?')),
+                TextField(controller: _topic, maxLines: 2, maxLength: 300, decoration: InputDecoration(labelText: tr('What would you like to discuss?'))),
                 CouponField(key: const ValueKey('coupon'), api: widget.state.api, target: {'variant': widget.variantRef}, onChanged: (q) => setState(() => _coupon = q)),
                 const SizedBox(height: 8),
                 WalletSwitch(api: widget.state.api, value: _useWallet, onChanged: (x) => setState(() => _useWallet = x)),
               ],
-              if (_error != null) Padding(padding: const EdgeInsets.only(top: 8), child: Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error))),
+              if (_error != null) Padding(padding: const EdgeInsets.only(top: 8), child: Text(tr(_error!), style: TextStyle(color: Theme.of(context).colorScheme.error))),
               const SizedBox(height: 16),
               FilledButton(
                 onPressed: _busy || _slot == null ? null : _submit,
-                child: Text(_busy ? 'Please wait…' : widget.rescheduling ? 'Confirm new time' : _slot == null ? 'Choose a time' : 'Book ${_slot!.label}'),
+                child: Text(tr(_busy ? 'Please wait…' : widget.rescheduling ? 'Confirm new time' : _slot == null ? 'Choose a time' : 'Book ${_slot!.label}')),
               ),
             ]),
           ),
@@ -506,8 +507,8 @@ class ServiceDetailsFormState extends State<ServiceDetailsForm> {
       showDragHandle: true,
       builder: (c) => SafeArea(
         child: Column(mainAxisSize: MainAxisSize.min, children: [
-          ListTile(leading: const Icon(Icons.photo_camera_outlined), title: const Text('Take a photo'), onTap: () => Navigator.pop(c, ImageSource.camera)),
-          ListTile(leading: const Icon(Icons.photo_library_outlined), title: const Text('Choose from gallery'), onTap: () => Navigator.pop(c, ImageSource.gallery)),
+          ListTile(leading: const Icon(Icons.photo_camera_outlined), title: Text(tr('Take a photo')), onTap: () => Navigator.pop(c, ImageSource.camera)),
+          ListTile(leading: const Icon(Icons.photo_library_outlined), title: Text(tr('Choose from gallery')), onTap: () => Navigator.pop(c, ImageSource.gallery)),
         ]),
       ),
     );
@@ -516,7 +517,7 @@ class ServiceDetailsFormState extends State<ServiceDetailsForm> {
       final f = await _picker.pickImage(source: source, imageQuality: 85, maxWidth: 2000);
       if (f != null && mounted) setState(() => left ? _left = f : _right = f);
     } catch (_) {
-      if (mounted) showSnack(context, 'Could not open the ${source == ImageSource.camera ? 'camera' : 'gallery'}.');
+      if (mounted) showSnack(context, tr('Could not open the {0}.', [source == ImageSource.camera ? 'camera' : 'gallery']));
     }
   }
 
@@ -582,7 +583,7 @@ class ServiceDetailsFormState extends State<ServiceDetailsForm> {
               clipBehavior: Clip.antiAlias,
               child: f != null
                   ? Image.file(File(f.path), fit: BoxFit.cover)
-                  : Column(mainAxisAlignment: MainAxisAlignment.center, children: [const Icon(Icons.back_hand_outlined, color: ArjColors.gold700, size: 32), const SizedBox(height: 6), Text(label)]),
+                  : Column(mainAxisAlignment: MainAxisAlignment.center, children: [const Icon(Icons.back_hand_outlined, color: ArjColors.gold700, size: 32), const SizedBox(height: 6), Text(tr(label))]),
             ),
           ),
         ),
@@ -595,7 +596,7 @@ class ServiceDetailsFormState extends State<ServiceDetailsForm> {
           if (d != null) setState(() => _date = d);
         },
         icon: const Icon(Icons.event_outlined),
-        label: Text(_date == null ? 'Preferred date (optional)' : 'Preferred date: ${_ymd(_date!)}'),
+        label: Text(tr(_date == null ? 'Preferred date (optional)' : 'Preferred date: ${_ymd(_date!)}')),
       );
 
   @override
@@ -603,97 +604,97 @@ class ServiceDetailsFormState extends State<ServiceDetailsForm> {
     const gap = SizedBox(height: 12);
     final lang = DropdownButtonFormField<String>(
       initialValue: _language,
-      decoration: const InputDecoration(labelText: 'Report language'),
-      items: const [DropdownMenuItem(value: 'en', child: Text('English')), DropdownMenuItem(value: 'hi', child: Text('हिन्दी'))],
+      decoration: InputDecoration(labelText: tr('Report language')),
+      items: [DropdownMenuItem(value: 'en', child: Text(tr('English'))), DropdownMenuItem(value: 'hi', child: Text(tr('हिन्दी')))],
       onChanged: (v) => setState(() => _language = v ?? 'en'),
     );
     final children = <Widget>[];
     switch (widget.kind) {
       case 'palm':
         children.addAll([
-          const Text('Upload photos of both palms', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+          Text(tr('Upload photos of both palms'), style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
           const SizedBox(height: 4),
-          const Text('Daylight, palm open and flat, phone straight above the hand.', style: TextStyle(color: ArjColors.ink600, fontSize: 13)),
+          Text(tr('Daylight, palm open and flat, phone straight above the hand.'), style: TextStyle(color: ArjColors.ink600, fontSize: 13)),
           gap,
           Row(children: [_photo('Left palm', _left, true), const SizedBox(width: 12), _photo('Right palm', _right, false)]),
           _err('left'), _err('right'),
           gap,
           SegmentedButton<String>(
-            segments: const [ButtonSegment(value: 'left', label: Text('Left-handed')), ButtonSegment(value: 'right', label: Text('Right-handed'))],
+            segments: [ButtonSegment(value: 'left', label: Text(tr('Left-handed'))), ButtonSegment(value: 'right', label: Text(tr('Right-handed')))],
             selected: {_hand},
             onSelectionChanged: (s) => setState(() => _hand = s.first),
           ),
           gap, lang, gap,
-          TextField(controller: _question, maxLength: 1000, maxLines: 2, decoration: const InputDecoration(labelText: 'Your main question (optional)')),
+          TextField(controller: _question, maxLength: 1000, maxLines: 2, decoration: InputDecoration(labelText: tr('Your main question (optional)'))),
           CheckboxListTile(
             contentPadding: EdgeInsets.zero,
             value: _consent,
             onChanged: (v) => setState(() => _consent = v ?? false),
-            title: const Text('My palm photos may be used only to prepare this report; they are deleted automatically afterwards.', style: TextStyle(fontSize: 13)),
+            title: Text(tr('My palm photos may be used only to prepare this report; they are deleted automatically afterwards.'), style: TextStyle(fontSize: 13)),
           ),
           _err('consent'),
         ]);
       case 'puja':
         children.addAll([
-          const Text('Sankalp details', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+          Text(tr('Sankalp details'), style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
           gap,
-          for (final (i, c) in _names.indexed) Padding(padding: const EdgeInsets.only(bottom: 8), child: TextField(controller: c, textCapitalization: TextCapitalization.words, decoration: InputDecoration(labelText: i == 0 ? 'Name for the sankalp' : 'Name ${i + 1} (optional)'))),
+          for (final (i, c) in _names.indexed) Padding(padding: const EdgeInsets.only(bottom: 8), child: TextField(controller: c, textCapitalization: TextCapitalization.words, decoration: InputDecoration(labelText: trn(i == 0 ? 'Name for the sankalp' : 'Name ${i + 1} (optional)')))),
           _err('devotees'),
-          TextField(controller: _gotra, decoration: const InputDecoration(labelText: 'Gotra (optional)')),
+          TextField(controller: _gotra, decoration: InputDecoration(labelText: tr('Gotra (optional)'))),
           gap,
-          TextField(controller: _phone, keyboardType: TextInputType.phone, decoration: InputDecoration(labelText: 'Mobile for coordination', errorText: errors['phone'])),
+          TextField(controller: _phone, keyboardType: TextInputType.phone, decoration: InputDecoration(labelText: tr('Mobile for coordination'), errorText: trn(errors['phone']))),
           gap,
           DropdownButtonFormField<String>(
             initialValue: _location,
-            decoration: const InputDecoration(labelText: 'Where'),
-            items: const [
-              DropdownMenuItem(value: 'online', child: Text('Performed on my behalf')),
-              DropdownMenuItem(value: 'temple', child: Text('At a temple, I will attend')),
-              DropdownMenuItem(value: 'home', child: Text('At my home')),
+            decoration: InputDecoration(labelText: tr('Where')),
+            items: [
+              DropdownMenuItem(value: 'online', child: Text(tr('Performed on my behalf'))),
+              DropdownMenuItem(value: 'temple', child: Text(tr('At a temple, I will attend'))),
+              DropdownMenuItem(value: 'home', child: Text(tr('At my home'))),
             ],
             onChanged: (v) => setState(() => _location = v ?? 'online'),
           ),
           gap,
-          TextField(controller: _address, maxLines: 2, decoration: InputDecoration(labelText: 'Address (for puja at home)', errorText: errors['address'])),
+          TextField(controller: _address, maxLines: 2, decoration: InputDecoration(labelText: tr('Address (for puja at home)'), errorText: trn(errors['address']))),
           gap,
           _dateField(),
           gap,
-          TextField(controller: _wish, maxLength: 500, maxLines: 2, decoration: const InputDecoration(labelText: 'Your wish / purpose (optional)')),
+          TextField(controller: _wish, maxLength: 500, maxLines: 2, decoration: InputDecoration(labelText: tr('Your wish / purpose (optional)'))),
         ]);
       case 'report':
       case 'question':
-        final items = [for (final p in _profiles) DropdownMenuItem(value: '${p['ref']}', child: Text('${p['name']} · ${p['birth_date'] ?? ''}', overflow: TextOverflow.ellipsis))];
+        final items = [for (final p in _profiles) DropdownMenuItem(value: '${p['ref']}', child: Text(tr('${p['name']} · ${p['birth_date'] ?? ''}'), overflow: TextOverflow.ellipsis))];
         children.addAll([
-          const Text('Birth details', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+          Text(tr('Birth details'), style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
           gap,
           if (_profiles.isEmpty)
-            const Text('Add your birth details first: Account › Birth profiles.', style: TextStyle(color: ArjColors.ink600))
+            Text(tr('Add your birth details first: Account › Birth profiles.'), style: TextStyle(color: ArjColors.ink600))
           else ...[
-            DropdownButtonFormField<String>(initialValue: _profileA, isExpanded: true, decoration: InputDecoration(labelText: _two ? 'First person' : 'Birth profile', errorText: errors['profile_a']), items: items, onChanged: (v) => setState(() => _profileA = v)),
+            DropdownButtonFormField<String>(initialValue: _profileA, isExpanded: true, decoration: InputDecoration(labelText: trn(_two ? 'First person' : 'Birth profile'), errorText: trn(errors['profile_a'])), items: items, onChanged: (v) => setState(() => _profileA = v)),
             if (_two) ...[
               gap,
-              DropdownButtonFormField<String>(initialValue: _profileB, isExpanded: true, decoration: InputDecoration(labelText: 'Second person', errorText: errors['profile_b']), items: items, onChanged: (v) => setState(() => _profileB = v)),
+              DropdownButtonFormField<String>(initialValue: _profileB, isExpanded: true, decoration: InputDecoration(labelText: tr('Second person'), errorText: trn(errors['profile_b'])), items: items, onChanged: (v) => setState(() => _profileB = v)),
             ],
           ],
           gap, lang, gap,
-          TextField(controller: _question, maxLines: 3, maxLength: 2000, decoration: InputDecoration(labelText: widget.kind == 'question' ? 'Your question' : 'Anything to focus on (optional)', errorText: errors['question'])),
+          TextField(controller: _question, maxLines: 3, maxLength: 2000, decoration: InputDecoration(labelText: trn(widget.kind == 'question' ? 'Your question' : 'Anything to focus on (optional)'), errorText: trn(errors['question']))),
         ]);
       case 'visit':
         final onsite = widget.variant['mode'] == 'onsite';
         children.addAll([
-          Text(onsite ? 'Visit details' : 'Your details', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+          Text(tr(onsite ? 'Visit details' : 'Your details'), style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
           gap,
-          TextField(controller: _phone, keyboardType: TextInputType.phone, decoration: InputDecoration(labelText: 'Mobile number', errorText: errors['phone'])),
+          TextField(controller: _phone, keyboardType: TextInputType.phone, decoration: InputDecoration(labelText: tr('Mobile number'), errorText: trn(errors['phone']))),
           if (onsite) ...[
             gap,
-            TextField(controller: _city, decoration: InputDecoration(labelText: 'City / town', errorText: errors['city'])),
+            TextField(controller: _city, decoration: InputDecoration(labelText: tr('City / town'), errorText: trn(errors['city']))),
             gap,
-            TextField(controller: _address, maxLines: 2, decoration: InputDecoration(labelText: 'Property address', errorText: errors['address'])),
+            TextField(controller: _address, maxLines: 2, decoration: InputDecoration(labelText: tr('Property address'), errorText: trn(errors['address']))),
           ],
           gap,
           _dateField(),
           gap,
-          TextField(controller: _notes, maxLines: 3, maxLength: 1000, decoration: const InputDecoration(labelText: 'What should we know? (optional)')),
+          TextField(controller: _notes, maxLines: 3, maxLength: 1000, decoration: InputDecoration(labelText: tr('What should we know? (optional)'))),
         ]);
     }
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: children);

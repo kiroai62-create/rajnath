@@ -8,6 +8,7 @@ import 'brand.dart';
 
 import '../api/api_client.dart';
 import '../theme/app_theme.dart';
+import '../util/i18n.dart';
 
 /// Loads data with loading / error (with retry) / empty states.
 class AsyncView<T> extends StatefulWidget {
@@ -67,7 +68,7 @@ class ErrorPanel extends StatelessWidget {
         iconColor: ArjColors.danger700,
         title: offline ? 'You are offline' : (code == 'server_unreachable' ? 'Server not reachable' : (code == 'timeout' ? 'Taking longer than usual' : null)),
         message: message,
-        action: OutlinedButton.icon(onPressed: onRetry, icon: const Icon(Icons.refresh_rounded, size: 18), label: const Text('Try again')),
+        action: OutlinedButton.icon(onPressed: onRetry, icon: const Icon(Icons.refresh_rounded, size: 18), label: Text(tr('Try again'))),
       );
 }
 
@@ -102,10 +103,10 @@ class StatePanel extends StatelessWidget {
             ),
             const SizedBox(height: 20),
             if (title != null) ...[
-              Text(title!, textAlign: TextAlign.center, style: tt.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+              Text(tr(title!), textAlign: TextAlign.center, style: tt.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
               const SizedBox(height: 6),
             ],
-            Text(message, textAlign: TextAlign.center, style: tt.bodyMedium?.copyWith(color: ArjColors.ink600, height: 1.5)),
+            Text(tr(message), textAlign: TextAlign.center, style: tt.bodyMedium?.copyWith(color: ArjColors.ink600, height: 1.5)),
             if (action != null) ...[const SizedBox(height: 20), action!],
           ]),
         ),
@@ -137,7 +138,7 @@ class SectionTitle extends StatelessWidget {
               const SizedBox(width: 10),
             ],
             Expanded(
-              child: Text(text, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontSize: 19, fontWeight: FontWeight.w700, letterSpacing: -0.3)),
+              child: Text(tr(text), style: Theme.of(context).textTheme.titleLarge?.copyWith(fontSize: 19, fontWeight: FontWeight.w700, letterSpacing: -0.3)),
             ),
           ]),
         ]),
@@ -152,7 +153,7 @@ class PriceChip extends StatelessWidget {
   Widget build(BuildContext context) => Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
         decoration: BoxDecoration(color: ArjColors.gold50, borderRadius: BorderRadius.circular(99), border: Border.all(color: ArjColors.gold200)),
-        child: Text(text, style: const TextStyle(color: ArjColors.gold700, fontWeight: FontWeight.w700, fontSize: 13.5, letterSpacing: 0.1)),
+        child: Text(tr(text), style: const TextStyle(color: ArjColors.gold700, fontWeight: FontWeight.w700, fontSize: 13.5, letterSpacing: 0.1)),
       );
 }
 
@@ -178,7 +179,7 @@ String formatPaise(int? minor) {
   return '₹$grouped${paise != 0 ? '.${paise.toString().padLeft(2, '0')}' : ''}';
 }
 
-void showSnack(BuildContext context, String text) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
+void showSnack(BuildContext context, String text) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr(text))));
 
 /// Small coloured pill for an API status code.
 class StatusChip extends StatelessWidget {
@@ -200,7 +201,7 @@ class StatusChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(color: c.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(99), border: Border.all(color: c.withValues(alpha: 0.4))),
-      child: Text(label.isEmpty ? '' : label[0].toUpperCase() + label.substring(1), style: TextStyle(color: c, fontSize: 12, fontWeight: FontWeight.w600)),
+      child: Text(tr(label.isEmpty ? '' : label[0].toUpperCase() + label.substring(1)), style: TextStyle(color: c, fontSize: 12, fontWeight: FontWeight.w600)),
     );
   }
 }
@@ -214,7 +215,7 @@ class ToneChip extends StatelessWidget {
   Widget build(BuildContext context) => Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         decoration: BoxDecoration(color: color.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(99), border: Border.all(color: color.withValues(alpha: 0.4))),
-        child: Text(text, style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w600)),
+        child: Text(tr(text), style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w600)),
       );
 }
 
@@ -226,9 +227,9 @@ class PeriodStepper extends StatelessWidget {
   final String unit;
   @override
   Widget build(BuildContext context) => Row(children: [
-        IconButton(tooltip: 'Previous $unit', onPressed: onPrevious, icon: const Icon(Icons.chevron_left)),
-        Expanded(child: Text(label, textAlign: TextAlign.center, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600))),
-        IconButton(tooltip: 'Next $unit', onPressed: onNext, icon: const Icon(Icons.chevron_right)),
+        IconButton(tooltip: tr('Previous {0}', [unit]), onPressed: onPrevious, icon: const Icon(Icons.chevron_left)),
+        Expanded(child: Text(tr(label), textAlign: TextAlign.center, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600))),
+        IconButton(tooltip: tr('Next {0}', [unit]), onPressed: onNext, icon: const Icon(Icons.chevron_right)),
       ]);
 }
 
@@ -303,5 +304,5 @@ class FormError extends StatelessWidget {
   @override
   Widget build(BuildContext context) => text == null
       ? const SizedBox.shrink()
-      : Padding(padding: const EdgeInsets.only(top: 8), child: Text(text!, style: TextStyle(color: Theme.of(context).colorScheme.error), semanticsLabel: 'Error: $text'));
+      : Padding(padding: const EdgeInsets.only(top: 8), child: Text(tr(text!), style: TextStyle(color: Theme.of(context).colorScheme.error), semanticsLabel: 'Error: $text'));
 }

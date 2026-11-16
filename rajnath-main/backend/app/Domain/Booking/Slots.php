@@ -236,6 +236,81 @@ class Slots
         $this->notify(DB::table('bookings')->find($b->id), 'Booking moved', 'Your consultation is now on '.self::when(DB::table('bookings')->find($b->id)).'.');
     }
 
+    /**
+     * The team moves a confirmed booking to any time, for example to today when Acharya Ji and the customer both want
+     * the consultation earlier. Unlike the customer's reschedule it ignores the lead time, the change window, the
+     * reschedule limit, office hours and leave days. It still refuses a time that overlaps another booking.
+     */
+    public function moveByStaff(object $b, string $localDateTime, ?string $note, User $staff): object
+    {
+        if ($b->status !== 'confirmed') {
+            throw ValidationException::withMessages(['start_local' => 'Only confirmed bookings can be moved.']);
+        }
+        $start = CarbonImmutable::createFromFormat('Y-m-d\TH:i', $localDateTime, self::TZ)->utc()->startOfMinute();
+        if ($start->lt(CarbonImmutable::now('UTC')->subMinutes(15))) {
+            throw ValidationException::withMessages(['start_local' => 'Choose the current time or a later time.']);
+        }
+        $duration = (int) CarbonImmutable::parse($b->start_utc, 'UTC')->diffInMinutes(CarbonImmutable::parse($b->end_utc, 'UTC'));
+        $duration = $duration > 0 ? $duration : 30;
+        $end = $start->addMinutes($duration);
+        $resource = (int) ($b->practitioner_id ?? 0);
+        $units = $this->unitsCovering($resource, $start, $end);
+        $clash = DB::table('booking_units as u')->join('bookings as o', 'o.id', '=', 'u.booking_id')
+            ->where('u.resource_key', $resource)->whereIn('u.unit_start', $units)->where('u.booking_id', '!=', $b->id)
+            ->whereIn('o.status', ['held', 'confirmed'])->select('o.start_utc')->first();
+        if ($clash) {
+            throw ValidationException::withMessages(['start_local' => 'This time overlaps another booking at '.CarbonImmutable::parse($clash->start_utc, 'UTC')->setTimezone(self::TZ)->format('D d M, g:i A').' IST. Choose another time.']);
+        }
+        $now = CarbonImmutable::now('UTC');
+        try {
+            DB::transaction(function () use ($b, $start, $end, $units, $resource, $note, $now) {
+                DB::table('booking_units')->where('booking_id', $b->id)->delete();
+                foreach ($units as $u) {
+                    DB::table('booking_units')->insert(['booking_id' => $b->id, 'resource_key' => $resource, 'unit_start' => $u]);
+                }
+                DB::table('bookings')->where('id', $b->id)->update([
+                    'start_utc' => $start, 'end_utc' => $end,
+                    'moved_from_utc' => $b->moved_from_utc ?? $b->start_utc, 'moved_note' => $note,
+                    // The move message tells the customer the new time, so reminders that are already due are skipped.
+                    'reminded_24h_at' => $start->lte($now->addHours(24)) ? $now : null,
+                    'reminded_1h_at' => $start->lte($now->addHour()) ? $now : null,
+                    'updated_at' => $now,
+                ]);
+            });
+        } catch (QueryException $e) {
+            throw ValidationException::withMessages(['start_local' => 'Someone just booked this time. Choose another time.']);
+        }
+        $moved = DB::table('bookings')->find($b->id);
+        $this->audit->record('booking.moved_by_staff', null, ['booking' => $b->ref, 'from' => (string) $b->start_utc, 'to' => $start->format('Y-m-d H:i:s')], $staff);
+        SyncMeeting::dispatch($b->id, 'reschedule')->afterCommit();
+        $today = $start->setTimezone(self::TZ)->isSameDay(CarbonImmutable::now(self::TZ));
+        $this->notify($moved, $today ? 'Your consultation is today' : 'Booking moved',
+            'Our team has moved your consultation to '.self::when($moved).'.'.($note ? ' '.$note : '').' You can join from My bookings.');
+
+        return $moved;
+    }
+
+    /**
+     * Slot units that cover [start, end) on the slot grid of that day, so a booking moved to an off-grid time
+     * (for example 2:10 PM) still blocks the 2:00 and 2:30 slots for other customers.
+     *
+     * @return list<CarbonImmutable>
+     */
+    private function unitsCovering(int $resource, CarbonImmutable $start, CarbonImmutable $end): array
+    {
+        $local = $start->setTimezone(self::TZ);
+        $rule = DB::table('availability_rules')->where('resource_key', $resource)->where('weekday', $local->dayOfWeek)->orderBy('start_local')->first();
+        $step = (int) ($rule->slot_minutes ?? 30) ?: 30;
+        $origin = CarbonImmutable::parse($local->toDateString().' '.($rule->start_local ?? '00:00'), self::TZ)->utc();
+        $k = (int) floor($origin->diffInMinutes($start, false) / $step);
+        $out = [];
+        for ($t = $origin->addMinutes($k * $step); $t->lt($end); $t = $t->addMinutes($step)) {
+            $out[] = $t;
+        }
+
+        return $out;
+    }
+
     public function setOutcome(object $b, string $status, ?string $link, User $staff): void
     {
         $data = ['updated_at' => now()];

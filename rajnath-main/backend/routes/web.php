@@ -274,6 +274,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'staff'])->group(fun
         Route::delete('bookings/rules/{id}', 'deleteRule')->whereNumber('id')->name('ops.rule.delete');
         Route::post('bookings/leave', 'addLeave')->name('ops.leave');
         Route::put('bookings/{ref}', 'updateBooking')->name('ops.booking');
+        Route::post('bookings/{ref}/move', 'moveBooking')->name('ops.booking.move');
         Route::get('suppliers', 'suppliers')->name('ops.suppliers');
         Route::post('suppliers', 'saveSupplier')->name('ops.supplier');
         Route::get('pujas', 'pujas')->name('ops.pujas');
