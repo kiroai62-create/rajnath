@@ -5,6 +5,7 @@ namespace Tests\Feature\Ops;
 use App\Domain\Booking\Slots;
 use App\Domain\Ledger\Ledger;
 use App\Domain\Payments\Checkout;
+use App\Domain\Privacy\PrivacyService;
 use App\Domain\Puja\PujaBookings;
 use App\Models\BirthProfile;
 use App\Models\Offering;
@@ -13,6 +14,7 @@ use App\Models\User;
 use App\Support\Settings\SettingsRepository;
 use Carbon\Carbon;
 use Database\Seeders\CatalogueSeeder;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -167,7 +169,7 @@ class OperationsTest extends TestCase
         try {
             $fn();
             $this->fail('duplicate unit accepted');
-        } catch (\Illuminate\Database\QueryException $e) {
+        } catch (QueryException $e) {
             $this->assertStringContainsString('Duplicate', $e->getMessage());
         }
     }
@@ -556,7 +558,7 @@ class OperationsTest extends TestCase
         [$b, $r] = app(Slots::class)->hold($u, $this->consultVariant(), '2026-11-03T04:30Z', null, null, 'wb');
         $this->capture($r['order']);
         app(Slots::class)->cancelByCustomer(DB::table('bookings')->find($b->id), $u);
-        $this->assertContains('Your wallet still has money. Use it, or ask support for a refund, before deleting.', app(\App\Domain\Privacy\PrivacyService::class)->blockers($u));
+        $this->assertContains('Your wallet still has money. Use it, or ask support for a refund, before deleting.', app(PrivacyService::class)->blockers($u));
     }
 
     // ------------------------------------------------------------------ rashifal & calendar

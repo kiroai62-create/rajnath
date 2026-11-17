@@ -9,7 +9,7 @@ This repository contains only the files needed to run and rebuild the platform.
 | `engine/` | Swiss Ephemeris calculator used for kundli, panchang, gochar and rashifal (built automatically) |
 | `deploy/` | Server setup: Docker Compose (Caddy with free HTTPS, PHP, MariaDB, Redis, queue, scheduler), install, update, backup and restore scripts |
 | `mobile/` | Android app source (Flutter) |
-| `android-release/` | **Signed app 1.9.0** (`.apk` to install, `.aab` for Google Play) and the **encrypted signing key** |
+| `android-release/` | **Signed app 1.14.0** (`.apk` to install, `.aab` for Google Play) and the **encrypted signing key** |
 | `docs/` | Server, email/SMS, LiveKit and release guides; API and calculation notes; security notes |
 
 ## Put the website on AWS (EC2)
@@ -64,8 +64,8 @@ This repository contains only the files needed to run and rebuild the platform.
 
 ## Android app
 
-- **Install on a phone:** `android-release/astro-rajnath-jha-1.9.0-release.apk` (remove any older build first).
-- **Google Play:** upload `android-release/astro-rajnath-jha-1.9.0-release.aab` and turn on *Play App Signing*.
+- **Install on a phone:** `android-release/astro-rajnath-jha-1.14.0-release.apk` (installs over the earlier version; same signing key).
+- **Google Play:** upload `android-release/astro-rajnath-jha-1.14.0-release.aab` and turn on *Play App Signing*.
 - **Signing key:** `android-release/signing-key-ENCRYPTED.zip` (AES-256). Open it with 7-Zip or WinRAR using the
   password given to the owner privately. Inside: `arj-release-2026-11.jks`, `store-password.txt`, `key.properties`.
   Keep a copy in a password manager and on a pen drive — without it the app can never be updated on Play.

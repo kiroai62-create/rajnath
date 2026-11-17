@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Accounts;
 
+use App\Domain\Identity\CustomerAuth;
 use App\Domain\Identity\Otp\OtpException;
 use App\Domain\Identity\Otp\OtpService;
 use App\Mail\OtpMail;
@@ -11,6 +12,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
 
 class CustomerOtpTest extends TestCase
@@ -60,7 +62,7 @@ class CustomerOtpTest extends TestCase
         $code = $this->sentEmailCode();
         for ($i = 0; $i < 5; $i++) {
             try {
-                $otp->verify($ref, '000000' === $code ? '111111' : '000000', 'login');
+                $otp->verify($ref, $code === '000000' ? '111111' : '000000', 'login');
                 $this->fail('wrong code accepted');
             } catch (OtpException $e) {
             }
@@ -149,11 +151,11 @@ class CustomerOtpTest extends TestCase
     public function test_identifier_parsing(): void
     {
         foreach (['9835258203', '+91 98352-58203', '09835258203', '919835258203'] as $in) {
-            $this->assertSame('+919835258203', \App\Domain\Identity\CustomerAuth::parseIdentifier($in)['destination'], $in);
+            $this->assertSame('+919835258203', CustomerAuth::parseIdentifier($in)['destination'], $in);
         }
-        $this->assertSame('+447700900123', \App\Domain\Identity\CustomerAuth::parseIdentifier('+44 7700 900123')['destination']);
-        $this->expectException(\Illuminate\Validation\ValidationException::class);
-        \App\Domain\Identity\CustomerAuth::parseIdentifier('12345');
+        $this->assertSame('+447700900123', CustomerAuth::parseIdentifier('+44 7700 900123')['destination']);
+        $this->expectException(ValidationException::class);
+        CustomerAuth::parseIdentifier('12345');
     }
 
     public function test_existing_customer_signs_in_without_terms_and_staff_cannot_use_customer_login(): void
