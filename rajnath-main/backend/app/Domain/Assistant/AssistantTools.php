@@ -76,7 +76,7 @@ class AssistantTools
             $fn('site_page', 'Links to site pages: about, awards, gallery, contact, reviews, faq, privacy, terms, refund-policy, shipping-policy, calculators, panchang, festivals, muhurat.', ['page' => $str('Page name')], ['page']),
         ];
         if ($webSearch) {
-            $tools[] = $fn('web_search', 'Search the internet for current facts not on our site (festival dates in other regions, news, general knowledge). Do not use for our prices or services.', ['query' => $str('Search query')], ['query']);
+            $tools[] = $fn('web_search', 'Search the internet for current or outside facts: news, weather, sports, prices of things elsewhere, festival dates in other regions, or any general question you are not sure about. Do not use for our own prices or services.', ['query' => $str('Search query')], ['query']);
         }
         if ($signedIn) {
             $tools[] = $fn('my_birth_profiles', 'The signed-in customer\'s saved birth profiles (ref, name, date of birth).');

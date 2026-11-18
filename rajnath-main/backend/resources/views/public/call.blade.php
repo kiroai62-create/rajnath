@@ -4,7 +4,7 @@
         <h1 class="mt-3 text-2xl">{{ $title ?? 'Consultation' }}</h1>
         <p class="text-ink-600">{{ $when }} · {{ $audioOnly ? 'Audio call' : 'Video call' }}</p>
 
-        <div class="relative mt-6 aspect-video w-full max-w-4xl overflow-hidden rounded-2xl bg-ink-900 text-white">
+        <div class="relative mx-auto mt-6 w-full overflow-hidden rounded-2xl bg-ink-900 text-white sm:mx-0" :class="stageClass">
             <div x-ref="remote" data-remote class="absolute inset-0 grid place-items-center" role="region" aria-label="Other participant"></div>
             <p class="absolute inset-0 grid place-items-center p-6 text-center" x-show="waiting">Connected. Waiting for the other person to join…</p>
             <p class="absolute inset-0 grid place-items-center p-6 text-center" x-show="remoteCamOff" x-text="remoteCamOffText"></p>

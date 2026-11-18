@@ -8,7 +8,7 @@
             <li><details class="rounded-xl border p-3 {{ $now ? 'border-gold-500 bg-gold-50' : 'border-ink-200' }}" @if ($now) open @endif>
                 <summary class="cursor-pointer text-sm"><span class="font-semibold">{{ $V::PLANET_NAMES[$p['lord']] }}</span> {{ \Illuminate\Support\Carbon::parse($p['start'])->format('M Y') }} – {{ \Illuminate\Support\Carbon::parse($p['end'])->format('M Y') }} @if ($now)<span class="badge-gold ml-1">Current</span>@endif</summary>
                 <ul class="mt-2 grid gap-1 text-xs sm:grid-cols-3">
-                    @foreach ($p['antardasha'] as $a)<li @class(['font-semibold text-ink-900' => $a['start'] <= $today && $today < $a['end'], 'text-ink-600' => ! ($a['start'] <= $today && $today < $a['end'])])>{{ ucfirst($a['lord']) }}: {{ \Illuminate\Support\Carbon::parse($a['start'])->format('M Y') }}–{{ \Illuminate\Support\Carbon::parse($a['end'])->format('M Y') }}</li>@endforeach
+                    @foreach ($p['antardasha'] as $a)<li @class(['font-semibold text-ink-900' => $a['start'] <= $today && $today < $a['end'], 'text-ink-600' => ! ($a['start'] <= $today && $today < $a['end'])])>{{ __($V::PLANET_NAMES[$a['lord']] ?? ucfirst($a['lord'])) }}: {{ \Illuminate\Support\Carbon::parse($a['start'])->format('M Y') }}–{{ \Illuminate\Support\Carbon::parse($a['end'])->format('M Y') }}</li>@endforeach
                 </ul>
             </details></li>
         @endforeach

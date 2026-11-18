@@ -170,8 +170,8 @@
             <div class="container-page pt-4"><div role="status" class="card border-green-200 bg-green-50 px-4 py-3 text-sm text-success-700">{{ session('status') }}</div></div>
         @endif
         {{ $slot }}
-        {{-- Other free tool pages (Panchang, Rashifal, gochar…): one ad after the content. The calculators place their own. --}}
-        @unless (request()->routeIs('tools.index', 'tools.show', 'tools.compute'))<x-ad class="container-page mt-12" />@endunless
+        {{-- Free tool pages chosen in Admin › Google & ads: the "end of the page" ad. --}}
+        <x-ad place="bottom" class="container-page mt-12" />
     </main>
     @unless (request()->routeIs('assistant'))<x-ai-widget />@endunless
 

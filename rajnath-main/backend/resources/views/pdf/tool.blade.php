@@ -42,7 +42,7 @@
         </section>
     @endif
     @if ($t['show_charts'] && $r['tool'] === 'lal-kitab')
-        <section class="charts">@include('public.tools._chart', ['houses' => collect($r['lal_kitab'])->map(fn ($pl, $i) => ['sign' => $i - 1, 'planets' => $pl])->all(), 'label' => 'Lal Kitab chart'])</section>
+        <section class="charts">@include('public.tools._chart', ['houses' => collect($r['lal_kitab'])->map(fn ($pl, $i) => ['sign' => $i - 1, 'planets' => $pl])->all(), 'label' => 'Lal Kitab chart', 'lagna' => false])</section>
     @endif
 
     @foreach ($display['sections'] as $s)

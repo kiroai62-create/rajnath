@@ -58,7 +58,9 @@ class DashboardController extends Controller
                     return $o;
                 }) : collect(),
             'upcoming' => $u->can('bookings.view') ? DB::table('bookings as b')->join('users as c', 'c.id', '=', 'b.user_id')->where('b.status', 'confirmed')
-                ->where('b.start_utc', '>=', now())->orderBy('b.start_utc')->limit(6)->get(['b.ref', 'b.start_utc', 'b.mode', 'c.name']) : collect(),
+                // Calls in progress stay listed until they end, so Acharya Ji can still join them from here.
+                ->where('b.end_utc', '>=', now())->orderBy('b.start_utc')->limit(6)
+                ->get(['b.ref', 'b.start_utc', 'b.end_utc', 'b.mode', 'b.meeting_provider', 'b.meeting_link', 'c.name']) : collect(),
             'stats' => [
                 'Staff accounts' => User::whereHas('roles')->count(),
                 'Customers' => User::where('kind', User::KIND_CUSTOMER)->count(),

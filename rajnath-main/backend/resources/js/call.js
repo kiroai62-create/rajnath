@@ -11,6 +11,9 @@
 
 const RETRY_SECONDS = [1, 2, 4, 8, 15, 30, 30, 30, 30, 30];
 
+/** A phone or tablet held upright. */
+const upright = () => window.matchMedia('(orientation: portrait)').matches && window.matchMedia('(pointer: coarse)').matches;
+
 function micMessage(e) {
     if (e && e.name === 'NotAllowedError') { return 'Microphone is blocked. Allow it from the lock icon in the address bar, then press "Try microphone again".'; }
     if (e && e.name === 'NotFoundError') { return 'No microphone was found on this device. Connect one, then press "Try microphone again".'; }
@@ -35,7 +38,7 @@ export function callRoom() {
 
     return {
         state: 'idle', error: '', notice: '', micProblem: false, micOn: false, camOn: false, remoteCount: 0, remoteName: '', remoteCam: false,
-        needsAudio: false, weak: false, retryIn: 0,
+        needsAudio: false, weak: false, retryIn: 0, portrait: false,
 
         get idle() { return this.state === 'idle' || this.state === 'ended'; },
         get connecting() { return this.state === 'connecting'; },
@@ -52,6 +55,7 @@ export function callRoom() {
         get audioOnly() { return this.$root.dataset.audioOnly === '1'; },
         get camControl() { return this.inCall && !this.audioOnly; },
         get micRetry() { return this.inCall && this.micProblem; },
+        get stageClass() { return this.portrait ? 'aspect-[3/4] max-h-[78vh] max-w-md' : 'aspect-video max-w-4xl'; },
         get reconnectText() { return this.retryIn > 0 ? 'Connection lost. Trying again in ' + this.retryIn + ' s…' : 'Reconnecting… please keep this page open.'; },
 
         init() {
@@ -107,11 +111,19 @@ export function callRoom() {
                 return;
             }
             const { Room, RoomEvent, Track, VideoPresets } = lk;
+            // Sharp faces both ways: 720p at up to 1.7 Mbit/s with two lower layers for weak connections, and the
+            // layer chosen for the real screen pixels (phones have 2-3x density; the default assumed less).
             const r = new Room({
-                adaptiveStream: true, dynacast: true,
-                videoCaptureDefaults: { resolution: VideoPresets.h720.resolution, facingMode: 'user' },
+                adaptiveStream: { pixelDensity: 'screen' }, dynacast: true,
+                // An upright phone asks for an upright picture; asking for 1280x720 there made browsers crop it.
+                videoCaptureDefaults: { resolution: upright() ? { width: 720, height: 1280, frameRate: 30 } : VideoPresets.h720.resolution, facingMode: 'user' },
                 audioCaptureDefaults: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
-                publishDefaults: { simulcast: true },
+                publishDefaults: {
+                    simulcast: true,
+                    videoEncoding: { maxBitrate: 1_700_000, maxFramerate: 30 },
+                    videoSimulcastLayers: [VideoPresets.h180, VideoPresets.h360],
+                    degradationPreference: 'maintain-resolution',
+                },
             });
             room = r;
             this.wire(r, RoomEvent, Track);
@@ -209,10 +221,21 @@ export function callRoom() {
             const el = track.attach();
             el.dataset.sid = track.sid;
             if (track.kind === Track.Kind.Video) {
-                el.className = 'h-full w-full rounded-2xl bg-ink-900 object-cover';
+                // The whole picture, never cropped: a phone held upright sends a tall video, which "cover" cut down
+                // to a blurry strip. The box takes the video's own shape (see fitBox).
+                el.className = 'h-full w-full bg-ink-900 object-contain';
                 el.setAttribute('playsinline', '');
+                const fit = () => this.fitBox(el);
+                el.addEventListener('loadedmetadata', fit);
+                el.addEventListener('resize', fit);
             }
             this.$refs.remote.appendChild(el);
+        },
+
+        /** Tall box for an upright phone video, wide box for a landscape one. */
+        fitBox(video) {
+            if (!video.videoWidth || !video.videoHeight) { return; }
+            this.portrait = video.videoHeight > video.videoWidth * 1.1;
         },
 
         refreshRemote(r, Track) {

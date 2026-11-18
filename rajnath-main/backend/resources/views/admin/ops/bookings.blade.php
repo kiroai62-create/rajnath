@@ -4,35 +4,39 @@
     <div class="grid gap-6 xl:grid-cols-[1fr_24rem]">
         <section class="min-w-0" aria-labelledby="up-h">
             <h2 id="up-h" class="text-base">Upcoming confirmed consultations</h2>
-            <div class="table-wrap mt-3" role="region" aria-label="Upcoming bookings" tabindex="0"><table class="table">
-                <thead><tr><th scope="col">When (IST)</th><th scope="col">Customer</th><th scope="col">Option</th><th scope="col">Link / outcome</th></tr></thead>
-                <tbody>@forelse ($upcoming as $b)<tr>
-                    <td class="whitespace-nowrap">{{ \Illuminate\Support\Carbon::parse($b->start_utc, 'UTC')->tz('Asia/Kolkata')->format('D d M, g:i A') }}</td><td>{{ $b->customer }}@if ($b->topic)<br><span class="text-xs text-ink-600">{{ \Illuminate\Support\Str::limit($b->topic, 80) }}</span>@endif</td><td>{{ $b->variant }}</td>
-                    <td>@can('bookings.manage')<form method="POST" action="{{ route('admin.ops.booking', $b->ref) }}" class="flex flex-wrap gap-2">@csrf @method('PUT')
-                        <label class="sr-only" for="ml-{{ $b->id }}">Meeting link</label><input id="ml-{{ $b->id }}" name="meeting_link" value="{{ $b->meeting_link }}" placeholder="https://meet…" class="input min-h-9 w-48 py-1.5 text-sm">
+            {{-- One card per booking: readable on a phone, with the actions below the details. --}}
+            <ul class="mt-3 space-y-3" aria-label="Upcoming bookings">@forelse ($upcoming as $b)<li class="card min-w-0 p-4 sm:p-5">
+                    <div class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+                        <p class="font-semibold">{{ \Illuminate\Support\Carbon::parse($b->start_utc, 'UTC')->tz('Asia/Kolkata')->format('D d M, g:i A') }} <span class="font-normal text-ink-600">IST</span></p>
+                        <p class="text-sm text-ink-600">{{ $b->variant }}</p>
+                    </div>
+                    <div class="mt-3 flex flex-wrap items-center gap-3"><x-join-button :b="$b" /></div>
+                    <p class="mt-3">{{ $b->customer }}@if ($b->topic)<span class="mt-0.5 block text-sm text-ink-600">{{ \Illuminate\Support\Str::limit($b->topic, 160) }}</span>@endif</p>
+                    <div class="mt-3 border-t border-ink-200/60 pt-3">@can('bookings.manage')<form method="POST" action="{{ route('admin.ops.booking', $b->ref) }}" class="flex flex-wrap gap-2">@csrf @method('PUT')
+                        <label class="sr-only" for="ml-{{ $b->id }}">Meeting link</label><input id="ml-{{ $b->id }}" name="meeting_link" value="{{ $b->meeting_link }}" placeholder="https://meet…" class="input min-h-10 w-full min-w-0 py-1.5 text-sm sm:w-72">
                         <button class="btn-outline px-3">Save link</button>
                         <button name="provider" value="livekit" class="btn-ghost px-3">In-app call</button><button name="provider" value="zoom" class="btn-ghost px-3">Zoom</button><button name="provider" value="google_meet" class="btn-ghost px-3">Google Meet</button>
                         <button name="status" value="completed" class="btn-ghost px-3">Done</button><button name="status" value="no_show" class="btn-ghost px-3">No-show</button></form>
                         @if ($b->meeting_provider)<p class="mt-1 text-xs text-ink-600">{{ \App\Domain\Meetings\Meetings::PROVIDERS[$b->meeting_provider] ?? '' }}@if ($b->meeting_provider === 'livekit') · <a href="{{ route('call.join', $b->ref) }}">join</a> · <a href="{{ route('admin.ops.booking.calls', $b->ref) }}">call log{{ $b->call_events ? ' ('.$b->call_events.')' : '' }}</a>@endif</p>@endif
                         @if ($b->meeting_error)<p class="mt-1 text-xs text-danger-700">{{ $b->meeting_error }}</p>@endif
                         <details class="mt-2" @if (old('move_ref') === $b->ref) open @endif><summary class="cursor-pointer text-sm font-semibold text-gold-700">Move / serve today</summary>
-                            <form method="POST" action="{{ route('admin.ops.booking.move', $b->ref) }}" class="mt-2 grid gap-2 sm:grid-cols-[auto_1fr]">@csrf
+                            <form method="POST" action="{{ route('admin.ops.booking.move', $b->ref) }}" class="mt-3 max-w-lg space-y-3 rounded-xl border border-ink-200 bg-ivory-50 p-3">@csrf
                                 <input type="hidden" name="move_ref" value="{{ $b->ref }}">
-                                <label class="text-sm" for="mv-{{ $b->id }}">New date and time (IST)</label>
-                                <input id="mv-{{ $b->id }}" type="datetime-local" name="start_local" value="{{ old('move_ref') === $b->ref ? old('start_local') : now('Asia/Kolkata')->addMinutes(30)->format('Y-m-d\TH:i') }}" min="{{ now('Asia/Kolkata')->format('Y-m-d\TH:i') }}" class="input min-h-9 py-1.5 text-sm">
-                                <label class="text-sm" for="mn-{{ $b->id }}">Note for the customer (optional)</label>
-                                <input id="mn-{{ $b->id }}" name="note" maxlength="300" value="{{ old('move_ref') === $b->ref ? old('note') : '' }}" placeholder="As discussed on the phone, Acharya Ji will see you today." class="input min-h-9 py-1.5 text-sm">
-                                <div class="flex flex-wrap gap-2 sm:col-span-2">
+                                <div><label class="field-label" for="mv-{{ $b->id }}">New date and time (IST)</label>
+                                <input id="mv-{{ $b->id }}" type="datetime-local" name="start_local" value="{{ old('move_ref') === $b->ref ? old('start_local') : now('Asia/Kolkata')->addMinutes(30)->format('Y-m-d\TH:i') }}" min="{{ now('Asia/Kolkata')->format('Y-m-d\TH:i') }}" class="input w-full">
+                                </div>
+                                <div><label class="field-label" for="mn-{{ $b->id }}">Note for the customer (optional)</label>
+                                <input id="mn-{{ $b->id }}" name="note" maxlength="300" value="{{ old('move_ref') === $b->ref ? old('note') : '' }}" placeholder="As discussed on the phone, Acharya Ji will see you today." class="input w-full"></div>
+                                <div class="flex flex-wrap gap-2">
                                     <button name="when" value="time" class="btn-outline px-3">Move to this time</button>
                                     <button name="when" value="now" class="btn-primary px-3">Start now</button>
                                 </div>
-                                <p class="text-xs text-ink-600 sm:col-span-2">Agree the new time with the customer first. Office hours, leave days and the 24-hour rule do not apply here; another booking at the same time does. The customer gets a notification and an email, and the app shows the new time.</p>
-                                @if (old('move_ref') === $b->ref)@error('start_local')<p class="field-error sm:col-span-2" role="alert">{{ $message }}</p>@enderror @endif
+                                <p class="text-xs text-ink-600">Agree the new time with the customer first. Office hours, leave days and the 24-hour rule do not apply here; another booking at the same time does. The customer gets a notification and an email, and the app shows the new time.</p>
+                                @if (old('move_ref') === $b->ref)@error('start_local')<p class="field-error" role="alert">{{ $message }}</p>@enderror @endif
                             </form>
                         </details>@endcan
-                        @if ($b->moved_from_utc)<p class="mt-1 text-xs text-ink-600">Moved by the team (was {{ \Illuminate\Support\Carbon::parse($b->moved_from_utc, 'UTC')->tz('Asia/Kolkata')->format('D d M, g:i A') }})</p>@endif</td></tr>
-                @empty<tr><td colspan="4" class="py-8 text-center text-ink-600">No upcoming bookings.</td></tr>@endforelse</tbody>
-            </table></div>
+                        @if ($b->moved_from_utc)<p class="mt-1 text-xs text-ink-600">Moved by the team (was {{ \Illuminate\Support\Carbon::parse($b->moved_from_utc, 'UTC')->tz('Asia/Kolkata')->format('D d M, g:i A') }})</p>@endif</div></li>
+                @empty<li class="card py-8 text-center text-ink-600">No upcoming bookings.</li>@endforelse</ul>
             @if ($recentCalls->isNotEmpty())
                 <h2 class="mt-8 text-base">In-app calls, last 14 days</h2>
                 <div class="table-wrap mt-3" role="region" aria-label="Recent calls" tabindex="0"><table class="table">

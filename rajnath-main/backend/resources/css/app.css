@@ -114,6 +114,13 @@
     .field-hint { @apply mt-1 text-xs text-ink-600; }
     .field-error { @apply mt-1 text-sm text-danger-700; }
     .input { @apply block min-h-11 w-full rounded-xl border border-ink-200 bg-white px-3.5 py-2.5 text-base text-ink-900 placeholder:text-ink-400 focus:border-gold-500 focus:outline-none focus:ring-2 focus:ring-gold-200 aria-[invalid=true]:border-danger-700; }
+    /* Native date and time pickers keep a fixed width on some phones (Safari, some Android browsers): after a
+       time is chosen they grew past their column and pushed the button sideways. Let them shrink like text. */
+    input.input[type="date"], input.input[type="time"], input.input[type="datetime-local"], input.input[type="month"] {
+        @apply min-w-0 max-w-full appearance-none text-left;
+    }
+    input.input::-webkit-date-and-time-value { text-align: left; }
+    input.input::-webkit-datetime-edit { padding: 0; }
 
     .badge-gold { @apply badge bg-gold-50 text-gold-700 ring-1 ring-gold-200; }
     .badge-ink { @apply badge bg-ink-200/50 text-ink-800; }

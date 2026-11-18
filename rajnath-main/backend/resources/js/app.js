@@ -318,6 +318,20 @@ Alpine.data('consentBar', () => ({
     necessary() { this.save('necessary'); },
 }));
 
+// Admin › Google & ads: each ad place shows the fields its network needs.
+Alpine.data('adUnit', () => ({
+    network: 'adsense',
+    init() { this.network = this.$el.dataset.network || 'adsense'; },
+    pick(e) { this.network = e.target.value; },
+    get needsSlot() { return this.network !== 'custom'; },
+    get needsSize() { return ['gam', 'medianet', 'adsterra'].includes(this.network); },
+    get isCustom() { return this.network === 'custom'; },
+    get isAdsense() { return this.network === 'adsense'; },
+    get isGam() { return this.network === 'gam'; },
+    get isMedianet() { return this.network === 'medianet'; },
+    get isAdsterra() { return this.network === 'adsterra'; },
+}));
+
 Alpine.data('printer', () => ({ print() { window.print(); } }));
 
 // Admin sidebar filter: hides sections whose name does not contain the typed text. While a
@@ -565,17 +579,37 @@ if (aiBox) {
     window.addEventListener('pagehide', flush);
 })();
 
-// Ads on free tool pages (Admin › Google & ads): each slot is filled only when it comes near the screen,
-// so ads never slow the page down and empty slots off-screen cost nothing.
+// Ads on free tool pages (Admin › Google & ads): Google AdSense, Ad Manager and Media.net units are filled only
+// when they come near the screen, so ads never slow the page down. Units hidden on this screen size are skipped.
+// Adsterra and custom code run where they are placed.
 (() => {
-    const slots = [...document.querySelectorAll('ins.adsbygoogle:not([data-adsbygoogle-status])')];
-    if (!slots.length) { return; }
-    const fill = (ins) => {
-        if (ins.dataset.arjFilled || ins.offsetParent === null) { return; }   // hidden on this screen size
-        ins.dataset.arjFilled = '1';
-        try { (window.adsbygoogle = window.adsbygoogle || []).push({}); } catch { /* blocked by an ad blocker */ }
+    const units = [...document.querySelectorAll('ins.adsbygoogle:not([data-adsbygoogle-status]), .arj-gpt, .arj-mnet')];
+    if (!units.length) { return; }
+    let gptReady = false;
+    const fill = (el) => {
+        if (el.dataset.arjFilled || el.offsetParent === null) { return; }
+        el.dataset.arjFilled = '1';
+        try {
+            if (el.matches('ins.adsbygoogle')) { (window.adsbygoogle = window.adsbygoogle || []).push({}); return; }
+            if (el.classList.contains('arj-gpt')) {
+                window.googletag = window.googletag || { cmd: [] };
+                window.googletag.cmd.push(() => {
+                    const g = window.googletag;
+                    const slot = g.defineSlot(el.dataset.gptUnit, JSON.parse(el.dataset.gptSizes || '[]'), el.id);
+                    if (!slot) { return; }
+                    slot.addService(g.pubads());
+                    if (!gptReady) { gptReady = true; g.pubads().enableLazyLoad({ fetchMarginPercent: 100, renderMarginPercent: 50 }); g.pubads().collapseEmptyDivs(); g.enableServices(); }
+                    g.display(el.id);
+                });
+                return;
+            }
+            if (el.classList.contains('arj-mnet')) {
+                window._mNHandle = window._mNHandle || { queue: [] };
+                window._mNHandle.queue.push(() => window._mNDetails.loadTag(el.id, el.dataset.mnetSize, el.id));
+            }
+        } catch { /* blocked by an ad blocker */ }
     };
-    if (!('IntersectionObserver' in window)) { slots.forEach(fill); return; }
+    if (!('IntersectionObserver' in window)) { units.forEach(fill); return; }
     const io = new IntersectionObserver((entries) => entries.forEach((e) => { if (e.isIntersecting) { io.unobserve(e.target); fill(e.target); } }), { rootMargin: '300px 0px' });
-    slots.forEach((s) => io.observe(s));
+    units.forEach((u) => io.observe(u));
 })();

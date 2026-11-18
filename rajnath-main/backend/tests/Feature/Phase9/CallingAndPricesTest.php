@@ -125,6 +125,14 @@ class CallingAndPricesTest extends TestCase
         // Office staff (bookings.manage) can join Acharya Ji's booking; others cannot
         $staff = $this->makeStaff(['administrator']);
         $this->asStaff($staff)->postJson(route('call.token', $b->ref))->assertOk();
+        // "Click to join" for Acharya Ji on the dashboard and the bookings page, opening the current call link
+        $join = '<a href="'.route('call.join', $b->ref).'"';
+        $this->asStaff($staff)->get(route('admin.ops.bookings'))->assertOk()->assertSee($join, false)->assertSee('Click to join');
+        $this->asStaff($staff)->get(route('admin.dashboard'))->assertOk()->assertSee($join, false)->assertSee('Click to join');
+        // an updated outside link (Zoom / Meet / manual) is the one the button opens
+        $this->asStaff($staff)->put(route('admin.ops.booking', $b->ref), ['meeting_link' => 'https://meet.example.com/new-room'])->assertSessionHasNoErrors();
+        $this->asStaff($staff)->get(route('admin.ops.bookings'))->assertSee('<a href="https://meet.example.com/new-room" target="_blank"', false);
+        $this->asStaff($staff)->put(route('admin.ops.booking', $b->ref), ['provider' => 'livekit'])->assertSessionHasNoErrors();
         $this->asStaff($this->makeStaff(['content_author']))->postJson(route('call.token', $b->ref))->assertNotFound();
 
         // The app gets the same token through the API

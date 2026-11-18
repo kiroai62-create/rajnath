@@ -55,10 +55,12 @@
     @php
         $google = app(\App\Support\Google::class);
         $gaId = $google->analyticsHere(request()) ? $google->analyticsId() : null;
-        $adsClient = $google->adsHere(request()) ? $google->adsClient() : null;
+        $adNet = app(\App\Support\Ads::class);
+        $networks = $adNet->networksHere(request());
+        $adsClient = in_array('adsense', $networks, true) ? $adNet->adsenseClient() : null;
         $cspNonce = \Illuminate\Support\Facades\Vite::cspNonce();
     @endphp
-    @if ($gaId || $adsClient)
+    @if ($gaId || $networks)
         {{-- Google Consent Mode v2: nothing personal until the visitor accepts (cookie bar, resources/js/app.js). --}}
         <script nonce="{{ $cspNonce }}">window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}
 gtag('consent','default',{ad_storage:'denied',ad_user_data:'denied',ad_personalization:'denied',analytics_storage:'denied',wait_for_update:500});
@@ -66,6 +68,10 @@ try{if(localStorage.getItem('arj_consent')==='all'){gtag('consent','update',{ad_
 gtag('js',new Date());@if ($gaId)gtag('config',@json($gaId));@endif</script>
         @if ($gaId)<script async nonce="{{ $cspNonce }}" src="https://www.googletagmanager.com/gtag/js?id={{ $gaId }}"></script>@endif
         @if ($adsClient)<script async nonce="{{ $cspNonce }}" crossorigin="anonymous" src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client={{ $adsClient }}"></script>@endif
+        @if (in_array('gam', $networks, true))<script async nonce="{{ $cspNonce }}" src="https://securepubads.g.doubleclick.net/tag/js/gpt.js"></script>@endif
+        @if (in_array('medianet', $networks, true))<script nonce="{{ $cspNonce }}">window._mNHandle = window._mNHandle || {}; window._mNHandle.queue = window._mNHandle.queue || []; medianet_versionId = "3121199";</script>
+        <script async nonce="{{ $cspNonce }}" src="https://contextual.media.net/dmedianet.js?cid={{ $adNet->medianetCid() }}"></script>@endif
+        {!! $adNet->headCode(request()) !!}
     @endif
     @php
         $slugParam = (string) (request()->route('slug') ?? '');
@@ -85,6 +91,6 @@ gtag('js',new Date());@if ($gaId)gtag('config',@json($gaId));@endif</script>
 <body {{ $attributes->merge(['class' => 'min-h-dvh']) }}>
     <a href="#main" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 btn-primary">{{ __('Skip to content') }}</a>
     {{ $slot }}
-    @if ($gaId || $adsClient)<x-consent-bar />@endif
+    @if ($gaId || $networks)<x-consent-bar />@endif
 </body>
 </html>

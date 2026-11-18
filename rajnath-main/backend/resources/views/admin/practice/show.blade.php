@@ -72,12 +72,12 @@
                         <div><strong>{{ \App\Domain\Booking\Slots::when($b) }}</strong> · {{ $b->customer }} · {{ $b->mode }} · {{ $b->status }}
                             @if ($b->topic)<br><span class="text-ink-600">Topic: {{ $b->topic }}</span>@endif</div>
                         @if ($b->status === 'confirmed')
+                            <div class="flex flex-wrap items-center gap-2 md:col-span-2"><x-join-button :b="$b" /></div>
                             <form method="POST" action="{{ route('admin.practice.booking', $b->ref) }}" class="flex flex-wrap items-end gap-2">@csrf @method('PUT')
                                 <label class="sr-only" for="ml-{{ $b->id }}">Meeting link</label>
                                 <input id="ml-{{ $b->id }}" name="meeting_link" class="input w-56" placeholder="https://… call link" value="{{ $b->meeting_link }}">
                                 <button class="btn-outline">Save link</button>
                                 <button name="provider" value="livekit" class="btn-ghost">In-app call</button><button name="provider" value="zoom" class="btn-ghost">Zoom</button><button name="provider" value="google_meet" class="btn-ghost">Meet</button>
-                                @if ($b->meeting_provider === 'livekit')<a class="btn-primary" href="{{ route('call.join', $b->ref) }}">Join call</a>@endif
                                 <button name="status" value="completed" class="btn-primary">Completed</button>
                                 <button name="status" value="no_show" class="btn-ghost">No-show</button></form>
                         @endif

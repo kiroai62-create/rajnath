@@ -3,7 +3,7 @@
     $id ??= 'f-'.str_replace(['.', '[', ']'], '-', $name);
     $err = $errors->first($name);
 @endphp
-<div>
+<div class="min-w-0">
     <label for="{{ $id }}" class="field-label">{{ $label }}</label>
     <input id="{{ $id }}" name="{{ $name }}" type="{{ $type }}"
            @if ($type !== 'password') value="{{ old($name, $value) }}" @endif

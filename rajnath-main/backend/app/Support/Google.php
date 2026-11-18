@@ -6,21 +6,12 @@ use App\Support\Settings\SettingsRepository;
 use Illuminate\Http\Request;
 
 /**
- * Google Analytics, Search Console and AdSense, set in Admin › Google & ads.
- *
- * Ads appear only when the owner switches them on, only on the free tool pages chosen there, never to signed-in
- * staff (so the team cannot click its own ads by mistake), and never in the app. Until a visitor accepts cookies,
- * Google gets "consent denied" (Consent Mode v2): Analytics counts without cookies and ads are not personalised.
+ * Google Analytics and Search Console (Admin › Google & ads), and the security policy for pages with Google tags
+ * or ads (see Ads). Until a visitor accepts cookies, Google gets "consent denied" (Consent Mode v2): Analytics
+ * counts without cookies and Google ads are not personalised.
  */
 class Google
 {
-    /** Free tool pages that may show ads, by group (Admin › Google & ads). */
-    public const AD_PAGES = [
-        'tools' => ['label' => 'Free calculators (Kundli, matching, numerology and the others)', 'routes' => ['tools.index', 'tools.show', 'tools.compute']],
-        'panchang' => ['label' => 'Panchang, muhurat, festivals and vrat calendar', 'routes' => ['panchang', 'muhurat.index', 'muhurat.show', 'festivals', 'calendar']],
-        'rashifal' => ['label' => 'Rashifal, sign pages, grah gochar and the nine planets', 'routes' => ['rashifal', 'rashifal.kind', 'rashi', 'gochar', 'gochar.planet', 'navagraha']],
-    ];
-
     public function __construct(private SettingsRepository $settings) {}
 
     public function analyticsId(): ?string
@@ -30,44 +21,15 @@ class Google
         return preg_match('/^G-[A-Z0-9]{4,16}$/', $id) ? $id : null;
     }
 
-    /** "ca-pub-1234567890123456" or null. */
-    public function adsClient(): ?string
-    {
-        $c = trim((string) $this->settings->get('ads.client'));
-
-        return preg_match('/^ca-pub-\d{10,20}$/', $c) ? $c : null;
-    }
-
-    public function adsOn(): bool
-    {
-        return (bool) $this->settings->get('ads.enabled', false) && $this->adsClient() && $this->slot('content');
-    }
-
-    /** AdSense display ad unit id for a place on the page ("content" or "side"; side falls back to content). */
-    public function slot(string $place): ?string
-    {
-        $s = trim((string) ($this->settings->get('ads.slot_'.$place) ?: ($place === 'side' ? $this->settings->get('ads.slot_content') : '')));
-
-        return preg_match('/^\d{6,14}$/', $s) ? $s : null;
-    }
-
-    /** @return list<string> chosen page groups (all by default) */
-    public function adGroups(): array
-    {
-        $g = $this->settings->get('ads.pages');
-
-        return is_array($g) ? array_values(array_intersect(array_keys(self::AD_PAGES), $g)) : array_keys(self::AD_PAGES);
-    }
-
-    /** True when this page shows ads. */
+    /** True when this page shows ads (see Ads). */
     public function adsHere(Request $request): bool
     {
-        if (! $this->adsOn() || $request->is('admin', 'admin/*', 'staff/*', 'account/*', 'api/*') || $request->user()?->isStaff()) {
-            return false;
-        }
-        $routes = collect($this->adGroups())->flatMap(fn ($g) => self::AD_PAGES[$g]['routes'])->all();
+        return app(Ads::class)->here($request);
+    }
 
-        return $routes !== [] && $request->routeIs(...$routes);
+    public function adsClient(): ?string
+    {
+        return app(Ads::class)->adsenseClient();
     }
 
     /** Google Analytics runs on public and customer pages, not in the control centre. */
@@ -80,14 +42,6 @@ class Google
     public function consentHere(Request $request): bool
     {
         return $this->analyticsHere($request) || $this->adsHere($request);
-    }
-
-    /** Content of /ads.txt, or null when AdSense is not set up. */
-    public function adsTxt(): ?string
-    {
-        $c = $this->adsClient();
-
-        return $c ? 'google.com, '.substr($c, 3).", DIRECT, f08c47fec0942fa0\n" : null;
     }
 
     /**
@@ -104,11 +58,12 @@ class Google
             $out['img'] .= ' https://*.google-analytics.com https://*.googletagmanager.com';
         }
         if ($this->adsHere($request)) {
-            // AdSense loads scripts from many Google hosts: allow scripts started by our nonce'd tags ('strict-dynamic').
+            // Ad networks load scripts, pictures and frames from many changing hosts: on ad pages scripts started by
+            // our own nonce'd tags are trusted ('strict-dynamic'), and pictures, frames and requests may use any https host.
             $out['strict'] = true;
-            $out['connect'] .= ' https://*.googlesyndication.com https://*.doubleclick.net https://*.google.com https://*.adtrafficquality.google https://*.googleadservices.com';
+            $out['connect'] .= ' https:';
             $out['img'] .= ' https:';
-            $out['frame'] .= ' https://*.googlesyndication.com https://*.doubleclick.net https://*.google.com https://*.adtrafficquality.google';
+            $out['frame'] .= ' https:';
         }
 
         return $out;

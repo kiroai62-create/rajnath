@@ -1,2 +1,2 @@
-41fb665cadb1994d4cfd2538067b12605970a0592669f37d016fa3c8af8a1b88  astro-rajnath-jha-1.15.0-release.apk
-61164763225facbd89796580238d4573855df69d4f5cad442f0c20dbb8a9b0a1  astro-rajnath-jha-1.15.0-release.aab
+568616a8d3edd39ff57ee643bde4397d9e1c4fd9d386e01338c028a4cf5f4026  astro-rajnath-jha-1.15.1-release.apk
+e4385eb6811cc2e84ef01333612d769dc9c1bc610a49dea9fc07858e223547ee  astro-rajnath-jha-1.15.1-release.aab

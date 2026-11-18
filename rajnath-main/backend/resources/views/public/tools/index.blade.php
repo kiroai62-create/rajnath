@@ -21,7 +21,7 @@
                     </li>
                 @endforeach
             </ul>
-            @if ($loop->first)<x-ad class="mt-10" />@endif
+            @if ($loop->first)<x-ad place="top" class="mt-10" />@endif
         @endforeach
     </div>
 </x-layouts.public>

@@ -4,9 +4,9 @@
         <p class="text-sm text-ink-600">{{ $c['input']['name'] ? $c['input']['name'].' · ' : '' }}{{ \Illuminate\Support\Carbon::parse($c['input']['local'])->format('d M Y, g:i A') }} · {{ $c['input']['place'] }} ({{ $c['input']['tz'] }})</p>
         @if (($c['input']['tz_resolution'] ?? 'exact') !== 'exact')<p class="mt-2 text-sm text-warning-700">The clocks changed at this place on this date; please confirm the birth time.</p>@endif
         <dl class="mt-4 grid gap-3 sm:grid-cols-3">
-            <div class="rounded-xl bg-ivory-100 p-3"><dt class="text-xs text-ink-600">Lagna (Ascendant)</dt><dd class="font-semibold">{{ $c['lagna']['sign_name'] }} {{ $c['lagna']['degree'] }}</dd></div>
-            <div class="rounded-xl bg-ivory-100 p-3"><dt class="text-xs text-ink-600">Moon sign (Rashi)</dt><dd class="font-semibold">{{ $c['moon_sign']['name'] }}</dd></div>
-            <div class="rounded-xl bg-ivory-100 p-3"><dt class="text-xs text-ink-600">Nakshatra</dt><dd class="font-semibold">{{ $c['nakshatra']['name'] }}, pada {{ $c['nakshatra']['pada'] }}</dd></div>
+            <div class="rounded-xl bg-ivory-100 p-3"><dt class="text-xs text-ink-600">Lagna (Ascendant)</dt><dd class="font-semibold">{{ __($c['lagna']['sign_name']) }} {{ $c['lagna']['degree'] }}</dd></div>
+            <div class="rounded-xl bg-ivory-100 p-3"><dt class="text-xs text-ink-600">Moon sign (Rashi)</dt><dd class="font-semibold">{{ __($c['moon_sign']['name']) }}</dd></div>
+            <div class="rounded-xl bg-ivory-100 p-3"><dt class="text-xs text-ink-600">Nakshatra</dt><dd class="font-semibold">{{ __($c['nakshatra']['name']) }}, {{ __('pada') }} {{ $c['nakshatra']['pada'] }}</dd></div>
         </dl>
     </div>
 @endif
@@ -21,7 +21,7 @@
         <div class="table-wrap mt-6" role="region" aria-label="Planet positions" tabindex="0">
             <table class="table"><thead><tr><th scope="col">Planet</th><th scope="col">Sign</th><th scope="col">Degree</th><th scope="col">House</th><th scope="col">Nakshatra</th><th scope="col">Navamsa</th></tr></thead><tbody>
                 @foreach ($c['planets'] as $k => $p) @continue(! $p['classical'])
-                    <tr><td class="font-medium">{{ $p['name'] }}{{ $p['retro'] && ! in_array($k, ['rahu', 'ketu']) ? ' (R)' : '' }}</td><td>{{ $p['sign_name'] }}</td><td>{{ $p['degree'] }}</td><td>{{ $p['house'] }}</td><td>{{ $p['nakshatra'] }} {{ $p['pada'] }}</td><td>{{ $V::SIGNS[$p['navamsa_sign']] }}</td></tr>
+                    <tr><td class="font-medium">{{ __($p['name']) }}{{ $p['retro'] && ! in_array($k, ['rahu', 'ketu']) ? ' '.\App\Domain\Astro\ChartLabels::for()['retro'] : '' }}</td><td>{{ __($p['sign_name']) }}</td><td>{{ $p['degree'] }}</td><td>{{ $p['house'] }}</td><td>{{ __($p['nakshatra']) }} {{ $p['pada'] }}</td><td>{{ __($V::SIGNS[$p['navamsa_sign']]) }}</td></tr>
                 @endforeach
             </tbody></table>
         </div>
@@ -60,7 +60,7 @@
         @break
     @case('lal-kitab')
         <div class="card mt-6 p-5">
-            @include('public.tools._chart', ['houses' => collect($r['lal_kitab'])->map(fn ($pl, $i) => ['sign' => $i - 1, 'planets' => $pl])->all(), 'label' => 'Lal Kitab chart (Aries = house 1)'])
+            @include('public.tools._chart', ['houses' => collect($r['lal_kitab'])->map(fn ($pl, $i) => ['sign' => $i - 1, 'planets' => $pl])->all(), 'label' => 'Lal Kitab chart (Aries = house 1)', 'lagna' => false])
         </div>
         @break
     @case('sade-sati')

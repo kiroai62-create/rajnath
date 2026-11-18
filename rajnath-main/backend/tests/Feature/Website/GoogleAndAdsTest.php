@@ -57,23 +57,24 @@ class GoogleAndAdsTest extends TestCase
 
     public function test_ads_show_only_when_on_only_on_chosen_free_tool_pages_and_never_to_staff(): void
     {
-        $this->save(['ads_enabled' => '1'])->assertSessionHasErrors(['ads_client', 'ads_slot_content']);
-        $this->save(['ads_enabled' => '1', 'ads_client' => 'pub-1234567890123456', 'ads_slot_content' => '9876543210', 'ads_pages' => ['tools']])
-            ->assertSessionHasNoErrors();
+        $this->save(['ads_enabled' => '1'])->assertSessionHasErrors('ads_enabled');
+        $this->save(['ads_enabled' => '1', 'units' => ['result' => ['on' => '1', 'network' => 'adsense', 'mobile' => '1', 'desktop' => '1']]])
+            ->assertSessionHasErrors(['ads_client', 'units.result.slot']);
+        $this->save(['ads_enabled' => '1', 'ads_client' => 'pub-1234567890123456', 'ads_pages' => ['tools'],
+            'units' => ['result' => ['on' => '1', 'network' => 'adsense', 'slot' => '9876543210', 'mobile' => '1', 'desktop' => '1']]])->assertSessionHasNoErrors();
         $this->assertSame('ca-pub-1234567890123456', app(SettingsRepository::class)->get('ads.client'));
 
         $this->app['auth']->forgetGuards();
         $this->flushSession();
-        $tools = $this->withHeaders(['User-Agent' => self::UA])->get('/tools')->assertOk();
+        $tools = $this->withHeaders(['User-Agent' => self::UA])->get('/tools/numerology')->assertOk();
         $tools->assertSee('pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1234567890123456', false)
             ->assertSee('data-ad-slot="9876543210"', false)->assertSee('Advertisement');
         $csp = $tools->headers->get('Content-Security-Policy');
         $this->assertStringContainsString("'strict-dynamic'", $csp);
         $this->assertMatchesRegularExpression("/script-src 'self' 'nonce-[A-Za-z0-9]+'/", $csp);
-        $this->assertStringContainsString('https://*.googlesyndication.com', $csp);
         $this->assertSame("google.com, pub-1234567890123456, DIRECT, f08c47fec0942fa0\n", $this->get('/ads.txt')->assertOk()->getContent());
 
-        // pages outside the chosen groups and normal pages: no ads, no AdSense code, normal CSP
+        // pages outside the chosen groups and normal pages: no ads, no ad code, normal CSP
         foreach (['/panchang', '/faq', '/'] as $url) {
             $r = $this->withHeaders(['User-Agent' => self::UA])->get($url);
             $this->assertStringNotContainsString('adsbygoogle', (string) $r->getContent(), $url);
@@ -83,10 +84,44 @@ class GoogleAndAdsTest extends TestCase
         $this->asStaff($this->makeStaff(['administrator']))->get('/tools')->assertOk()->assertDontSee('adsbygoogle', false);
 
         // switching off removes them again
-        $this->save(['ads_client' => 'ca-pub-1234567890123456', 'ads_slot_content' => '9876543210'])->assertSessionHasNoErrors();
+        $this->save(['ads_client' => 'ca-pub-1234567890123456', 'units' => ['result' => ['on' => '1', 'network' => 'adsense', 'slot' => '9876543210', 'mobile' => '1', 'desktop' => '1']]])->assertSessionHasNoErrors();
         $this->app['auth']->forgetGuards();
         $this->flushSession();
         $this->withHeaders(['User-Agent' => self::UA])->get('/tools')->assertOk()->assertDontSee('adsbygoogle', false);
+    }
+
+    public function test_several_places_with_different_networks_and_custom_code(): void
+    {
+        $this->save([
+            'ads_enabled' => '1', 'ads_gam_network' => '21234567890', 'ads_medianet_cid' => '8cu1a2b3c', 'ads_pages' => ['tools', 'panchang'],
+            'ads_head_code' => '<script src="https://example-ads.test/head.js"></script>',
+            'ads_txt_extra' => "media.net, 8CU1A2B3C, DIRECT\nadsterra.com, 12345, DIRECT",
+            'units' => [
+                'top' => ['on' => '1', 'network' => 'gam', 'slot' => 'astro/tools_top', 'size' => '728x90, 320x50', 'mobile' => '1', 'desktop' => '1'],
+                'side' => ['on' => '1', 'network' => 'medianet', 'slot' => '123456789', 'size' => '300x250', 'desktop' => '1'],
+                'result' => ['on' => '1', 'network' => 'adsterra', 'slot' => 'abcdef0123456789abcdef0123456789', 'size' => '300x250', 'mobile' => '1', 'desktop' => '1'],
+                'bottom' => ['on' => '1', 'network' => 'custom', 'code' => '<div class="taboola"></div><script>window.tb = 1;</script>', 'mobile' => '1'],
+            ],
+        ])->assertSessionHasNoErrors();
+        $this->save(['ads_enabled' => '1', 'units' => ['top' => ['on' => '1', 'network' => 'gam', 'slot' => 'x', 'mobile' => '1']]])->assertSessionHasErrors(['ads_gam_network', 'units.top.size']);
+
+        $this->app['auth']->forgetGuards();
+        $this->flushSession();
+        $page = $this->withHeaders(['User-Agent' => self::UA])->post('/tools/numerology', ['name' => 'Ravi Kumar', 'birth_date' => '1990-05-15'])->assertOk();
+        $html = (string) $page->getContent();
+        $this->assertStringContainsString('securepubads.g.doubleclick.net/tag/js/gpt.js', $html);
+        $this->assertStringContainsString('data-gpt-unit="/21234567890/astro/tools_top"', $html);
+        $this->assertStringContainsString('contextual.media.net/dmedianet.js?cid=8CU1A2B3C', $html);
+        $this->assertStringContainsString('www.highperformanceformat.com/abcdef0123456789abcdef0123456789/invoke.js', $html);
+        $this->assertStringContainsString('<div class="taboola"></div>', $html);
+        // custom scripts get the page nonce so the security policy lets them run
+        $this->assertMatchesRegularExpression('/<script nonce="[A-Za-z0-9]+">window\.tb = 1;<\/script>/', $html);
+        $this->assertMatchesRegularExpression('#<script nonce="[A-Za-z0-9]+" src="https://example-ads\.test/head\.js">#', $html);
+        $this->assertStringContainsString('lg:hidden', $html);   // the custom bottom ad is for phones only
+        $this->assertSame("media.net, 8CU1A2B3C, DIRECT\nadsterra.com, 12345, DIRECT\n", $this->get('/ads.txt')->assertOk()->getContent());
+        $this->assertStringNotContainsString('highperformanceformat', (string) $this->withHeaders(['User-Agent' => self::UA])->get('/faq')->getContent());
+
+        $this->asStaff($this->makeStaff(['owner']))->get(route('admin.google.edit'))->assertOk()->assertSee('Google Ad Manager')->assertSee('Custom code (any network)')->assertSee('astro/tools_top');
     }
 
     public function test_only_settings_managers_change_google_settings(): void

@@ -12,6 +12,15 @@ import '../widgets/common.dart';
 
 enum _Phase { preparing, connecting, live, reconnecting, ended, failed }
 
+/// The camera picture the other person receives: 720p (portrait when the phone is upright) at up to 1.7 Mbit/s,
+/// with two lower layers for weak connections. Keeps the face sharp rather than the frame rate high.
+const _videoPublish = lk.VideoPublishOptions(
+  videoEncoding: lk.VideoEncoding(maxBitrate: 1700 * 1000, maxFramerate: 30),
+  simulcast: true,
+  videoSimulcastLayers: [lk.VideoParametersPresets.h180_169, lk.VideoParametersPresets.h360_169],
+  degradationPreference: lk.DegradationPreference.maintainResolution,
+);
+
 /// Pauses before each automatic rejoin after the connection was lost (about 3 minutes in total).
 const _retrySeconds = [1, 2, 4, 8, 15, 30, 30, 30, 30, 30];
 
@@ -86,7 +95,7 @@ class _CallScreenState extends State<CallScreen> with WidgetsBindingObserver {
       unawaited(lp.setCameraEnabled(false).then((_) => _set(() => _camOn = false)).catchError((Object _) {}));
     } else if (s == AppLifecycleState.resumed && _camBeforePause) {
       _camBeforePause = false;
-      unawaited(lp.setCameraEnabled(true, cameraCaptureOptions: lk.CameraCaptureOptions(cameraPosition: _camPos)).then((_) => _set(() => _camOn = true)).catchError((Object _) {}));
+      unawaited(lp.setCameraEnabled(true, cameraCaptureOptions: lk.CameraCaptureOptions(cameraPosition: _camPos, params: lk.VideoParametersPresets.h720_169)).then((_) => _set(() => _camOn = true)).catchError((Object _) {}));
     }
   }
 
@@ -138,7 +147,7 @@ class _CallScreenState extends State<CallScreen> with WidgetsBindingObserver {
     }
     if (!_audioOnly) {
       try {
-        _video = await lk.LocalVideoTrack.createCameraTrack(lk.CameraCaptureOptions(cameraPosition: _camPos));
+        _video = await lk.LocalVideoTrack.createCameraTrack(lk.CameraCaptureOptions(cameraPosition: _camPos, params: lk.VideoParametersPresets.h720_169));
       } catch (e) {
         _video = null;
         _report('camera_error', '$e');
@@ -151,7 +160,7 @@ class _CallScreenState extends State<CallScreen> with WidgetsBindingObserver {
 
     // 3. Connect.
     if (!rejoin) _set(() => _phase = _Phase.connecting);
-    final room = lk.Room(roomOptions: const lk.RoomOptions(adaptiveStream: true, dynacast: true));
+    final room = lk.Room(roomOptions: const lk.RoomOptions(adaptiveStream: true, dynacast: true, defaultVideoPublishOptions: _videoPublish));
     _room = room;
     _listener = room.createListener()
       ..on<lk.RoomReconnectingEvent>((_) {
@@ -183,7 +192,7 @@ class _CallScreenState extends State<CallScreen> with WidgetsBindingObserver {
     try {
       final lp = room.localParticipant!;
       await lp.publishAudioTrack(_audio!);
-      if (_video != null) await lp.publishVideoTrack(_video!);
+      if (_video != null) await lp.publishVideoTrack(_video!, publishOptions: _videoPublish);
     } catch (_) {
       await _cleanup();
       return _fail('Could not share your microphone or camera. Please try again.');
@@ -320,13 +329,13 @@ class _CallScreenState extends State<CallScreen> with WidgetsBindingObserver {
         if (lp == null) return;
         if (_video == null && lp.videoTrackPublications.isEmpty) {
           // Camera failed at start: try again (prompts for permission if needed).
-          final v = await lk.LocalVideoTrack.createCameraTrack(lk.CameraCaptureOptions(cameraPosition: _camPos));
+          final v = await lk.LocalVideoTrack.createCameraTrack(lk.CameraCaptureOptions(cameraPosition: _camPos, params: lk.VideoParametersPresets.h720_169));
           _video = v;
-          await lp.publishVideoTrack(v);
+          await lp.publishVideoTrack(v, publishOptions: _videoPublish);
           _set(() => _camOn = true);
           return;
         }
-        await lp.setCameraEnabled(!_camOn, cameraCaptureOptions: lk.CameraCaptureOptions(cameraPosition: _camPos));
+        await lp.setCameraEnabled(!_camOn, cameraCaptureOptions: lk.CameraCaptureOptions(cameraPosition: _camPos, params: lk.VideoParametersPresets.h720_169));
         _set(() => _camOn = !_camOn);
       });
 

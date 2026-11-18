@@ -98,9 +98,10 @@
                     <ul class="mt-3 space-y-3">
                         @foreach ($upcoming as $b)
                             @php $t = \Illuminate\Support\Carbon::parse($b->start_utc, 'UTC')->tz('Asia/Kolkata'); @endphp
-                            <li class="flex items-center gap-3">
+                            <li class="flex flex-wrap items-center gap-3">
                                 <span class="grid w-12 shrink-0 rounded-xl bg-ivory-100 py-1.5 text-center"><span class="text-[0.65rem] font-semibold uppercase text-gold-700">{{ $t->format('M') }}</span><span class="text-lg font-semibold leading-none">{{ $t->format('j') }}</span></span>
                                 <span class="min-w-0"><span class="block truncate text-sm font-medium">{{ $b->name }}</span><span class="block text-xs text-ink-600">{{ $t->format('g:i A') }} · {{ ucwords(str_replace('_', ' ', $b->mode ?? '')) }}</span></span>
+                                <span class="ml-auto flex items-center gap-2"><x-join-button :b="$b" size="small" /></span>
                             </li>
                         @endforeach
                     </ul>

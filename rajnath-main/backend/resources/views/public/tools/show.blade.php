@@ -10,6 +10,7 @@
         </div>
     </section>
     <div class="container-page py-10">
+        <x-ad place="top" class="mb-6" />
         @if ($kind === 'entertainment')<p class="mt-3 max-w-2xl rounded-xl border border-gold-200 bg-gold-50 p-3 text-sm">This is a game for fun. It does not predict anything about a real relationship.</p>@endif
         @if ($kind === 'symbolic')<p class="mt-3 max-w-2xl rounded-xl bg-ivory-100 p-3 text-sm">Numerology and colour associations are traditional symbolic systems, not scientific measurements.</p>@endif
 
@@ -42,13 +43,13 @@
                     <div class="card border-red-200 bg-red-50 p-5" role="alert">The calculation service is unavailable right now. Please try again in a few minutes.</div>
                 @elseif (! $r)
                     <div class="card p-8 text-center text-ink-600">Enter the details and press Calculate.</div>
-                    <x-ad class="mt-8" />
+                    <x-ad place="result" class="mt-8" />
                 @else
                     @if (! empty($pdfUrl))
                         <div class="mb-4 flex justify-end"><a href="{{ $pdfUrl }}" class="btn-outline" data-track="Download PDF: {{ $slug }}" rel="nofollow">{{ __('Download PDF') }}</a></div>
                     @endif
                     @include('public.tools._result', ['r' => $r])
-                    <x-ad class="mt-8" />
+                    <x-ad place="result" class="mt-8" />
                     <div class="card mt-6 flex flex-wrap items-center justify-between gap-3 p-5">
                         <p class="text-sm">Want Acharya Ji to read this in detail?</p>
                         <a href="{{ route('services.show', 'janma-kundali-reading') }}" class="btn-primary">Book a reading</a>
