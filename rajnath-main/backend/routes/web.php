@@ -18,6 +18,7 @@ Route::get('/services', [Web\SiteController::class, 'services'])->name('services
 Route::get('/services/{slug}', [Web\SiteController::class, 'service'])->name('services.show');
 Route::post('/enquiries', [Web\SiteController::class, 'enquire'])->middleware('throttle:enquiry')->name('enquiries.store');
 Route::get('/enquiries/{ref}/received', [Web\SiteController::class, 'thanks'])->name('enquiry.thanks');
+Route::get('/ads.txt', Web\AdsTxtController::class)->name('ads.txt');
 Route::get('/puja', [Web\PujaRequestController::class, 'create'])->name('puja-request.create');
 Route::post('/puja', [Web\PujaRequestController::class, 'store'])->middleware('throttle:enquiry')->name('puja-request.store');
 Route::get('/puja/{ref}/received', [Web\PujaRequestController::class, 'thanks'])->name('puja-request.thanks');
@@ -140,7 +141,8 @@ Route::get('/palm-photos/{ref}/{side}', [Web\PalmController::class, 'photo'])->m
 
 Route::middleware('auth')->group(function () {
     Route::get('/call/{ref}', [Web\CallController::class, 'page'])->name('call.join');
-    Route::post('/call/{ref}/token', [Web\CallController::class, 'token'])->middleware('throttle:checkout')->name('call.token');
+    Route::post('/call/{ref}/token', [Web\CallController::class, 'token'])->middleware('throttle:call')->name('call.token');
+    Route::post('/call/{ref}/event', [Web\CallController::class, 'event'])->middleware('throttle:call')->name('call.event');
 });
 Route::get('/puja-photos/{ref}/{i}', [Web\CustomerOpsController::class, 'pujaPhoto'])->whereNumber('i')->middleware('auth')->name('puja.photo');
 
@@ -189,6 +191,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'staff'])->group(fun
 
     Route::get('team', [Admin\TeamController::class, 'index'])->name('team.index');
     Route::get('settings', [Admin\SettingsController::class, 'edit'])->name('settings.edit');
+    Route::get('google', [Admin\GoogleController::class, 'edit'])->name('google.edit');
     Route::get('audit', [Admin\AuditController::class, 'index'])->name('audit.index');
     Route::get('audit/verify', [Admin\AuditController::class, 'verify'])->name('audit.verify');
     Route::get('providers', [Admin\ProvidersController::class, 'edit'])->name('providers.edit');
@@ -275,6 +278,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'staff'])->group(fun
         Route::post('bookings/leave', 'addLeave')->name('ops.leave');
         Route::put('bookings/{ref}', 'updateBooking')->name('ops.booking');
         Route::post('bookings/{ref}/move', 'moveBooking')->name('ops.booking.move');
+        Route::get('bookings/{ref}/calls', 'callLog')->name('ops.booking.calls');
         Route::get('suppliers', 'suppliers')->name('ops.suppliers');
         Route::post('suppliers', 'saveSupplier')->name('ops.supplier');
         Route::get('pujas', 'pujas')->name('ops.pujas');
@@ -298,6 +302,9 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'staff'])->group(fun
         Route::get('tools/{run}', 'toolRun')->name('tools.show');
         Route::get('tools/{run}/pdf', 'toolRunPdf')->name('tools.pdf');
         Route::get('app', 'app')->name('app');
+        Route::get('visits', 'visits')->name('visits');
+        Route::get('visits/{session}', 'visit')->where('session', '[A-Za-z0-9-]{8,40}')->name('visit');
+        Route::get('people/{user}', 'person')->whereNumber('user')->name('person');
     });
     Route::controller(Admin\PdfTemplateController::class)->prefix('pdf-templates')->name('pdf-templates.')->group(function () {
         Route::get('/', 'index')->name('index');
@@ -370,6 +377,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'staff'])->group(fun
         Route::put('team/{user}/roles', [Admin\TeamController::class, 'updateRoles'])->name('team.roles');
         Route::put('team/{user}/status', [Admin\TeamController::class, 'setStatus'])->name('team.status');
         Route::put('settings', [Admin\SettingsController::class, 'update'])->name('settings.update');
+        Route::put('google', [Admin\GoogleController::class, 'update'])->name('google.update');
         Route::put('languages', [Admin\LanguageController::class, 'update'])->name('languages.update');
         Route::put('analytics/settings', [Admin\AnalyticsController::class, 'saveSettings'])->name('analytics.settings');
         Route::post('legal/{kind}/{locale}/publish', [Admin\LegalController::class, 'publish'])->name('legal.publish');

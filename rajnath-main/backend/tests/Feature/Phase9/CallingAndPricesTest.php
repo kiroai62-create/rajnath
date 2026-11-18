@@ -25,8 +25,11 @@ class CallingAndPricesTest extends TestCase
     use RefreshDatabase, StaffHelpers;
 
     private const LK_SECRET = 'lk-secret-for-tests-0123456789abcdef';
+
     private int $seq = 0;
+
     private array $zoomCalls = [];
+
     private array $googleCalls = [];
 
     protected function setUp(): void
@@ -116,7 +119,7 @@ class CallingAndPricesTest extends TestCase
         $res = $this->actingAs($u)->postJson(route('call.token', $b->ref))->assertOk()->assertJsonPath('room', 'booking-'.$b->ref)->assertJsonPath('url', 'wss://rtc.example.test')->assertJsonPath('audio_only', false);
         $c = $this->decode($res->json('token'));
         $this->assertSame(['APIkey123', 'c-'.$u->ref, 'booking-'.$b->ref, true], [$c['iss'], $c['sub'], $c['video']['room'], $c['video']['roomJoin']]);
-        $this->assertLessThanOrEqual(7200, $c['exp'] - time());
+        $this->assertLessThanOrEqual(10800, $c['exp'] - time());
         $this->assertArrayNotHasKey('roomAdmin', $c['video']);
 
         // Office staff (bookings.manage) can join Acharya Ji's booking; others cannot
@@ -130,7 +133,23 @@ class CallingAndPricesTest extends TestCase
         $this->withToken($tok)->getJson('/api/v1/bookings')->assertJsonPath('data.0.meeting_provider', 'livekit')->assertJsonPath('data.0.call_open', true)->assertJsonPath('data.0.meeting_link', null);
         $this->withToken($tok)->postJson("/api/v1/bookings/{$b->ref}/call-token")->assertOk()->assertJsonPath('identity', 'c-'.$u->ref);
 
-        Carbon::setTestNow('2026-11-03 05:31:00'); // 31 min after the end
+        // The call log: the app and the website report joins, drops (with the reason) and camera problems
+        $this->withToken($tok)->withHeaders(['X-App-Install' => 'install-e2e-1', 'X-App-Version' => '1.15.0'])
+            ->postJson("/api/v1/bookings/{$b->ref}/call-event", ['event' => 'dropped', 'detail' => 'serverShutdown'])->assertNoContent();
+        $this->withToken($tok)->postJson("/api/v1/bookings/{$b->ref}/call-event", ['event' => 'hacked'])->assertUnprocessable();
+        $this->flushHeaders();
+        $this->app['auth']->forgetGuards();
+        $this->asStaff($staff)->postJson(route('call.event', $b->ref), ['event' => 'camera_error', 'detail' => 'NotReadableError'])->assertNoContent();
+        $this->assertDatabaseHas('call_logs', ['booking_id' => $b->id, 'role' => 'customer', 'channel' => 'app', 'event' => 'dropped', 'detail' => 'serverShutdown']);
+        $this->assertDatabaseHas('call_logs', ['booking_id' => $b->id, 'user_id' => $staff->id, 'role' => 'astrologer', 'channel' => 'web', 'event' => 'camera_error']);
+        $this->asStaff($staff)->get(route('admin.ops.booking.calls', $b->ref))->assertOk()->assertSee('Connection dropped')->assertSee('serverShutdown')->assertSee('Camera did not start');
+        $this->asStaff($staff)->get(route('admin.ops.bookings'))->assertOk()->assertSee('call log (2)');
+        $this->actingAs($this->customer())->postJson(route('call.event', $b->ref), ['event' => 'joined'])->assertNotFound();
+
+        // An overrunning call can still rejoin up to 60 minutes after the end, not later
+        Carbon::setTestNow('2026-11-03 05:55:00');
+        $this->actingAs($u)->postJson(route('call.token', $b->ref))->assertOk();
+        Carbon::setTestNow('2026-11-03 06:01:00'); // 61 min after the end
         $this->actingAs($u)->postJson(route('call.token', $b->ref))->assertStatus(422);
     }
 

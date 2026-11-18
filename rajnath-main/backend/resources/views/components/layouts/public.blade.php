@@ -170,6 +170,8 @@
             <div class="container-page pt-4"><div role="status" class="card border-green-200 bg-green-50 px-4 py-3 text-sm text-success-700">{{ session('status') }}</div></div>
         @endif
         {{ $slot }}
+        {{-- Other free tool pages (Panchang, Rashifal, gochar…): one ad after the content. The calculators place their own. --}}
+        @unless (request()->routeIs('tools.index', 'tools.show', 'tools.compute'))<x-ad class="container-page mt-12" />@endunless
     </main>
     @unless (request()->routeIs('assistant'))<x-ai-widget />@endunless
 
@@ -229,6 +231,7 @@
                 <p class="mt-2">{{ __('Astrological guidance is traditional and interpretive. It does not replace medical, legal or financial advice.') }}</p>
                 <ul class="mt-3 space-y-1.5">
                     <li><a href="{{ route('privacy') }}">{{ __('Privacy policy') }}</a></li>
+                    @if (app(\App\Support\Google::class)->consentHere(request()))<li><a href="#" data-consent-open>{{ __('Cookie settings') }}</a></li>@endif
                     <li><a href="{{ route('terms') }}">{{ __('Terms of use') }}</a></li>
                     @php $legalDocs = app(\App\Domain\Legal\LegalDocuments::class); @endphp
                     @if ($legalDocs->isPublished('refunds'))<li><a href="{{ route('legal.refunds') }}">{{ __('Cancellation and refund policy') }}</a></li>@endif

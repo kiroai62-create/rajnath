@@ -11,12 +11,14 @@ use Illuminate\Validation\ValidationException;
 /**
  * In-app calls on the owner's LiveKit server. A room per booking ("booking-<ref>"); only the
  * customer, the assigned astrologer (or office staff for Acharya Ji's bookings) get a token, and
- * only from 15 minutes before the start until 30 minutes after the end. Tokens last 2 hours.
+ * only from 15 minutes before the start until 60 minutes after the end (an overrunning call can still rejoin
+ * after a drop). Tokens last 3 hours; LiveKit renews them itself while the person stays in the call.
  */
 class LiveKit
 {
     public const EARLY_MINUTES = 15;
-    public const LATE_MINUTES = 30;
+
+    public const LATE_MINUTES = 60;
 
     public function __construct(private SettingsRepository $settings) {}
 
@@ -70,7 +72,7 @@ class LiveKit
             'token' => $this->jwt($identity, $name, $room, ['role' => $role])];
     }
 
-    public function jwt(string $identity, string $name, string $room, array $metadata = [], int $ttl = 7200): string
+    public function jwt(string $identity, string $name, string $room, array $metadata = [], int $ttl = 10800): string
     {
         $b64 = fn (string $s) => rtrim(strtr(base64_encode($s), '+/', '-_'), '=');
         $now = time();

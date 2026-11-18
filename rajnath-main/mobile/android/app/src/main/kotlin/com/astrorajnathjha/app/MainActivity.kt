@@ -13,6 +13,8 @@ import io.flutter.plugin.common.MethodChannel
  *  - keepScreenOn(bool): toggles FLAG_KEEP_SCREEN_ON (no wakelock permission needed).
  *  - requestBluetooth(): asks for BLUETOOTH_CONNECT on Android 12+ so call audio can route to
  *    Bluetooth headsets. Returns true when granted (or not needed).
+ *  - callStarted({video, title}) / callEnded(): starts / stops [CallService], the foreground service that keeps
+ *    the microphone and camera working while the app is in the background during a call.
  * Microphone and camera permissions are requested by flutter_webrtc itself.
  */
 class MainActivity : FlutterActivity() {
@@ -31,6 +33,19 @@ class MainActivity : FlutterActivity() {
                     result.success(null)
                 }
                 "requestBluetooth" -> requestBluetooth(result)
+                "callStarted" -> {
+                    val args = call.arguments as? Map<*, *>
+                    try {
+                        CallService.start(this, args?.get("video") == true, (args?.get("title") as? String) ?: "Consultation call")
+                        result.success(true)
+                    } catch (e: Exception) {
+                        result.success(false)
+                    }
+                }
+                "callEnded" -> {
+                    CallService.stop(this)
+                    result.success(null)
+                }
                 else -> result.notImplemented()
             }
         }
@@ -58,6 +73,11 @@ class MainActivity : FlutterActivity() {
             pendingBluetooth?.success(granted)
             pendingBluetooth = null
         }
+    }
+
+    override fun onDestroy() {
+        if (isFinishing) CallService.stop(this)
+        super.onDestroy()
     }
 
     companion object {

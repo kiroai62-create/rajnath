@@ -52,6 +52,8 @@ class AppServiceProvider extends ServiceProvider
         ]);
         RateLimiter::for('tools', fn (Request $r) => Limit::perMinute(30)->by('tl:'.($r->user()?->id ?: $r->ip())));
         RateLimiter::for('checkout', fn (Request $r) => Limit::perMinute(10)->by('co:'.($r->user()?->id ?: $r->ip())));
+        // Calls rejoin by themselves after a drop: a fresh token each time, plus the call log.
+        RateLimiter::for('call', fn (Request $r) => Limit::perMinute(40)->by('call:'.($r->user()?->id ?: $r->ip())));
         RateLimiter::for('assistant', fn (Request $r) => [Limit::perMinute(6)->by('ai:'.($r->user()?->id ?: $r->ip())), Limit::perHour(60)->by('aih:'.$r->ip())]);
         RateLimiter::for('places', fn (Request $r) => Limit::perMinute(60)->by('pl:'.$r->ip()));
         // reviews: 10 sends or edits an hour per account

@@ -4,8 +4,9 @@ import 'package:flutter/material.dart';
 
 import 'api_client.dart';
 
-/// Screen views for Admin › Analytics › Mobile app. Batched and sent to /analytics/events at most
-/// every 30 seconds; failures are ignored (analytics must never disturb the app).
+/// Screen views for Admin › Analytics › Mobile app, with the time each screen (or tab) was on screen. A view is
+/// sent when the person leaves the screen or the app goes to the background. Batched and sent to /analytics/events
+/// at most every 30 seconds; failures are ignored (analytics must never disturb the app).
 class AppAnalytics {
   AppAnalytics._();
   static final AppAnalytics instance = AppAnalytics._();
@@ -20,10 +21,36 @@ class AppAnalytics {
   /// Starts sending; waiting screen views are also sent when the app goes to the background.
   set api(ApiClient? client) {
     _api = client;
-    _lifecycle ??= AppLifecycleListener(onHide: flush, onPause: flush);
+    _lifecycle ??= AppLifecycleListener(onHide: _hidden, onShow: _shown, onPause: flush);
   }
 
-  void screen(String name) => _add({'type': 'screen', 'name': name});
+  String? _current;
+  DateTime? _since;
+
+  /// What the first screen (the tabs) is called right now, for example "Home" or "Tab: Services".
+  String rootName = 'Home';
+
+  /// The person now sees [name]: the previous screen is recorded with its time on screen.
+  void screen(String name) {
+    _close();
+    _current = name;
+    _since = DateTime.now();
+  }
+
+  void _close() {
+    final c = _current, since = _since;
+    if (c == null) return;
+    final secs = since == null ? 0 : DateTime.now().difference(since).inSeconds.clamp(0, 3600);
+    _add({'type': 'screen', 'name': c, 'seconds': secs});
+    _since = null;
+  }
+
+  void _hidden() {
+    _close();
+    flush();
+  }
+
+  void _shown() => _since ??= DateTime.now();
 
   void _add(Map<String, dynamic> e) {
     if (api == null || name(e).isEmpty) return;
@@ -54,6 +81,18 @@ class ScreenObserver extends NavigatorObserver {
   @override
   void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
     super.didPush(route, previousRoute);
+    _record(route);
+  }
+
+  /// Back to the previous screen: it is on screen again.
+  @override
+  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    super.didPop(route, previousRoute);
+    if (previousRoute != null) _record(previousRoute);
+  }
+
+  void _record(Route<dynamic> route) {
+    if (route.isFirst) return AppAnalytics.instance.screen(AppAnalytics.instance.rootName);
     final name = route.settings.name ?? _widgetName(route);
     if (name != null && name.isNotEmpty) AppAnalytics.instance.screen(name.replaceAll(RegExp(r'Screen$'), ''));
   }

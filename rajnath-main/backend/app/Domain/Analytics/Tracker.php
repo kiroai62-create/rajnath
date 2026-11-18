@@ -3,7 +3,9 @@
 namespace App\Domain\Analytics;
 
 use App\Support\Settings\SettingsRepository;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Throwable;
@@ -24,7 +26,17 @@ class Tracker
 
     public const SESSION_MINUTES = 30;
 
-    private const BOTS = '/bot|crawl|spider|slurp|bingpreview|facebookexternalhit|whatsapp|telegrambot|preview|headless|lighthouse|pingdom|uptime|monitor|curl|wget|python|httpclient|okhttp|go-http|java\/|symfony|guzzle|scrapy|semrush|ahrefs|mj12/i';
+    /**
+     * Crawlers, link previews, monitors, AI scrapers, SEO tools and automation (the same kind of list Google
+     * Analytics uses). Anything that does not run the page's script is not counted anyway (TrackVisit).
+     */
+    private const BOTS = '/bot\\b|bot[\\/;)_-]|crawl|spider|slurp|scrap|archiver|bingpreview|facebookexternalhit|facebookcatalog|meta-external|whatsapp|skypeuripreview|'
+        .'embedly|quora link|vkshare|preview|headless|lighthouse|pagespeed|gtmetrix|pingdom|uptime|monitor|statuscake|site24x7|'
+        .'datadog|newrelic|curl|wget|python|httpclient|httpx|aiohttp|okhttp|go-http|java\\/|libwww|symfony|guzzle|axios|node-fetch|undici|postman|insomnia|'
+        .'scrapy|semrush|ahrefs|mj12|dotbot|petalbot|bytespider|yandex|baidu|sogou|exabot|seznam|applebot|amazonbot|duckduck|gptbot|chatgpt|oai-search|claude|'
+        .'anthropic|perplexity|ccbot|cohere|diffbot|dataforseo|serpstat|screaming frog|sitebulb|phantomjs|puppeteer|playwright|selenium|webdriver|cypress|'
+        .'mediapartners|adsbot|apis-google|feedfetcher|google-inspectiontool|googleother|google-read-aloud|zgrab|masscan|nmap|nikto|sqlmap|nuclei|'
+        .'wordpress|ia_archiver|feedly|inoreader|newsblur/i';
 
     public function __construct(private SettingsRepository $settings, private GeoIp $geo) {}
 
@@ -33,11 +45,18 @@ class Tracker
         return (bool) $this->settings->get('analytics.enabled', true);
     }
 
+    /** Known crawler, preview, monitor or script (by user agent). */
+    public function isBot(Request $request): bool
+    {
+        $ua = (string) $request->userAgent();
+
+        return $ua === '' || mb_strlen($ua) < 20 || preg_match(self::BOTS, $ua) === 1;
+    }
+
     /** Requests that must not be counted at all. */
     public function ignored(Request $request): bool
     {
-        $ua = (string) $request->userAgent();
-        if ($ua === '' || preg_match(self::BOTS, $ua)) {
+        if ($this->isBot($request)) {
             return true;
         }
         if (in_array(strtolower((string) ($request->header('Sec-Purpose') ?? $request->header('Purpose'))), ['prefetch', 'prerender', 'prefetch;prerender'], true)) {
@@ -60,6 +79,32 @@ class Tracker
             'session' => self::validId($sid) && ! $new ? $sid : (string) Str::uuid(),
             'new_visitor' => $new,
         ];
+    }
+
+    /**
+     * Daily counters of what was not counted: "bots" (known crawlers) and "served" vs "confirmed" pages, whose
+     * difference is page loads by something that did not run the page like a browser.
+     */
+    public static function countFiltered(string $kind, int $by = 1): void
+    {
+        rescue(function () use ($kind, $by) {
+            $key = 'an:f:'.$kind.':'.now('Asia/Kolkata')->format('Ymd');
+            Cache::add($key, 0, now()->addDays(400));
+            Cache::increment($key, $by);
+        }, null, false);
+    }
+
+    /** @return array{bots: int, served: int, confirmed: int} totals for India-time days from..to */
+    public static function filtered(CarbonImmutable $from, CarbonImmutable $to): array
+    {
+        $out = ['bots' => 0, 'served' => 0, 'confirmed' => 0];
+        for ($d = $from->setTimezone('Asia/Kolkata')->startOfDay(); $d->lte($to); $d = $d->addDay()) {
+            foreach ($out as $k => $n) {
+                $out[$k] = $n + (int) Cache::get('an:f:'.$k.':'.$d->format('Ymd'), 0);
+            }
+        }
+
+        return $out;
     }
 
     /** Page path with order/booking references replaced, so paths never identify a record. */

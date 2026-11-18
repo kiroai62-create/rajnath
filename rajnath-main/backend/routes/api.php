@@ -114,7 +114,8 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
             Route::get('palmistry/{ref}/pdf', [V1\DocumentApiController::class, 'palmPdf']);
         });
         Route::get('bookings', [V1\ActivityController::class, 'bookings']);
-        Route::post('bookings/{ref}/call-token', [CallController::class, 'token'])->middleware('throttle:checkout');
+        Route::post('bookings/{ref}/call-token', [CallController::class, 'token'])->middleware('throttle:call');
+        Route::post('bookings/{ref}/call-event', [CallController::class, 'event'])->middleware('throttle:call');
         Route::get('palmistry', [V1\ActivityController::class, 'palms']);
         Route::get('palmistry/{ref}', [V1\ActivityController::class, 'palmShow']);
         Route::get('reports', [V1\ActivityController::class, 'reports']);

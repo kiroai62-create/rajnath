@@ -42,9 +42,17 @@ This policy explains what personal information {brand} ("we") collects through t
 
 We do not sell your personal information.
 
+## Analytics, cookies and ads
+
+- **Our own visitor statistics:** when you open a page, we record the page, the time you spend on it, how far you scroll, the links and buttons you press, the website that sent you, your device type, browser, language and country (looked up on our own server; we do not store your IP address for this). Two first-party cookies (`arj_vid`, `arj_sid`) tell visits apart. If you are signed in, this activity is linked to your account so we can help you and improve our services. We honour "Do Not Track" and "Global Privacy Control". In the app we record which screens are opened and for how long.
+- **Calculator history:** details you enter in free calculators are stored encrypted so you can download the result as a PDF and our team can help you with it.
+- **In-app calls:** we record when each person joins or leaves a call and connection or camera problems, to fix call quality. Calls are never recorded.
+- **Google Analytics and Google AdSense:** if switched on, Google Analytics measures visits, and the free tool pages may show Google ads. They use cookies only after you press "Allow" in the cookie bar; otherwise Google counts without cookies and shows ads that are not personalised. You can change your choice any time with "Cookie settings" at the bottom of the page. See how Google uses data: https://policies.google.com/technologies/partner-sites
+- We keep visitor statistics for about 13 months, then delete them.
+
 ## Who processes it for us
 
-We use service providers only to run the platform: our hosting provider, the email and SMS providers that deliver sign-in codes and notices, our payment provider (Razorpay), our courier partner for gemstone deliveries, and, for in-app calls, our calling provider. They may process your data only on our instructions.
+We use service providers only to run the platform: our hosting provider, the email and SMS providers that deliver sign-in codes and notices, our payment provider (Razorpay), our courier partner for gemstone deliveries, for in-app calls our calling provider, and, when switched on, Google (Analytics and AdSense). They may process your data only on our instructions.
 
 ## Confidentiality of consultations
 

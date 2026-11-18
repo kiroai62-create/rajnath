@@ -9,6 +9,7 @@
                 <div><dt class="text-ink-600">Birth profiles</dt><dd class="font-medium">{{ $profiles }} (details are private to the customer)</dd></div>
                 <div><dt class="text-ink-600">Signed-in devices</dt><dd class="font-medium">{{ $devices }}</dd></div>
             </dl>
+            @can('analytics.view')<p class="mt-5"><a href="{{ route('admin.analytics.person', $c->id) }}" class="btn-outline">Full activity report (website and app)</a></p>@endcan
             <h2 class="mt-6 text-base">Recent enquiries</h2>
             <ul class="mt-2 space-y-2 text-sm">
                 @forelse ($enquiries as $e)

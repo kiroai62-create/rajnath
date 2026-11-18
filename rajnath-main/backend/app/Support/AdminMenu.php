@@ -63,6 +63,7 @@ class AdminMenu
         ],
         'Settings' => [
             ['Settings', 'admin.settings.edit', 'settings.view', 'cog'],
+            ['Google & ads', 'admin.google.edit', 'settings.view', 'chart'],
             ['Email & SMS', 'admin.providers.edit', 'providers.manage', 'mail'],
             ['Push notifications', 'admin.push.edit', 'providers.manage', 'bell'],
             ['Calling (in-app, Zoom, Meet)', 'admin.calling.edit', 'providers.manage', 'phone'],

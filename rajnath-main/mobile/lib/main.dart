@@ -86,6 +86,8 @@ class _HomeShellState extends State<HomeShell> {
   final List<int> _history = [];
   DateTime? _backAt;
 
+  static const _tabNames = ['Home', 'Tab: Services', 'Tab: Tools', 'Tab: Account', 'Tab: More'];
+
   void _selectTab(int i) {
     if (i == _tab) return;
     setState(() {
@@ -93,12 +95,20 @@ class _HomeShellState extends State<HomeShell> {
       _history.add(_tab);
       _tab = i;
     });
+    _tabShown();
+  }
+
+  /// Tab switches count as screens in Admin › Analytics › Mobile app.
+  void _tabShown() {
+    AppAnalytics.instance.rootName = _tabNames[_tab];
+    AppAnalytics.instance.screen(_tabNames[_tab]);
   }
 
   /// Back on a tab goes to the previous tab (finally Home); on Home a second press within 2 seconds closes the app.
   void _onBack() {
     if (_history.isNotEmpty || _tab != 0) {
       setState(() => _tab = _history.isNotEmpty ? _history.removeLast() : 0);
+      _tabShown();
       return;
     }
     final now = DateTime.now();

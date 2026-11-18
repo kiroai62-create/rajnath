@@ -51,6 +51,22 @@
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
     <link rel="alternate" type="text/plain" title="LLM summary" href="{{ url('/llms.txt') }}">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    @if ($pv = request()->attributes->get('analytics.pv'))<meta name="arj-pv" content="{{ $pv }}">@endif
+    @php
+        $google = app(\App\Support\Google::class);
+        $gaId = $google->analyticsHere(request()) ? $google->analyticsId() : null;
+        $adsClient = $google->adsHere(request()) ? $google->adsClient() : null;
+        $cspNonce = \Illuminate\Support\Facades\Vite::cspNonce();
+    @endphp
+    @if ($gaId || $adsClient)
+        {{-- Google Consent Mode v2: nothing personal until the visitor accepts (cookie bar, resources/js/app.js). --}}
+        <script nonce="{{ $cspNonce }}">window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}
+gtag('consent','default',{ad_storage:'denied',ad_user_data:'denied',ad_personalization:'denied',analytics_storage:'denied',wait_for_update:500});
+try{if(localStorage.getItem('arj_consent')==='all'){gtag('consent','update',{ad_storage:'granted',ad_user_data:'granted',ad_personalization:'granted',analytics_storage:'granted'});}@if ($adsClient)else{(window.adsbygoogle=window.adsbygoogle||[]).requestNonPersonalizedAds=1;}@endif}catch(e){}
+gtag('js',new Date());@if ($gaId)gtag('config',@json($gaId));@endif</script>
+        @if ($gaId)<script async nonce="{{ $cspNonce }}" src="https://www.googletagmanager.com/gtag/js?id={{ $gaId }}"></script>@endif
+        @if ($adsClient)<script async nonce="{{ $cspNonce }}" crossorigin="anonymous" src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client={{ $adsClient }}"></script>@endif
+    @endif
     @php
         $slugParam = (string) (request()->route('slug') ?? '');
         $arjPage = match (true) {
@@ -69,5 +85,6 @@
 <body {{ $attributes->merge(['class' => 'min-h-dvh']) }}>
     <a href="#main" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 btn-primary">{{ __('Skip to content') }}</a>
     {{ $slot }}
+    @if ($gaId || $adsClient)<x-consent-bar />@endif
 </body>
 </html>

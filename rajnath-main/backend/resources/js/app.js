@@ -1,5 +1,6 @@
 // CSP-safe Alpine build: no eval. Behaviour lives in named components, not inline expressions.
 import Alpine from '@alpinejs/csp';
+import { callRoom } from './call';
 
 // Puja request form: show "other puja" and the home address only when they apply.
 Alpine.data('pujaForm', () => ({
@@ -294,55 +295,27 @@ if (motionOk && 'IntersectionObserver' in window) {
     });
 }
 
-// In-app consultation call (LiveKit). The SDK is loaded only on the call page.
-Alpine.data('callRoom', () => ({
-    state: 'idle', error: '', micOn: true, camOn: true, remoteCount: 0, room: null,
-    get idle() { return this.state === 'idle' || this.state === 'ended'; },
-    get connecting() { return this.state === 'connecting'; },
-    get live() { return this.state === 'live'; },
-    get ended() { return this.state === 'ended'; },
-    get micLabel() { return this.micOn ? 'Mute' : 'Unmute'; },
-    get camLabel() { return this.camOn ? 'Turn camera off' : 'Turn camera on'; },
-    get waiting() { return this.live && this.remoteCount === 0; },
-    get audioOnly() { return this.$root.dataset.audioOnly === '1'; },
-    get camControl() { return this.live && this.$root.dataset.audioOnly !== '1'; },
-    async join() {
-        this.state = 'connecting'; this.error = '';
-        try {
-            const r = await fetch(this.$root.dataset.tokenUrl, { method: 'POST', headers: { Accept: 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content } });
-            const d = await r.json().catch(() => ({}));
-            if (!r.ok) { this.state = 'idle'; this.error = (d.error && d.error.message) || 'Could not start the call.'; return; }
-            const { Room, RoomEvent, Track } = await import('livekit-client');
-            const room = new Room({ adaptiveStream: true, dynacast: true });
-            this.room = room;
-            const remote = this.$refs.remote, local = this.$refs.local;
-            room.on(RoomEvent.TrackSubscribed, (track) => {
-                const el = track.attach();
-                el.dataset.sid = track.sid;
-                if (track.kind === Track.Kind.Video) { el.className = 'h-full w-full rounded-2xl bg-ink-900 object-cover'; }
-                remote.appendChild(el);
-            });
-            room.on(RoomEvent.TrackUnsubscribed, (track) => { track.detach().forEach((el) => el.remove()); });
-            room.on(RoomEvent.ParticipantConnected, () => { this.remoteCount = room.remoteParticipants.size; });
-            room.on(RoomEvent.ParticipantDisconnected, () => { this.remoteCount = room.remoteParticipants.size; });
-            room.on(RoomEvent.Disconnected, () => { this.state = 'ended'; });
-            await room.connect(d.url, d.token);
-            await room.localParticipant.setMicrophoneEnabled(true);
-            if (!d.audio_only) {
-                const pub = await room.localParticipant.setCameraEnabled(true);
-                if (pub && pub.track) { const el = pub.track.attach(); el.muted = true; el.className = 'h-full w-full rounded-xl object-cover'; local.appendChild(el); }
-            } else { this.camOn = false; }
-            this.remoteCount = room.remoteParticipants.size;
-            this.state = 'live';
-        } catch (e) {
-            this.state = 'idle';
-            this.error = (e && e.name === 'NotAllowedError') ? 'Please allow microphone/camera access in your browser and try again.' : 'Could not connect the call. Check your internet and try again.';
-            if (this.room) { this.room.disconnect(); }
-        }
+// Consultation call (LiveKit): see call.js. The SDK itself is loaded only when someone joins.
+Alpine.data('callRoom', callRoom);
+
+// Cookie choice for Google Analytics and ads (Google Consent Mode v2). Remembered on this device;
+// a "Cookie settings" link (data-consent-open) shows it again.
+Alpine.data('consentBar', () => ({
+    open: false,
+    init() {
+        let saved = null;
+        try { saved = localStorage.getItem('arj_consent'); } catch { /* private mode */ }
+        this.open = !saved;
+        document.querySelectorAll('[data-consent-open]').forEach((el) => el.addEventListener('click', (e) => { e.preventDefault(); this.open = true; }));
     },
-    async toggleMic() { this.micOn = !this.micOn; await this.room.localParticipant.setMicrophoneEnabled(this.micOn); },
-    async toggleCam() { this.camOn = !this.camOn; await this.room.localParticipant.setCameraEnabled(this.camOn); if (!this.camOn) { this.$refs.local.innerHTML = ''; } else { const p = this.room.localParticipant.getTrackPublications().find((x) => x.kind === 'video'); if (p && p.track) { const el = p.track.attach(); el.muted = true; el.className = 'h-full w-full rounded-xl object-cover'; this.$refs.local.appendChild(el); } } },
-    leave() { if (this.room) { this.room.disconnect(); } this.state = 'ended'; this.$refs.remote.innerHTML = ''; this.$refs.local.innerHTML = ''; },
+    save(choice) {
+        try { localStorage.setItem('arj_consent', choice); } catch { /* private mode */ }
+        const v = choice === 'all' ? 'granted' : 'denied';
+        if (typeof window.gtag === 'function') { window.gtag('consent', 'update', { ad_storage: v, ad_user_data: v, ad_personalization: v, analytics_storage: v }); }
+        this.open = false;
+    },
+    accept() { this.save('all'); },
+    necessary() { this.save('necessary'); },
 }));
 
 Alpine.data('printer', () => ({ print() { window.print(); } }));
@@ -540,12 +513,14 @@ if (aiBox) {
     });
 }
 
-// First-party analytics (Admin › Analytics): which links and buttons are clicked, and how long a
-// page is actually read. Sent with navigator.sendBeacon; nothing is sent from the control centre,
-// and only the link's path is kept (never its query string).
+// First-party analytics (Admin › Analytics), counted like Google Analytics: a page view is sent only by a real
+// browser that shows the page (never by crawlers, link previews or automated browsers), then which links and
+// buttons are clicked, how long the page is actually read and how far it is scrolled. Sent with
+// navigator.sendBeacon; nothing is sent from the control centre, and only a link's path is kept (never its query).
 (() => {
     const token = document.querySelector('meta[name="csrf-token"]')?.content;
     if (!token || !navigator.sendBeacon || /^\/(admin|staff)(\/|$)/.test(location.pathname)) { return; }
+    if (navigator.webdriver || /HeadlessChrome|PhantomJS|Lighthouse/i.test(navigator.userAgent)) { return; }
     const send = (data) => {
         const f = new FormData();
         f.append('_token', token);
@@ -553,6 +528,15 @@ if (aiBox) {
         Object.entries(data).forEach(([k, v]) => { if (v !== null && v !== undefined) { f.append(k, String(v).slice(0, 300)); } });
         navigator.sendBeacon('/analytics/event', f);
     };
+    const pv = document.querySelector('meta[name="arj-pv"]')?.content;
+    let counted = false;
+    const countView = () => {
+        if (counted || !pv || document.visibilityState !== 'visible') { return; }
+        counted = true;
+        send({ type: 'pageview', pv });
+    };
+    // A tab opened in the background or prerendered counts only when the person actually looks at it.
+    if (document.prerendering) { document.addEventListener('prerenderingchange', countView, { once: true }); } else { countView(); }
     document.addEventListener('click', (e) => {
         const el = e.target.closest('a[href], button, [data-track]');
         if (!el || el.closest('[data-no-track]')) { return; }
@@ -560,13 +544,38 @@ if (aiBox) {
         if (el.matches('input[type=password], [type=password]')) { return; }
         send({ type: 'click', label: label.slice(0, 200), target: el.tagName === 'A' ? el.getAttribute('href') : (el.form ? el.form.getAttribute('action') : null) });
     }, { capture: true, passive: true });
+    let depth = 0;
+    const measure = () => {
+        const doc = document.documentElement;
+        const seen = (window.scrollY + window.innerHeight) / Math.max(1, doc.scrollHeight);
+        depth = Math.max(depth, Math.min(100, Math.round(seen * 100)));
+    };
+    window.addEventListener('scroll', measure, { passive: true });
+    window.addEventListener('load', measure);
     let visibleSince = document.visibilityState === 'visible' ? Date.now() : null;
     let total = 0;
     let sent = false;
+    const flush = () => {
+        if (visibleSince) { total += Date.now() - visibleSince; visibleSince = null; }
+        if (!sent && counted && total > 1000) { sent = true; measure(); send({ type: 'engage', seconds: Math.min(3600, Math.round(total / 1000)), depth }); }
+    };
     document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'hidden') {
-            if (visibleSince) { total += Date.now() - visibleSince; visibleSince = null; }
-            if (!sent && total > 1000) { sent = true; send({ type: 'engage', seconds: Math.min(3600, Math.round(total / 1000)) }); }
-        } else { visibleSince = Date.now(); sent = false; total = 0; }
+        if (document.visibilityState === 'hidden') { flush(); } else { countView(); visibleSince = Date.now(); sent = false; total = 0; }
     });
+    window.addEventListener('pagehide', flush);
+})();
+
+// Ads on free tool pages (Admin › Google & ads): each slot is filled only when it comes near the screen,
+// so ads never slow the page down and empty slots off-screen cost nothing.
+(() => {
+    const slots = [...document.querySelectorAll('ins.adsbygoogle:not([data-adsbygoogle-status])')];
+    if (!slots.length) { return; }
+    const fill = (ins) => {
+        if (ins.dataset.arjFilled || ins.offsetParent === null) { return; }   // hidden on this screen size
+        ins.dataset.arjFilled = '1';
+        try { (window.adsbygoogle = window.adsbygoogle || []).push({}); } catch { /* blocked by an ad blocker */ }
+    };
+    if (!('IntersectionObserver' in window)) { slots.forEach(fill); return; }
+    const io = new IntersectionObserver((entries) => entries.forEach((e) => { if (e.isIntersecting) { io.unobserve(e.target); fill(e.target); } }), { rootMargin: '300px 0px' });
+    slots.forEach((s) => io.observe(s));
 })();

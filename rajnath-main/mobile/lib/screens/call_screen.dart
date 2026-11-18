@@ -10,7 +10,10 @@ import '../theme/app_theme.dart';
 import '../util/i18n.dart';
 import '../widgets/common.dart';
 
-enum _Phase { preparing, connecting, live, ended, failed }
+enum _Phase { preparing, connecting, live, reconnecting, ended, failed }
+
+/// Pauses before each automatic rejoin after the connection was lost (about 3 minutes in total).
+const _retrySeconds = [1, 2, 4, 8, 15, 30, 30, 30, 30, 30];
 
 /// In-app consultation call (LiveKit). Token from `POST /bookings/{ref}/call-token`.
 class CallScreen extends StatefulWidget {
@@ -23,7 +26,7 @@ class CallScreen extends StatefulWidget {
   State<CallScreen> createState() => _CallScreenState();
 }
 
-class _CallScreenState extends State<CallScreen> {
+class _CallScreenState extends State<CallScreen> with WidgetsBindingObserver {
   _Phase _phase = _Phase.preparing;
   String? _message;
   bool _canRetry = true;
@@ -41,17 +44,50 @@ class _CallScreenState extends State<CallScreen> {
   lk.LocalVideoTrack? _video;
   bool _leaving = false;
 
+  /// Automatic rejoin after the connection was lost: attempt number and the countdown shown.
+  int _attempt = 0;
+  int _retryIn = 0;
+  Timer? _retryTimer;
+
+  /// The camera was on when the app went to the background (Android does not allow it there).
+  bool _camBeforePause = false;
+
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     unawaited(_start());
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _leaving = true;
+    _retryTimer?.cancel();
     unawaited(_cleanup());
     super.dispose();
+  }
+
+  /// Call log for Admin › Bookings (best effort).
+  void _report(String event, [String? detail]) {
+    unawaited(widget.api.post('/bookings/${widget.bookingRef}/call-event', {'event': event, 'detail': detail}).then((_) {}, onError: (Object _) {}));
+  }
+
+  /// In the background the microphone keeps working (foreground service); the camera pauses and comes back.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState s) {
+    final lp = _room?.localParticipant;
+    if (_phase != _Phase.live || lp == null) return;
+    if (s == AppLifecycleState.paused) _report('background');
+    if (s == AppLifecycleState.resumed) _report('foreground');
+    if (_audioOnly) return;
+    if (s == AppLifecycleState.paused && _camOn) {
+      _camBeforePause = true;
+      unawaited(lp.setCameraEnabled(false).then((_) => _set(() => _camOn = false)).catchError((Object _) {}));
+    } else if (s == AppLifecycleState.resumed && _camBeforePause) {
+      _camBeforePause = false;
+      unawaited(lp.setCameraEnabled(true, cameraCaptureOptions: lk.CameraCaptureOptions(cameraPosition: _camPos)).then((_) => _set(() => _camOn = true)).catchError((Object _) {}));
+    }
   }
 
   void _set(VoidCallback f) {
@@ -64,11 +100,15 @@ class _CallScreenState extends State<CallScreen> {
         _canRetry = canRetry;
       });
 
-  Future<void> _start() async {
+  /// Joins the call. [rejoin] is an automatic retry after the connection was lost: errors then schedule the next try.
+  Future<void> _start({bool rejoin = false}) async {
+    _retryTimer?.cancel();
+    if (!rejoin) _attempt = 0;
     _set(() {
-      _phase = _Phase.preparing;
+      _phase = rejoin ? _Phase.reconnecting : _Phase.preparing;
       _message = null;
       _reconnecting = false;
+      _retryIn = 0;
     });
 
     // 1. Token.
@@ -76,6 +116,7 @@ class _CallScreenState extends State<CallScreen> {
     try {
       t = CallToken.fromJson(await widget.api.post('/bookings/${widget.bookingRef}/call-token', {}));
     } on ApiException catch (e) {
+      if (rejoin && e.code != 'call_not_available' && e.status != 404) return _scheduleRejoin();
       return _fail(e.code == 'call_not_available' ? e.message : (e.isOffline ? e.message : 'Could not start the call. ${e.message}'), canRetry: true);
     } on FormatException {
       return _fail('The call is not set up yet. Please try again in a moment.');
@@ -90,6 +131,7 @@ class _CallScreenState extends State<CallScreen> {
     try {
       _audio = await lk.LocalAudioTrack.create(const lk.AudioCaptureOptions());
     } catch (e) {
+      _report('mic_error', '$e');
       return _fail(looksLikePermissionDenied(e)
           ? 'Microphone access is needed for the call. Allow it in Settings › Apps › Astro Rajnath Jha › Permissions, then try again.'
           : 'Could not start your microphone. Please close other apps using it and try again.');
@@ -99,6 +141,7 @@ class _CallScreenState extends State<CallScreen> {
         _video = await lk.LocalVideoTrack.createCameraTrack(lk.CameraCaptureOptions(cameraPosition: _camPos));
       } catch (e) {
         _video = null;
+        _report('camera_error', '$e');
         if (mounted) {
           showSnack(context, looksLikePermissionDenied(e) ? 'Camera access was not allowed — continuing with audio only.' : 'Could not start the camera — continuing with audio only.');
         }
@@ -107,13 +150,19 @@ class _CallScreenState extends State<CallScreen> {
     if (_leaving) return _cleanup();
 
     // 3. Connect.
-    _set(() => _phase = _Phase.connecting);
+    if (!rejoin) _set(() => _phase = _Phase.connecting);
     final room = lk.Room(roomOptions: const lk.RoomOptions(adaptiveStream: true, dynacast: true));
     _room = room;
     _listener = room.createListener()
-      ..on<lk.RoomReconnectingEvent>((_) => _set(() => _reconnecting = true))
+      ..on<lk.RoomReconnectingEvent>((_) {
+        _report('reconnecting');
+        _set(() => _reconnecting = true);
+      })
       ..on<lk.RoomAttemptReconnectEvent>((_) => _set(() => _reconnecting = true))
-      ..on<lk.RoomReconnectedEvent>((_) => _set(() => _reconnecting = false))
+      ..on<lk.RoomReconnectedEvent>((_) {
+        _report('reconnected');
+        _set(() => _reconnecting = false);
+      })
       ..on<lk.RoomDisconnectedEvent>(_onDisconnected)
       ..on<lk.ParticipantConnectedEvent>((_) => _set(() {}))
       ..on<lk.ParticipantDisconnectedEvent>((_) => _set(() {}))
@@ -122,9 +171,10 @@ class _CallScreenState extends State<CallScreen> {
       ..on<lk.TrackMutedEvent>((_) => _set(() {}))
       ..on<lk.TrackUnmutedEvent>((_) => _set(() {}));
     try {
-      await room.connect(t.url, t.token);
+      await room.connect(t.url, t.token, connectOptions: const lk.ConnectOptions(autoSubscribe: true));
     } catch (_) {
       await _cleanup();
+      if (rejoin) return _scheduleRejoin();
       return _fail('Could not connect to the call. Please check your internet connection and try again.');
     }
     if (_leaving) return _cleanup();
@@ -140,22 +190,61 @@ class _CallScreenState extends State<CallScreen> {
     }
     _micOn = true;
     _camOn = _video != null;
+    _report(rejoin ? 'rejoined' : 'joined', _video != null ? 'video' : 'audio');
+    _attempt = 0;
     await lk.AudioManager.instance.setSpeakerOutputPreferred(_speakerOn);
     await CallPlatform.keepScreenOn(true);
+    await CallPlatform.callStarted(video: _video != null, title: widget.title);
     _set(() => _phase = _Phase.live);
+  }
+
+  /// Waits a little longer each time, then joins again with a fresh token. Gives up after about 3 minutes.
+  void _scheduleRejoin() {
+    if (_leaving || !mounted) return;
+    if (_attempt >= _retrySeconds.length) {
+      _set(() {
+        _phase = _Phase.ended;
+        _message = 'The connection was lost and could not be restored. Check your internet, then press Rejoin.';
+      });
+      _report('failed', 'gave up rejoining');
+      return;
+    }
+    var left = _retrySeconds[_attempt++];
+    _set(() {
+      _phase = _Phase.reconnecting;
+      _retryIn = left;
+    });
+    _retryTimer?.cancel();
+    _retryTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      left--;
+      if (left <= 0) {
+        timer.cancel();
+        unawaited(_start(rejoin: true));
+      } else {
+        _set(() => _retryIn = left);
+      }
+    });
   }
 
   void _onDisconnected(lk.RoomDisconnectedEvent e) {
     if (_leaving) return;
+    _report('dropped', e.reason?.name ?? 'unknown');
     unawaited(_cleanup());
-    final text = switch (e.reason) {
+    final endText = switch (e.reason) {
       lk.DisconnectReason.participantRemoved || lk.DisconnectReason.roomDeleted => 'The call has ended.',
-      lk.DisconnectReason.duplicateIdentity => 'You joined this call on another device.',
-      _ => 'The call was disconnected.',
+      lk.DisconnectReason.duplicateIdentity => 'You joined this call on another device or in the website, so it left here. Press Rejoin to bring the call back to this phone.',
+      lk.DisconnectReason.clientInitiated => 'The call has ended.',
+      _ => null,
     };
+    if (endText == null) {
+      // Network change, weak signal, server restart: come back by ourselves.
+      _set(() => _reconnecting = false);
+      _scheduleRejoin();
+      return;
+    }
     _set(() {
       _phase = _Phase.ended;
-      _message = text;
+      _message = endText;
       _reconnecting = false;
     });
   }
@@ -167,6 +256,7 @@ class _CallScreenState extends State<CallScreen> {
     _audio = null;
     _video = null;
     await CallPlatform.keepScreenOn(false);
+    await CallPlatform.callEnded();
     try {
       await listener?.dispose();
       if (room != null) {
@@ -179,9 +269,33 @@ class _CallScreenState extends State<CallScreen> {
   }
 
   Future<void> _hangUp() async {
+    if (_phase == _Phase.live || _phase == _Phase.reconnecting) _report('left');
     _leaving = true;
+    _retryTimer?.cancel();
     await _cleanup();
-    if (mounted) Navigator.of(context).maybePop();
+    if (mounted) Navigator.of(context).pop();
+  }
+
+  /// The back button during a call asks first, so the call is not ended by accident.
+  Future<void> _confirmLeave() async {
+    if (_phase != _Phase.live && _phase != _Phase.reconnecting) {
+      _leaving = true;
+      _retryTimer?.cancel();
+      if (mounted) Navigator.of(context).pop();
+      return;
+    }
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: Text(tr('Leave the call?')),
+        content: Text(tr('The other person stays in the call. You can rejoin while the consultation time lasts.')),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(c, false), child: Text(tr('Stay'))),
+          FilledButton(onPressed: () => Navigator.pop(c, true), child: Text(tr('Leave'))),
+        ],
+      ),
+    );
+    if (ok == true) await _hangUp();
   }
 
   Future<void> _guard(Future<void> Function() f) async {
@@ -238,17 +352,34 @@ class _CallScreenState extends State<CallScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: ArjColors.ink900,
-      body: SafeArea(
-        child: switch (_phase) {
-          _Phase.preparing || _Phase.connecting => _centered(
-              const CircularProgressIndicator(color: Colors.white, semanticsLabel: 'Connecting'),
-              _phase == _Phase.preparing ? 'Preparing your call…' : 'Connecting…',
-            ),
-          _Phase.failed || _Phase.ended => _endedView(),
-          _Phase.live => _liveView(),
-        },
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) unawaited(_confirmLeave());
+      },
+      child: Scaffold(
+        backgroundColor: ArjColors.ink900,
+        body: SafeArea(
+          child: switch (_phase) {
+            _Phase.preparing || _Phase.connecting => _centered(
+                const CircularProgressIndicator(color: Colors.white, semanticsLabel: 'Connecting'),
+                _phase == _Phase.preparing ? 'Preparing your call…' : 'Connecting…',
+              ),
+            _Phase.reconnecting => _centered(
+                const CircularProgressIndicator(color: ArjColors.gold300, semanticsLabel: 'Reconnecting'),
+                _retryIn > 0 ? tr('Connection lost. Trying again in {0} s…', [_retryIn]) : 'Reconnecting… please keep the app open.',
+                actions: [
+                  OutlinedButton(
+                    style: OutlinedButton.styleFrom(foregroundColor: Colors.white, side: const BorderSide(color: Colors.white54)),
+                    onPressed: _hangUp,
+                    child: Text(tr('Leave call')),
+                  ),
+                ],
+              ),
+            _Phase.failed || _Phase.ended => _endedView(),
+            _Phase.live => _liveView(),
+          },
+        ),
       ),
     );
   }
@@ -282,7 +413,10 @@ class _CallScreenState extends State<CallScreen> {
             ),
           OutlinedButton(
             style: OutlinedButton.styleFrom(foregroundColor: Colors.white, side: const BorderSide(color: Colors.white54)),
-            onPressed: () => Navigator.of(context).maybePop(),
+            onPressed: () {
+              _leaving = true;
+              Navigator.of(context).pop();
+            },
             child: Text(tr('Close')),
           ),
         ],
@@ -297,7 +431,9 @@ class _CallScreenState extends State<CallScreen> {
             ? lk.VideoTrackRenderer(remoteVideo, fit: lk.VideoViewFit.cover)
             : _centered(
                 const CircleAvatar(radius: 44, backgroundColor: ArjColors.gold500, child: Icon(Icons.person, size: 48, color: ArjColors.ink900)),
-                waiting ? 'Waiting for the astrologer…' : (_audioOnly ? 'Audio call in progress' : 'Connected — the astrologer\'s camera is off'),
+                waiting
+                    ? 'Waiting for the astrologer…'
+                    : (_audioOnly ? 'Audio call in progress' : tr('{0} is in the call with the camera off.', [remote.name.isNotEmpty ? remote.name : tr('The astrologer')])),
               ),
       ),
       if (local != null)
@@ -313,7 +449,7 @@ class _CallScreenState extends State<CallScreen> {
         left: 8,
         right: 8,
         child: Row(children: [
-          IconButton(tooltip: tr('Leave call'), onPressed: _hangUp, icon: const Icon(Icons.arrow_back, color: Colors.white)),
+          IconButton(tooltip: tr('Leave call'), onPressed: _confirmLeave, icon: const Icon(Icons.arrow_back, color: Colors.white)),
           Expanded(child: Text(tr(remote?.name.isNotEmpty == true ? remote!.name : widget.title), overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600))),
         ]),
       ),

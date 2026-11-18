@@ -43,7 +43,12 @@ class OperationsController extends Controller
             'rules' => DB::table('availability_rules')->orderBy('weekday')->orderBy('start_local')->get(),
             'leave' => DB::table('availability_exceptions')->where('date', '>=', now('Asia/Kolkata')->toDateString())->orderBy('date')->get(),
             'upcoming' => DB::table('bookings as b')->join('users as u', 'u.id', '=', 'b.user_id')->join('offering_variants as v', 'v.id', '=', 'b.variant_id')
-                ->whereIn('b.status', ['confirmed'])->orderBy('b.start_utc')->select('b.*', 'u.name as customer', 'v.name as variant')->limit(100)->get(),
+                ->whereIn('b.status', ['confirmed'])->orderBy('b.start_utc')->select('b.*', 'u.name as customer', 'v.name as variant')
+                ->selectSub(DB::table('call_logs')->whereColumn('booking_id', 'b.id')->selectRaw('count(*)'), 'call_events')->limit(100)->get(),
+            'recentCalls' => DB::table('call_logs as c')->join('bookings as b', 'b.id', '=', 'c.booking_id')->join('users as u', 'u.id', '=', 'b.user_id')
+                ->where('c.created_at', '>=', now()->subDays(14))->groupBy('b.id', 'b.ref', 'b.start_utc', 'u.name')
+                ->orderByDesc(DB::raw('max(c.id)'))->limit(20)
+                ->get(['b.ref', 'b.start_utc', 'u.name as customer', DB::raw("sum(c.event = 'dropped') as drops"), DB::raw("sum(c.event in ('camera_error','mic_error','failed')) as problems"), DB::raw('count(*) as events')]),
         ]);
     }
 
@@ -100,6 +105,20 @@ class OperationsController extends Controller
         $b = $slots->moveByStaff($this->row('bookings', $ref), $start, $d['note'] ?? null, $request->user());
 
         return back()->with('status', 'Booking moved to '.Slots::when($b).'. The customer has been told by notification and email.');
+    }
+
+    /** Everything the website and the app reported about the in-app call of one booking. */
+    public function callLog(string $ref): View
+    {
+        $this->authorize('bookings.view');
+        $b = $this->row('bookings', $ref);
+
+        return view('admin.ops.call-log', [
+            'b' => $b,
+            'customer' => DB::table('users')->find($b->user_id),
+            'rows' => DB::table('call_logs as c')->leftJoin('users as u', 'u.id', '=', 'c.user_id')->where('c.booking_id', $b->id)
+                ->orderBy('c.id')->limit(500)->get(['c.*', 'u.name']),
+        ]);
     }
 
     // ---------- Suppliers ----------

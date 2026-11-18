@@ -6,13 +6,16 @@ use App\Domain\Analytics\GeoIp;
 use App\Domain\Analytics\Reports;
 use App\Domain\Analytics\ToolHistory;
 use App\Domain\Analytics\ToolPdf;
+use App\Domain\Analytics\Tracker;
 use App\Domain\Astro\ToolDisplay;
 use App\Domain\Astro\Tools;
 use App\Http\Controllers\Controller;
 use App\Models\ToolRun;
 use App\Support\Audit\AuditLogger;
+use App\Support\Google;
 use App\Support\Pdf\Documents;
 use App\Support\Settings\SettingsRepository;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -80,6 +83,67 @@ class AnalyticsController extends Controller
                 'tool_history' => (bool) $this->settings->get('analytics.tool_history', true), 'retention_days' => (int) $this->settings->get('analytics.retention_days', 395),
             ],
             'geoLoaded' => $geo->loaded(),
+            'filtered' => Tracker::filtered($r->from, $r->to),
+            'google' => ['analytics' => $this->settings->get('google.analytics_url'), 'search_console' => $this->settings->get('google.search_console_url'),
+                'ga_on' => app(Google::class)->analyticsId() !== null, 'verified' => (bool) $this->settings->get('seo.google_verification')],
+        ]);
+    }
+
+    /** Visitor explorer: every visit (session) with who, where from, device, entry page, pages and time. */
+    public function visits(Request $request): View
+    {
+        $this->authorize('analytics.view');
+        $r = $this->range($request);
+        $f = $request->validate(['signed_in' => ['nullable', 'boolean'], 'country' => ['nullable', 'string', 'size:2'], 'device' => ['nullable', 'in:mobile,tablet,desktop'],
+            'source' => ['nullable', 'string', 'max:60'], 'visitor' => ['nullable', 'string', 'max:40']]);
+
+        return view('admin.analytics.visits', ['r' => $r, 'f' => $f, 'rows' => $r->sessions($f)]);
+    }
+
+    /** One visit, step by step: pages, clicks, time and scroll on each page, tools used. */
+    public function visit(string $session): View
+    {
+        $this->authorize('analytics.view');
+        $events = DB::table('analytics_events')->where('session', $session)->orderBy('id')->limit(1000)->get();
+        abort_if($events->isEmpty(), 404);
+        $first = $events->first();
+        $user = $events->whereNotNull('user_id')->first()?->user_id;
+        $runs = DB::table('tool_runs')->where('visitor', $first->visitor)
+            ->whereBetween('created_at', [CarbonImmutable::parse($first->occurred_at)->subMinute(), CarbonImmutable::parse($events->last()->occurred_at)->addMinutes(5)])->get();
+
+        return view('admin.analytics.visit', ['events' => $events, 'first' => $first, 'person' => $user ? DB::table('users')->find($user) : null, 'runs' => $runs,
+            'otherVisits' => DB::table('analytics_events')->where('visitor', $first->visitor)->where('type', 'pageview')->distinct()->count('session')]);
+    }
+
+    /**
+     * Everything one person did, on the website and in the app: visits, pages, clicks, tools and PDFs, app screens,
+     * calls, bookings, orders and puja requests. Visits on the same browser before signing in are included.
+     */
+    public function person(Request $request, int $user): View
+    {
+        $this->authorize('analytics.view');
+        $this->authorize('customers.view');
+        $u = DB::table('users')->find($user);
+        abort_unless($u, 404);
+        $this->audit->record('analytics.person_viewed', null, ['user' => $u->id]);
+        $visitors = DB::table('analytics_events')->where('user_id', $u->id)->whereNotNull('visitor')->distinct()->limit(50)->pluck('visitor');
+        $mine = fn () => DB::table('analytics_events')->where(fn ($w) => $w->where('user_id', $u->id)->orWhereIn('visitor', $visitors));
+        $summary = $mine()->selectRaw("min(occurred_at) as first_seen, max(occurred_at) as last_seen, count(distinct session) as visits,
+            sum(type = 'pageview') as pages, sum(type = 'click') as clicks, sum(case when type = 'engage' then value else 0 end) as secs,
+            sum(type = 'tool_run') as tools, sum(type = 'pdf_download') as pdfs, sum(type = 'app_open') as app_opens, sum(type = 'app_screen') as app_screens")->first();
+        $type = $request->validate(['type' => ['nullable', Rule::in(['pageview', 'click', 'engage', 'tool_run', 'pdf_download', 'app_open', 'app_screen', 'app_tap', 'app_call'])]])['type'] ?? null;
+
+        return view('admin.analytics.person', [
+            'u' => $u, 'summary' => $summary, 'type' => $type,
+            'events' => $mine()->when($type, fn ($q, $t) => $q->where('type', $t))->orderByDesc('id')->paginate(100)->withQueryString(),
+            'devices' => $mine()->selectRaw("concat_ws(' · ', device, os, browser) as k, count(*) as n, max(occurred_at) as last")->groupBy('k')->orderByDesc('last')->limit(10)->get(),
+            'countries' => $mine()->whereNotNull('country')->selectRaw('country as k, count(*) as n')->groupBy('k')->orderByDesc('n')->limit(5)->get(),
+            'topPages' => $mine()->where('type', 'pageview')->selectRaw('path as k, count(*) as n')->groupBy('k')->orderByDesc('n')->limit(10)->get(),
+            'runs' => DB::table('tool_runs')->where('user_id', $u->id)->orWhereIn('visitor', $visitors)->orderByDesc('id')->limit(30)->get(),
+            'bookings' => DB::table('bookings')->where('user_id', $u->id)->orderByDesc('start_utc')->limit(20)->get(),
+            'orders' => DB::table('orders')->where('user_id', $u->id)->orderByDesc('id')->limit(20)->get(),
+            'pujas' => DB::table('puja_requests')->where('user_id', $u->id)->orderByDesc('id')->limit(20)->get(),
+            'calls' => DB::table('call_logs as c')->join('bookings as b', 'b.id', '=', 'c.booking_id')->where('c.user_id', $u->id)->orderByDesc('c.id')->limit(30)->get(['c.*', 'b.ref']),
         ]);
     }
 

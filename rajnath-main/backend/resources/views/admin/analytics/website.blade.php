@@ -5,20 +5,36 @@
 @endphp
 <x-layouts.admin title="Website analytics">
     @include('admin.analytics._range')
+    <div class="mt-4 flex flex-wrap items-center gap-2 text-sm">
+        @if ($google['analytics'])<a href="{{ $google['analytics'] }}" target="_blank" rel="noopener" class="btn-outline">Open Google Analytics</a>@endif
+        @if ($google['search_console'])<a href="{{ $google['search_console'] }}" target="_blank" rel="noopener" class="btn-outline">Open Search Console</a>@endif
+        <a href="{{ route('admin.analytics.visits', request()->only('days', 'from', 'to')) }}" class="btn-outline">Every visit, step by step</a>
+        @can('settings.view')<a href="{{ route('admin.google.edit') }}" class="text-ink-600">Google Analytics: {{ $google['ga_on'] ? 'on' : 'not set up' }} · Search Console: {{ $google['verified'] ? 'code added' : 'not set up' }} ›</a>@endcan
+    </div>
 
-    <div class="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-8">
+    <div class="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-6">
         @foreach ([
             ['Visitors', number_format($totals['visitors']), number_format($totals['new_visitors']).' new'],
             ['Visits (sessions)', number_format($totals['sessions']), $totals['pages_per_session'].' pages per visit'],
             ['Page views', number_format($totals['pageviews']), null],
             ['Avg. time per visit', $time($totals['avg_seconds']), 'time the page was on screen'],
-            ['Bounce rate', $totals['bounce_rate'].'%', 'left after one page'],
+            ['Engaged visits', number_format($totals['engaged_sessions']), $totals['engagement_rate'].'% (10 s or more, or 2+ pages)'],
+            ['Bounce rate', $totals['bounce_rate'].'%', 'not engaged (as in Google Analytics)'],
+            ['Scrolled', $totals['avg_depth'] !== null ? $totals['avg_depth'].'%' : '–', 'average depth of a page'],
             ['Clicks', number_format($totals['clicks']), 'links and buttons'],
             ['Signed-in customers', number_format($totals['signed_in']), null],
             ['On the site now', number_format($totals['live']), 'last 5 minutes'],
         ] as [$label, $value, $hint])
             <div class="card p-4"><p class="text-xs text-ink-600">{{ $label }}</p><p class="mt-1 text-2xl font-semibold tabular-nums">{{ $value }}</p>@if ($hint)<p class="text-xs text-ink-600">{{ $hint }}</p>@endif</div>
         @endforeach
+    </div>
+
+    @php $noJs = max(0, $filtered['served'] - $filtered['confirmed']); @endphp
+    <div class="card mt-4 p-4 text-sm">
+        <p><strong>Counted like Google Analytics:</strong> a page view counts only when a real browser shows the page. Not counted in this period:
+            <strong>{{ number_format($filtered['bots']) }}</strong> requests from known bots and crawlers (Google, Bing, AI bots, link previews, uptime checks),
+            and <strong>{{ number_format($noJs) }}</strong> page loads that never ran in a browser (scripts, scrapers, closed before showing).</p>
+        <p class="mt-1 text-xs text-ink-600">Older visits (before this change) were counted on the server and include some bots; remove them with <code>php artisan arj:analytics-clean-bots</code>.</p>
     </div>
 
     <div class="mt-6">@include('admin.analytics._bars', ['title' => 'Page views per day', 'a' => 'page views', 'b' => 'visitors'])</div>

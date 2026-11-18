@@ -13,7 +13,7 @@
                         <button class="btn-outline px-3">Save link</button>
                         <button name="provider" value="livekit" class="btn-ghost px-3">In-app call</button><button name="provider" value="zoom" class="btn-ghost px-3">Zoom</button><button name="provider" value="google_meet" class="btn-ghost px-3">Google Meet</button>
                         <button name="status" value="completed" class="btn-ghost px-3">Done</button><button name="status" value="no_show" class="btn-ghost px-3">No-show</button></form>
-                        @if ($b->meeting_provider)<p class="mt-1 text-xs text-ink-600">{{ \App\Domain\Meetings\Meetings::PROVIDERS[$b->meeting_provider] ?? '' }}@if ($b->meeting_provider === 'livekit') · <a href="{{ route('call.join', $b->ref) }}">join</a>@endif</p>@endif
+                        @if ($b->meeting_provider)<p class="mt-1 text-xs text-ink-600">{{ \App\Domain\Meetings\Meetings::PROVIDERS[$b->meeting_provider] ?? '' }}@if ($b->meeting_provider === 'livekit') · <a href="{{ route('call.join', $b->ref) }}">join</a> · <a href="{{ route('admin.ops.booking.calls', $b->ref) }}">call log{{ $b->call_events ? ' ('.$b->call_events.')' : '' }}</a>@endif</p>@endif
                         @if ($b->meeting_error)<p class="mt-1 text-xs text-danger-700">{{ $b->meeting_error }}</p>@endif
                         <details class="mt-2" @if (old('move_ref') === $b->ref) open @endif><summary class="cursor-pointer text-sm font-semibold text-gold-700">Move / serve today</summary>
                             <form method="POST" action="{{ route('admin.ops.booking.move', $b->ref) }}" class="mt-2 grid gap-2 sm:grid-cols-[auto_1fr]">@csrf
@@ -33,6 +33,16 @@
                         @if ($b->moved_from_utc)<p class="mt-1 text-xs text-ink-600">Moved by the team (was {{ \Illuminate\Support\Carbon::parse($b->moved_from_utc, 'UTC')->tz('Asia/Kolkata')->format('D d M, g:i A') }})</p>@endif</td></tr>
                 @empty<tr><td colspan="4" class="py-8 text-center text-ink-600">No upcoming bookings.</td></tr>@endforelse</tbody>
             </table></div>
+            @if ($recentCalls->isNotEmpty())
+                <h2 class="mt-8 text-base">In-app calls, last 14 days</h2>
+                <div class="table-wrap mt-3" role="region" aria-label="Recent calls" tabindex="0"><table class="table">
+                    <thead><tr><th scope="col">Booking (IST)</th><th scope="col">Customer</th><th scope="col">Drops</th><th scope="col">Camera / mic problems</th><th scope="col"></th></tr></thead>
+                    <tbody>@foreach ($recentCalls as $c)<tr>
+                        <td class="whitespace-nowrap">{{ \Illuminate\Support\Carbon::parse($c->start_utc, 'UTC')->tz('Asia/Kolkata')->format('D d M, g:i A') }}</td><td>{{ $c->customer }}</td>
+                        <td @class(['text-danger-700 font-semibold' => $c->drops > 0])>{{ $c->drops }}</td><td @class(['text-danger-700 font-semibold' => $c->problems > 0])>{{ $c->problems }}</td>
+                        <td><a href="{{ route('admin.ops.booking.calls', $c->ref) }}">Call log</a></td></tr>@endforeach</tbody>
+                </table></div>
+            @endif
         </section>
         <section class="space-y-6">
             <div class="card p-5"><h2 class="text-base">Working hours (IST)</h2>

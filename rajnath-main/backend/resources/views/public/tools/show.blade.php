@@ -14,7 +14,8 @@
         @if ($kind === 'symbolic')<p class="mt-3 max-w-2xl rounded-xl bg-ivory-100 p-3 text-sm">Numerology and colour associations are traditional symbolic systems, not scientific measurements.</p>@endif
 
         <div class="mt-8 grid gap-8 lg:grid-cols-[24rem_1fr]">
-            <form method="POST" action="{{ route('tools.compute', $slug) }}" class="card h-fit space-y-4 p-5" novalidate>
+            <div class="h-fit space-y-6">
+            <form method="POST" action="{{ route('tools.compute', $slug) }}" class="card space-y-4 p-5" novalidate>
                 @csrf
                 @if ($input === 'birth')
                     @include('public.tools._person', ['p' => '', 'legend' => null])
@@ -32,6 +33,8 @@
                 <button class="btn-primary w-full">Calculate</button>
                 <p class="text-xs text-ink-600">{{ __('Your details are saved securely so you can download this result as a PDF and our team can help you with it. See our') }} <a href="{{ route('privacy') }}">{{ __('Privacy Policy') }}</a>.</p>
             </form>
+            @if ($r)<x-ad place="side" class="hidden lg:block" />@endif
+            </div>
 
             <section aria-live="polite" aria-labelledby="res-h" class="min-w-0">
                 <h2 id="res-h" class="sr-only">Result</h2>
@@ -39,11 +42,13 @@
                     <div class="card border-red-200 bg-red-50 p-5" role="alert">The calculation service is unavailable right now. Please try again in a few minutes.</div>
                 @elseif (! $r)
                     <div class="card p-8 text-center text-ink-600">Enter the details and press Calculate.</div>
+                    <x-ad class="mt-8" />
                 @else
                     @if (! empty($pdfUrl))
                         <div class="mb-4 flex justify-end"><a href="{{ $pdfUrl }}" class="btn-outline" data-track="Download PDF: {{ $slug }}" rel="nofollow">{{ __('Download PDF') }}</a></div>
                     @endif
                     @include('public.tools._result', ['r' => $r])
+                    <x-ad class="mt-8" />
                     <div class="card mt-6 flex flex-wrap items-center justify-between gap-3 p-5">
                         <p class="text-sm">Want Acharya Ji to read this in detail?</p>
                         <a href="{{ route('services.show', 'janma-kundali-reading') }}" class="btn-primary">Book a reading</a>

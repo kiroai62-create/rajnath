@@ -31,7 +31,6 @@ class SettingsController extends Controller
         'social.instagram' => ['label' => 'Instagram URL', 'rules' => ['nullable', 'url:https', 'max:255']],
         'social.facebook' => ['label' => 'Facebook URL', 'rules' => ['nullable', 'url:https', 'max:255']],
         'social.x' => ['label' => 'X (Twitter) URL', 'rules' => ['nullable', 'url:https', 'max:255']],
-        'seo.google_verification' => ['label' => 'Google Search Console verification code', 'rules' => ['nullable', 'string', 'max:100', 'regex:/^[A-Za-z0-9_\-]+$/']],
         'seo.bing_verification' => ['label' => 'Bing Webmaster verification code', 'rules' => ['nullable', 'string', 'max:100', 'regex:/^[A-Za-z0-9_\-]+$/']],
         'source.repository_url' => ['label' => 'AGPL source-code URL', 'rules' => ['required', 'url:https', 'max:255']],
     ];

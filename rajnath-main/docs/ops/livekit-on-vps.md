@@ -18,7 +18,7 @@ LiveKit server is open source (Apache-2.0) and runs on an ordinary Linux VPS. It
 1. A VPS that meets the requirements above, and a DNS record pointing to it.
 2. Permission to open the ports above (in some providers' panels these are "security groups").
 
-After that we add a `livekit` service to `deploy/docker-compose.yml` and the API key and secret to Admin settings. The website and app then get short-lived room tokens for each booking. Join is allowed only within ±15 minutes of the slot, and only for that customer and that astrologer.
+After that we add a `livekit` service to `deploy/docker-compose.yml` and the API key and secret to Admin settings. The website and app then get short-lived room tokens for each booking. Join is allowed from 15 minutes before the slot until 60 minutes after it ends, and only for that customer and that astrologer.
 
 ## Setup steps
 The configuration is in the repository: `deploy/livekit.yaml`, the `livekit` service in `deploy/docker-compose.yml`, and a `rtc.` site in `deploy/Caddyfile`.
@@ -31,3 +31,17 @@ The configuration is in the repository: `deploy/livekit.yaml`, the `livekit` ser
 4. Start the services: `docker compose --profile calls up -d`.
 5. Go to Admin › Calling. Enter the URL `wss://rtc.<your-domain>`, the same key and the same secret. Press "Test LiveKit".
 6. Choose a default provider: in-app, Zoom or Google Meet. Zoom and Google Meet need their own credentials, which you enter on the same page.
+
+
+## Call reliability (Nov 2026)
+- `deploy/livekit.yaml` listens on all addresses (`0.0.0.0`). Caddy reaches it through the Docker host gateway, which
+  `127.0.0.1` refused. Port **7880 must stay closed** in the AWS security group / ufw; open only 7881/TCP and 7882/UDP.
+- Rooms stay open 10 minutes after everyone left (`empty_timeout` and `departure_timeout`), so a dropped call rejoins
+  the same room.
+- The website and the app rejoin by themselves after a network drop or a server restart (about 3 minutes of retries).
+  The app keeps the microphone working in the background with a "Consultation call in progress" notification.
+- Opening the same call in two tabs or devices moves the call to the newest one; the older one says so and waits.
+- Admin › Bookings › **call log** shows, per booking, who joined, every drop and its reason, rejoins and camera or
+  microphone problems (website and app).
+- Upgrade the server image when convenient: set `LIVEKIT_VERSION=v1.13.11` in `deploy/.env.production` (tested with
+  this version), then run `deploy/deploy.sh`.

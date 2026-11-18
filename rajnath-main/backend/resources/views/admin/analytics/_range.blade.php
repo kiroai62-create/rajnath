@@ -2,7 +2,7 @@
 @php $days = (int) request('days', request('from') ? 0 : 30); @endphp
 <div class="flex flex-wrap items-end justify-between gap-3">
     <nav aria-label="Analytics sections"><ul class="flex flex-wrap gap-2">
-        @foreach (['admin.analytics.website' => 'Website', 'admin.analytics.tools' => 'Free tools', 'admin.analytics.app' => 'Mobile app'] as $route => $label)
+        @foreach (['admin.analytics.website' => 'Website', 'admin.analytics.visits' => 'Visitors & visits', 'admin.analytics.tools' => 'Free tools', 'admin.analytics.app' => 'Mobile app'] as $route => $label)
             <li><a href="{{ route($route, request()->only('days', 'from', 'to')) }}" @class(['btn px-4', 'bg-ink-900 text-white' => request()->routeIs($route), 'border border-ink-200 bg-white text-ink-800' => ! request()->routeIs($route)]) @if (request()->routeIs($route)) aria-current="page" @endif>{{ $label }}</a></li>
         @endforeach
     </ul></nav>
