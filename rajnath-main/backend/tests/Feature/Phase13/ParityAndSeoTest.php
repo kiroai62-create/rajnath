@@ -157,6 +157,7 @@ class ParityAndSeoTest extends TestCase
 
         $modes = $this->getJson('/api/v1/catalogue/families')->assertOk()->json('meta.modes');
         $this->assertNotEmpty($modes);
+        $this->assertNotContains('puja', array_column($modes, 'key'));   // no public service offers it: the app never shows a chip that finds nothing
         $video = $this->getJson('/api/v1/catalogue/offerings?mode=video')->assertOk()->json('data');
         $this->assertNotEmpty($video);
         $this->assertLessThan(count($this->getJson('/api/v1/catalogue/offerings')->json('data')), count($video));

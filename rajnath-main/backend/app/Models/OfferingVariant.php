@@ -17,6 +17,19 @@ class OfferingVariant extends Model
         return $this->belongsTo(Offering::class);
     }
 
+    /**
+     * Modes that at least one public service offers, in MODES order, so a "How" filter never offers a choice
+     * that always finds nothing (e.g. "Puja", now booked through the puja request form).
+     *
+     * @return list<string>
+     */
+    public static function offeredModes(): array
+    {
+        $available = self::where('active', true)->whereHas('offering', fn ($o) => $o->public())->distinct()->pluck('mode')->all();
+
+        return array_values(array_intersect(array_keys(self::MODES), $available));
+    }
+
     protected static function booted(): void
     {
         static::creating(fn (OfferingVariant $v) => $v->ref ??= (string) Str::ulid());

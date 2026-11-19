@@ -16,7 +16,8 @@ class CatalogueController extends Controller
     {
         return response()->json(['data' => ServiceFamily::whereHas('offerings', fn ($q) => $q->public())->orderBy('sort')->get()
             ->map(fn ($f) => ['code' => $f->code, 'slug' => $f->slug, 'name' => $f->label(), 'summary' => $f->blurb()]),
-            'meta' => ['modes' => collect(['in_person', 'video', 'audio', 'chat', 'onsite', 'puja', 'written', 'report'])->map(fn ($m) => ['key' => $m, 'label' => __(OfferingVariant::MODES[$m])])]]);
+            'meta' => ['modes' => collect(['in_person', 'video', 'audio', 'chat', 'onsite', 'written', 'report'])->intersect(OfferingVariant::offeredModes())->values()
+                ->map(fn ($m) => ['key' => $m, 'label' => __(OfferingVariant::MODES[$m])])]]);
     }
 
     public function offerings(Request $request): JsonResponse

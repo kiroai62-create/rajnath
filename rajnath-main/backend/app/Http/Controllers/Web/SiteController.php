@@ -86,9 +86,8 @@ class SiteController extends Controller
     private static function serviceModes(): array
     {
         $labels = ['in_person' => 'In person', 'video' => 'Video call', 'audio' => 'Audio call', 'chat' => 'Chat', 'onsite' => 'On-site visit', 'written' => 'Written answer', 'report' => 'Report'];
-        $available = OfferingVariant::where('active', true)->whereHas('offering', fn ($o) => $o->public())->distinct()->pluck('mode')->all();
 
-        return collect($labels)->only($available)->map(fn ($label) => __($label))->all();
+        return collect($labels)->only(OfferingVariant::offeredModes())->map(fn ($label) => __($label))->all();
     }
 
     public function service(string $slug): View|RedirectResponse
