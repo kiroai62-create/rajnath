@@ -68,4 +68,29 @@
 
         <div class="xl:col-span-2"><button class="btn-primary">Save app settings</button></div>
     </form>
+
+    <section class="card mt-6 max-w-6xl space-y-4 p-5 sm:p-6" aria-labelledby="rev-h">
+        <div>
+            <h2 id="rev-h" class="text-lg">Google Play review login</h2>
+            <p class="text-sm text-ink-600">Google Play asks for a login so its review team can check the app. Turn this on and copy the details into Play Console › App content › App access. The reviewer signs in with this email and the fixed code below (no email is sent). The account has no admin access and gets ₹10,000 wallet credit to try paid features; its orders show the name "Google Play Reviewer". Turn it off after the review.</p>
+        </div>
+        <dl class="grid gap-3 text-sm sm:grid-cols-3">
+            <div><dt class="text-ink-600">Status</dt><dd class="font-semibold">{{ $reviewer['on'] ? 'On' : 'Off' }}</dd></div>
+            <div class="min-w-0"><dt class="text-ink-600">Email (username)</dt><dd class="break-all font-mono">{{ $reviewer['email'] }}</dd></div>
+            <div><dt class="text-ink-600">Code (password)</dt><dd class="font-mono text-lg tracking-widest">{{ $canLock ? ($reviewer['code'] ?? '—') : 'Only the owner can see this' }}</dd></div>
+            <div><dt class="text-ink-600">Wallet credit</dt><dd>₹{{ number_format($reviewer['wallet'] / 100) }}</dd></div>
+        </dl>
+        @if ($canLock)
+            <form method="POST" action="{{ route('admin.app.reviewer') }}" class="flex flex-wrap gap-3">
+                @csrf
+                @if ($reviewer['on'])
+                    <button name="action" value="new_code" class="btn-outline">Make a new code</button>
+                    <button name="action" value="off" class="btn-outline">Turn off</button>
+                @else
+                    <button name="action" value="on" class="btn-primary">Turn on review login</button>
+                @endif
+            </form>
+            <p class="text-xs text-ink-600">Instructions for Play Console: "Open the app › Account › Sign in. Enter the email above, tap Send code, then enter the 6-digit code above. No email or SMS is needed."</p>
+        @endif
+    </section>
 </x-layouts.admin>

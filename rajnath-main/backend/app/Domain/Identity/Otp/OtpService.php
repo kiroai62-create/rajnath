@@ -2,6 +2,7 @@
 
 namespace App\Domain\Identity\Otp;
 
+use App\Domain\Identity\PlayReviewer;
 use App\Domain\Messaging\DeliveryLog;
 use App\Domain\Messaging\Sms\SmsManager;
 use App\Mail\OtpMail;
@@ -17,17 +18,23 @@ use Throwable;
  * Rules: 6 digits, valid 10 minutes, 5 wrong attempts per code, resend after 30 s, at most
  * 5 sends per code, 5 new codes per destination per hour, 30 per IP per hour. Only an HMAC of
  * the code is stored. Verification is atomic (row lock), so a code works exactly once.
+ * The Google Play reviewer login (PlayReviewer) gets its fixed code instead, with no email sent.
  */
 class OtpService
 {
     public const TTL_MINUTES = 10;
+
     public const MAX_ATTEMPTS = 5;
+
     public const RESEND_SECONDS = 30;
+
     public const MAX_SENDS = 5;
+
     public const PER_DESTINATION_HOUR = 5;
+
     public const PER_IP_HOUR = 30;
 
-    public function __construct(private SmsManager $sms, private DeliveryLog $log) {}
+    public function __construct(private SmsManager $sms, private DeliveryLog $log, private PlayReviewer $reviewer) {}
 
     public static function destinationHash(string $channel, string $destination): string
     {
@@ -44,14 +51,15 @@ class OtpService
     {
         $dh = self::destinationHash($channel, $destination);
         $hourAgo = now()->subHour();
-        if (DB::table('otp_challenges')->where('destination_hash', $dh)->where('created_at', '>', $hourAgo)->count() >= self::PER_DESTINATION_HOUR) {
+        $review = $this->reviewer->matches($channel, $destination, $purpose);
+        if (! $review && DB::table('otp_challenges')->where('destination_hash', $dh)->where('created_at', '>', $hourAgo)->count() >= self::PER_DESTINATION_HOUR) {
             throw new OtpException('Too many codes requested for this address. Please try again in an hour.', 'rate_limited');
         }
         if ($ip && DB::table('otp_challenges')->where('ip', $ip)->where('created_at', '>', $hourAgo)->count() >= self::PER_IP_HOUR) {
             throw new OtpException('Too many codes requested from this network. Please try again later.', 'rate_limited');
         }
         $ref = (string) Str::ulid();
-        $code = $this->newCode();
+        $code = $review ? (string) $this->reviewer->code() : $this->newCode();
         DB::table('otp_challenges')->insert([
             'ref' => $ref, 'channel' => $channel, 'purpose' => $purpose, 'destination_hash' => $dh,
             'destination' => Crypt::encryptString($destination), 'user_id' => $userId,
@@ -59,7 +67,9 @@ class OtpService
             'last_sent_at' => now(), 'expires_at' => now()->addMinutes(self::TTL_MINUTES), 'ip' => $ip,
             'created_at' => now(), 'updated_at' => now(),
         ]);
-        $this->deliver($channel, $destination, $code, $purpose);
+        if (! $review) {
+            $this->deliver($channel, $destination, $code, $purpose);
+        }
 
         return $ref;
     }
@@ -67,8 +77,7 @@ class OtpService
     /** Re-sends a fresh code for an existing challenge. @throws OtpException */
     public function resend(string $ref): void
     {
-        $code = $this->newCode();
-        [$channel, $destination, $purpose] = DB::transaction(function () use ($ref, $code) {
+        [$channel, $destination, $purpose, $code] = DB::transaction(function () use ($ref) {
             $c = DB::table('otp_challenges')->where('ref', $ref)->lockForUpdate()->first();
             if (! $c || $c->consumed_at || now()->greaterThan($c->expires_at)) {
                 throw new OtpException('This code has expired. Please start again.', 'expired');
@@ -79,14 +88,18 @@ class OtpService
             if (now()->diffInSeconds($c->last_sent_at, true) < self::RESEND_SECONDS) {
                 throw new OtpException('Please wait a few seconds before asking for a new code.', 'too_soon');
             }
+            $destination = Crypt::decryptString($c->destination);
+            $code = $this->reviewer->matches($c->channel, $destination, $c->purpose) ? (string) $this->reviewer->code() : $this->newCode();
             DB::table('otp_challenges')->where('id', $c->id)->update([
                 'code_hash' => self::codeHash($ref, $code), 'attempts' => 0, 'sends' => $c->sends + 1,
                 'last_sent_at' => now(), 'expires_at' => now()->addMinutes(self::TTL_MINUTES), 'updated_at' => now(),
             ]);
 
-            return [$c->channel, Crypt::decryptString($c->destination), $c->purpose];
+            return [$c->channel, $destination, $c->purpose, $code];
         });
-        $this->deliver($channel, $destination, $code, $purpose);
+        if (! $this->reviewer->matches($channel, $destination, $purpose)) {
+            $this->deliver($channel, $destination, $code, $purpose);
+        }
     }
 
     /**
@@ -112,6 +125,9 @@ class OtpService
             }
             if (strlen($code) !== 6 || ! hash_equals($c->code_hash, self::codeHash($ref, $code))) {
                 DB::table('otp_challenges')->where('id', $c->id)->increment('attempts');
+                if ($c->destination_hash === self::destinationHash('email', PlayReviewer::EMAIL)) {
+                    $this->reviewer->recordFailure();
+                }
                 $left = self::MAX_ATTEMPTS - $c->attempts - 1;
 
                 return ['error' => new OtpException($left > 0 ? "That code is not correct. $left attempt(s) left." : 'Too many wrong attempts. Please request a new code.', 'invalid')];

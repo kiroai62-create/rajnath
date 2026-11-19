@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Domain\Identity\PlayReviewer;
+use App\Domain\Ledger\Ledger;
 use App\Http\Controllers\Controller;
 use App\Support\AppConfig;
 use App\Support\Settings\SettingsRepository;
@@ -21,7 +23,28 @@ class AppController extends Controller
     {
         $this->authorize('content.publish');
 
-        return view('admin.app.edit', ['app' => $app, 'canLock' => auth()->user()->can('settings.manage')]);
+        $canLock = auth()->user()->can('settings.manage');
+        $reviewer = app(PlayReviewer::class);
+
+        return view('admin.app.edit', ['app' => $app, 'canLock' => $canLock, 'reviewer' => [
+            'on' => $reviewer->enabled(), 'email' => PlayReviewer::EMAIL, 'code' => $canLock ? $reviewer->code() : null,
+            'wallet' => ($u = $reviewer->user()) ? app(Ledger::class)->walletBalance($u->id) : 0,
+        ]]);
+    }
+
+    /** Google Play review login: turn on (creates the account and tops up its wallet), new code, or turn off. */
+    public function reviewer(Request $request, PlayReviewer $reviewer): RedirectResponse
+    {
+        $this->authorize('settings.manage');
+        $action = $request->validate(['action' => ['required', Rule::in(['on', 'new_code', 'off'])]])['action'];
+        if ($action === 'off') {
+            $reviewer->disable($request->user());
+
+            return back()->with('status', 'Google Play review login is off and the reviewer is signed out.');
+        }
+        $login = $reviewer->setUp($action === 'new_code', $request->user());
+
+        return back()->with('status', 'Google Play review login is on. Email: '.$login['email'].' · Code: '.$login['code']);
     }
 
     public function update(Request $request, SettingsRepository $settings): RedirectResponse

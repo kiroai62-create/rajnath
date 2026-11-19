@@ -377,6 +377,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'staff'])->group(fun
         Route::put('team/{user}/roles', [Admin\TeamController::class, 'updateRoles'])->name('team.roles');
         Route::put('team/{user}/status', [Admin\TeamController::class, 'setStatus'])->name('team.status');
         Route::put('settings', [Admin\SettingsController::class, 'update'])->name('settings.update');
+        Route::post('app/reviewer', [Admin\AppController::class, 'reviewer'])->name('app.reviewer');
         Route::put('google', [Admin\GoogleController::class, 'update'])->name('google.update');
         Route::put('languages', [Admin\LanguageController::class, 'update'])->name('languages.update');
         Route::put('analytics/settings', [Admin\AnalyticsController::class, 'saveSettings'])->name('analytics.settings');
