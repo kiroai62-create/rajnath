@@ -233,6 +233,7 @@
                     <li><a href="{{ route('privacy') }}">{{ __('Privacy policy') }}</a></li>
                     @if (app(\App\Support\Google::class)->consentHere(request()))<li><a href="#" data-consent-open>{{ __('Cookie settings') }}</a></li>@endif
                     <li><a href="{{ route('terms') }}">{{ __('Terms of use') }}</a></li>
+                    <li><a href="{{ route('account-deletion.show') }}">{{ __('Delete your account') }}</a></li>
                     @php $legalDocs = app(\App\Domain\Legal\LegalDocuments::class); @endphp
                     @if ($legalDocs->isPublished('refunds'))<li><a href="{{ route('legal.refunds') }}">{{ __('Cancellation and refund policy') }}</a></li>@endif
                     @if ($legalDocs->isPublished('shipping'))<li><a href="{{ route('legal.shipping') }}">{{ __('Shipping and delivery policy') }}</a></li>@endif

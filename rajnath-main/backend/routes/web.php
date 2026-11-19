@@ -52,6 +52,10 @@ Route::get('/gallery/{slug}', [Web\ShowcaseController::class, 'album'])->name('g
 Route::view('/contact', 'public.contact')->name('contact');
 Route::get('/privacy', [Web\LegalController::class, 'show'])->defaults('kind', 'privacy')->name('privacy');
 Route::get('/terms', [Web\LegalController::class, 'show'])->defaults('kind', 'terms')->name('terms');
+// Public account deletion (the address given to Google Play): works without the app, by one-time code.
+Route::get('/delete-account', [Web\AccountDeletionController::class, 'show'])->name('account-deletion.show');
+Route::post('/delete-account', [Web\AccountDeletionController::class, 'start'])->middleware('throttle:otp')->name('account-deletion.start');
+Route::post('/delete-account/confirm', [Web\AccountDeletionController::class, 'confirm'])->middleware('throttle:otp')->name('account-deletion.confirm');
 Route::get('/refund-policy', [Web\LegalController::class, 'show'])->defaults('kind', 'refunds')->name('legal.refunds');
 Route::get('/shipping-policy', [Web\LegalController::class, 'show'])->defaults('kind', 'shipping')->name('legal.shipping');
 Route::get('/legal/{kind}/history', [Web\LegalController::class, 'history'])->name('legal.history');

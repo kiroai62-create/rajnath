@@ -92,5 +92,6 @@
             </form>
             <p class="text-xs text-ink-600">Instructions for Play Console: "Open the app › Account › Sign in. Enter the email above, tap Send code, then enter the 6-digit code above. No email or SMS is needed."</p>
         @endif
+        <p class="text-sm">Delete account URL for Play Console (Data safety): <a href="{{ route('account-deletion.show') }}" target="_blank" rel="noopener" class="break-all font-mono">{{ route('account-deletion.show') }}</a> · requests appear in <a href="{{ route('admin.privacy.index') }}">Privacy requests</a>.</p>
     </section>
 </x-layouts.admin>
