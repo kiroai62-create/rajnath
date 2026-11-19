@@ -9,6 +9,10 @@
                 <div class="flex justify-between"><dt>Price</dt><dd>{{ \App\Support\Money::format((int) $o->list_minor) }}</dd></div>
                 <div class="flex justify-between text-success-700"><dt>Coupon {{ $snap['coupon']['code'] ?? '' }}</dt><dd>−{{ \App\Support\Money::format((int) $o->discount_minor) }}</dd></div>
             @endif
+            @if (! empty($snap['delivery_minor']))
+                <div class="flex justify-between"><dt>Price</dt><dd>{{ \App\Support\Money::format((int) $snap['price_minor']) }}</dd></div>
+                <div class="flex justify-between"><dt>Delivery charge</dt><dd>{{ \App\Support\Money::format((int) $snap['delivery_minor']) }}</dd></div>
+            @endif
             <div class="flex justify-between"><dt>Total</dt><dd>{{ \App\Support\Money::format((int) $o->subtotal_minor) }}</dd></div>
             @if ($o->wallet_applied_minor)<div class="flex justify-between"><dt>From wallet</dt><dd>−{{ \App\Support\Money::format((int) $o->wallet_applied_minor) }}</dd></div>@endif
             <div class="flex justify-between border-t border-ink-200 pt-2 text-base font-semibold"><dt>To pay now</dt><dd>{{ \App\Support\Money::format((int) $o->payable_minor) }}</dd></div>

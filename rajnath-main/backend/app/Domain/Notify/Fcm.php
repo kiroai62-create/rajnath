@@ -16,6 +16,7 @@ use RuntimeException;
 class Fcm
 {
     public const SCOPE = 'https://www.googleapis.com/auth/firebase.messaging';
+
     public const TOKEN_URI = 'https://oauth2.googleapis.com/token';
 
     public function __construct(private SettingsRepository $settings) {}
@@ -98,8 +99,14 @@ class Fcm
     public function send(string $token, string $title, string $body, array $data = [], bool $validateOnly = false): string
     {
         $acct = $this->account() ?? throw new RuntimeException('Firebase is not configured.');
-        $msg = ['token' => $token, 'notification' => ['title' => $title, 'body' => $body], 'data' => array_map('strval', $data),
-            'android' => ['priority' => 'high', 'notification' => ['channel_id' => 'updates']]];
+        $call = ($data['kind'] ?? null) === 'call';
+        // An incoming consultation call rings like a phone call: the app's "Incoming calls" channel (ringtone,
+        // vibration, shown on the lock screen), highest priority, and it expires after 2 minutes.
+        $android = $call
+            ? ['priority' => 'high', 'ttl' => '120s', 'notification' => ['channel_id' => 'arj_incoming_call', 'notification_priority' => 'PRIORITY_MAX',
+                'visibility' => 'PUBLIC', 'default_vibrate_timings' => true, 'sticky' => false, 'tag' => 'call-'.($data['ref'] ?? '')]]
+            : ['priority' => 'high', 'notification' => ['channel_id' => 'updates']];
+        $msg = ['token' => $token, 'notification' => ['title' => $title, 'body' => $body], 'data' => array_map('strval', $data), 'android' => $android];
         $res = Http::withToken($this->accessToken())->timeout(10)
             ->post('https://fcm.googleapis.com/v1/projects/'.$acct['project_id'].'/messages:send', ['message' => $msg, 'validate_only' => $validateOnly]);
         if ($res->successful()) {

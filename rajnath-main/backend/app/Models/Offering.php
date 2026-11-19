@@ -104,7 +104,7 @@ class Offering extends Model
                 'variants' => $this->variants->where('active', true)->values()->map(fn ($v) => [
                     'ref' => $v->ref, 'name' => $v->label(), 'mode' => $v->mode, 'duration_min' => $v->duration_min,
                     'participants' => $v->participants, 'urgent' => $v->urgent, 'price_minor' => $v->price_minor, 'currency' => $v->currency,
-                    'details' => ServiceDetails::kind($v->setRelation('offering', $this)), 'needs_two' => ReportJobs::needsTwo($this->slug),
+                    'details' => ServiceDetails::kind($v->setRelation('offering', $this)), 'needs_two' => ReportJobs::needsTwo($this->slug), 'needs_address' => ReportJobs::printed($this->slug), 'delivery_minor' => ReportJobs::printed($this->slug) ? ReportJobs::deliveryFee() : null,
                 ])->all(),
             ];
         }

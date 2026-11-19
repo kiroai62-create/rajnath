@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../state/app_state.dart';
 import '../widgets/common.dart';
 import 'activity_screens.dart';
+import 'call_screen.dart';
 import 'palm_screens.dart';
 import 'review_screens.dart';
 
@@ -39,6 +40,9 @@ Widget screenForTarget(AppState state, String? kind, String? ref) {
   final r = (ref == null || ref.isEmpty) ? null : ref;
   return switch (kind) {
     'booking' => BookingsScreen(state: state, highlight: r),
+    // Acharya Ji is waiting in the call: open the call straight away.
+    'call' when r != null => CallScreen(api: state.api, bookingRef: r, title: 'Consultation with Acharya Ji'),
+    'call' => BookingsScreen(state: state),
     'report' when r != null => ReportDetailScreen(state: state, ref: r),
     // Puja notifications are about a puja request or an earlier puja booking: the list shows both.
     'puja' => PujaListScreen(state: state, highlight: r),

@@ -6,6 +6,7 @@ use App\Domain\Ledger\InsufficientFunds;
 use App\Domain\Ledger\Ledger;
 use App\Domain\Payments\Checkout;
 use App\Domain\Payments\Reconciler;
+use App\Domain\Payments\ServiceDetails;
 use App\Models\Offering;
 use App\Models\User;
 use App\Support\Settings\SettingsRepository;
@@ -21,7 +22,9 @@ class PaymentsTest extends TestCase
     use RefreshDatabase, StaffHelpers;
 
     private const SECRET = 'test_secret_abc';
+
     private const WEBHOOK = 'whsec_test_123';
+
     private int $orderSeq = 0;
 
     protected function setUp(): void
@@ -37,6 +40,7 @@ class PaymentsTest extends TestCase
     }
 
     private array $captures = [];
+
     private bool $refundFails = false;
 
     /** Fake Razorpay registered once; tests change $captures / $refundFails to alter responses. */
@@ -148,9 +152,9 @@ class PaymentsTest extends TestCase
 
     public function test_wallet_recharge_with_bonus_then_spend_with_wallet(): void
     {
-        DB::table('recharge_packages')->insert(['amount_minor' => 100000, 'bonus_minor' => 10000, 'active' => true, 'created_at' => now(), 'updated_at' => now()]);
+        $pkg = DB::table('recharge_packages')->insertGetId(['amount_minor' => 100000, 'bonus_minor' => 10000, 'active' => true, 'created_at' => now(), 'updated_at' => now()]);
         $u = $this->customer();
-        $this->actingAs($u)->post('/account/wallet/recharge', ['package' => DB::table('recharge_packages')->value('id'), 'key' => 'r1'])->assertRedirect();
+        $this->actingAs($u)->post('/account/wallet/recharge', ['package' => $pkg, 'key' => 'r1'])->assertRedirect();
         $this->webhook($this->captured('order_T1', 100000, 'pay_R'))->assertJson(['status' => 'applied']);
         $this->assertSame(110000, app(Ledger::class)->walletBalance($u->id));
         $this->get('/account/wallet')->assertSee('₹1,100');
@@ -163,6 +167,42 @@ class PaymentsTest extends TestCase
         $this->assertSame(0, app(Ledger::class)->walletBalance($u->id));
         $this->assertSame(210000, (int) DB::table('ledger_accounts')->where('code', 'revenue')->value('balance_minor'));
         $this->assertSame([], app(Ledger::class)->verify());
+    }
+
+    public function test_wallet_recharge_with_any_amount_and_default_packs(): void
+    {
+        $this->assertSame([50000, 100000, 210000, 510000], DB::table('recharge_packages')->orderBy('sort')->pluck('amount_minor')->map(fn ($x) => (int) $x)->all());
+        $u = $this->customer();
+        $this->actingAs($u)->post('/account/wallet/recharge', ['amount' => '50', 'key' => 'r0'])->assertSessionHasErrors('amount');
+        $this->actingAs($u)->post('/account/wallet/recharge', ['amount' => '750', 'key' => 'r2'])->assertRedirect();
+        $o = DB::table('orders')->where('kind', 'recharge')->first();
+        $this->assertSame(75000, (int) $o->payable_minor);
+        $this->actingAs($u)->get('/account/wallet')->assertOk()->assertSee('Or enter any amount');
+        $token = $u->createToken('Phone', ['customer'])->plainTextToken;
+        $this->app['auth']->forgetGuards();
+        $this->withToken($token)->postJson('/api/v1/checkout/recharge', ['amount' => 1200, 'key' => 'a1'])->assertOk();
+        $this->assertSame(120000, (int) DB::table('orders')->where('kind', 'recharge')->orderByDesc('id')->value('payable_minor'));
+        $this->withToken($token)->getJson('/api/v1/wallet')->assertOk()->assertJsonPath('recharge.min_minor', 10000);
+    }
+
+    public function test_printed_kundli_costs_5100_plus_delivery_set_in_admin(): void
+    {
+        $v = Offering::where('slug', 'printed-lifetime-kundli')->firstOrFail()->variants()->first();
+        $this->assertSame(510000, (int) $v->price_minor);
+        $u = $this->customer();
+        $r = app(Checkout::class)->startServiceOrder($u, $v, false, 'pk1');
+        $this->assertSame(520000, (int) $r['order']->payable_minor);
+        $this->assertSame(10000, json_decode($r['order']->snapshot, true)['delivery_minor']);
+        $this->getJson('/api/v1/catalogue/offerings/printed-lifetime-kundli')->assertOk()
+            ->assertJsonPath('data.variants.0.needs_address', true)->assertJsonPath('data.variants.0.delivery_minor', 10000);
+
+        // the owner changes the delivery charge in Admin › Payments setup
+        $this->asStaff($this->makeStaff(['owner']))->put(route('admin.payments.save'), ['printed_delivery' => '150', 'key_id' => 'rzp_test_'.str_repeat('A', 14)])->assertSessionHasNoErrors();
+        $this->assertSame(525000, (int) app(Checkout::class)->startServiceOrder($u, $v, false, 'pk2')['order']->payable_minor);
+
+        // details need a delivery address
+        $rules = ServiceDetails::rules('report', $v->load('offering'));
+        $this->assertArrayHasKey('delivery_pincode', $rules);
     }
 
     public function test_fully_wallet_paid_order_needs_no_gateway(): void

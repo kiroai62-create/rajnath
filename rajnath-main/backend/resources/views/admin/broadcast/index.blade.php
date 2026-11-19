@@ -1,5 +1,5 @@
 @php use App\Http\Controllers\Admin\BroadcastController; @endphp
-<x-layouts.admin title="Push messages">
+<x-layouts.admin title="Send notifications">
     <p class="max-w-3xl text-sm text-ink-600">Send a message to all <strong>{{ number_format($audience) }}</strong> customers: it appears in the app inbox and on their account page, as a phone notification on {{ number_format($devices) }} {{ $devices === 1 ? 'device' : 'devices' }}, and by email.
         @unless ($pushReady)<span class="text-danger-700">Phone notifications are not set up yet (<a href="{{ route('admin.push.edit') }}">Push notifications</a>); the inbox and email still work.</span>@endunless</p>
 
@@ -24,7 +24,17 @@
                 @error('body')<p class="field-error">{{ $message }}</p>@enderror</div>
             <x-select name="kind" label="Type" :options="BroadcastController::KINDS" :value="old('kind', 'offer')" />
             <x-field name="link" label="Opens (optional)" :value="old('link')" placeholder="/services?family=puja" hint="A website page (/…), https:// link, or an app screen such as app:puja, app:store, app:product/ruby-manik." />
-            <label class="flex min-h-11 items-start gap-3 text-sm"><input type="checkbox" name="confirm" value="1" class="mt-1 size-4 accent-ink-900"> <span>Send to all {{ number_format($audience) }} customers now. This cannot be undone.</span></label>
+            <x-select name="audience" label="Send to" :options="BroadcastController::AUDIENCES" :value="old('audience', 'all')" />
+            <x-field name="customer" label="Customer's email or mobile (for One customer)" :value="old('customer')" placeholder="ramesh@example.com or 98765 43210" />
+            <fieldset><legend class="field-label">How</legend>
+                <div class="flex flex-wrap gap-4 text-sm">
+                    <label class="flex items-center gap-2"><input type="checkbox" checked disabled class="size-4"> Inbox (app and website account)</label>
+                    <label class="flex items-center gap-2"><input type="checkbox" name="channels[]" value="push" @checked(in_array('push', old('channels', ['push', 'email']), true)) class="size-4 accent-ink-900"> Phone notification (app)</label>
+                    <label class="flex items-center gap-2"><input type="checkbox" name="channels[]" value="email" @checked(in_array('email', old('channels', ['push', 'email']), true)) class="size-4 accent-ink-900"> Email (website and app customers)</label>
+                </div>
+            </fieldset>
+            <label class="flex min-h-11 items-start gap-3 text-sm"><input type="checkbox" name="confirm" value="1" class="mt-1 size-4 accent-ink-900"> <span>Send now to the customers chosen above ({{ number_format($audience) }} in total). This cannot be undone.</span></label>
+            @error('customer')<p class="field-error">{{ $message }}</p>@enderror
             @error('confirm')<p class="field-error">{{ $message }}</p>@enderror
             <button class="btn-primary">Send message</button>
         </form>

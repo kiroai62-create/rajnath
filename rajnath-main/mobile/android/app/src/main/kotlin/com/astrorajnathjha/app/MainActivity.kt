@@ -1,6 +1,11 @@
 package com.astrorajnathjha.app
 
 import android.Manifest
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.media.AudioAttributes
+import android.media.RingtoneManager
+import android.os.Bundle
 import android.content.pm.PackageManager
 import android.os.Build
 import android.view.WindowManager
@@ -75,6 +80,32 @@ class MainActivity : FlutterActivity() {
         }
     }
 
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        createIncomingCallChannel()
+    }
+
+    /**
+     * "Incoming calls" notification channel: when Acharya Ji joins a consultation the push (channel
+     * arj_incoming_call, sent by the server) rings with the phone's ringtone, vibrates and shows on the lock screen.
+     */
+    private fun createIncomingCallChannel() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
+        val manager = getSystemService(NotificationManager::class.java) ?: return
+        if (manager.getNotificationChannel(INCOMING_CHANNEL) != null) return
+        val channel = NotificationChannel(INCOMING_CHANNEL, "Incoming consultation calls", NotificationManager.IMPORTANCE_HIGH).apply {
+            description = "Rings when Acharya Ji joins your consultation call"
+            setSound(
+                RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE),
+                AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_NOTIFICATION_RINGTONE).setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION).build(),
+            )
+            enableVibration(true)
+            vibrationPattern = longArrayOf(0, 800, 600, 800, 600, 800)
+            lockscreenVisibility = android.app.Notification.VISIBILITY_PUBLIC
+        }
+        manager.createNotificationChannel(channel)
+    }
+
     override fun onDestroy() {
         if (isFinishing) CallService.stop(this)
         super.onDestroy()
@@ -82,5 +113,6 @@ class MainActivity : FlutterActivity() {
 
     companion object {
         private const val BLUETOOTH_REQUEST = 4711
+        private const val INCOMING_CHANNEL = "arj_incoming_call"
     }
 }

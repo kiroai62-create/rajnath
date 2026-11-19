@@ -24,6 +24,8 @@ use Throwable;
  */
 class BroadcastController extends Controller
 {
+    public const AUDIENCES = ['all' => 'All customers (website and app)', 'app' => 'App users only (signed in on a phone)', 'web' => 'Website-only customers (never used the app)', 'one' => 'One customer'];
+
     public const KINDS = ['offer' => 'Offer or promotion (customers who turned off offers do not get it)', 'general' => 'Important announcement (sent to everyone)'];
 
     public function index(Fcm $fcm): View
@@ -77,13 +79,28 @@ class BroadcastController extends Controller
             'title' => ['required', 'string', 'max:80'], 'body' => ['required', 'string', 'max:300'],
             'kind' => ['required', Rule::in(array_keys(self::KINDS))],
             'link' => ['nullable', 'string', 'max:255', 'regex:#^(https://|/|app:)#'], 'confirm' => ['accepted'],
-        ], ['link.regex' => 'Start the link with https://, / (a page on the website) or app: (a screen in the app).', 'confirm.accepted' => 'Tick the box to confirm sending to all customers.']);
+            'audience' => ['nullable', Rule::in(array_keys(self::AUDIENCES))], 'customer' => ['nullable', 'required_if:audience,one', 'string', 'max:190'],
+            'channels' => ['nullable', 'array'], 'channels.*' => [Rule::in(['push', 'email'])],
+        ], ['link.regex' => 'Start the link with https://, / (a page on the website) or app: (a screen in the app).', 'confirm.accepted' => 'Tick the box to confirm sending.',
+            'customer.required_if' => 'Enter the customer\'s email or mobile number.']);
+        $audience = $d['audience'] ?? 'all';
+        $one = null;
+        if ($audience === 'one') {
+            $c = trim($d['customer']);
+            $digits = preg_replace('/\D/', '', $c);
+            $one = User::where('kind', User::KIND_CUSTOMER)->where(fn ($w) => $w->where('email', mb_strtolower($c))->orWhere('phone_e164', '+91'.substr($digits, -10))->orWhere('phone_e164', '+'.$digits))->first();
+            if (! $one) {
+                return back()->withInput()->withErrors(['customer' => 'No customer found with this email or mobile number.']);
+            }
+        }
+        // The inbox (app and website account) always gets it; push and email as chosen.
+        $skip = array_values(array_diff(['push', 'email'], $d['channels'] ?? ['push', 'email']));
         // 26 characters like other refs: "bc" + 24 random, so sent messages can be listed together.
         $ref = 'bc'.Str::lower(Str::random(24));
         $link = $d['link'] ?? null;
-        SendBroadcast::dispatch($ref, $d['kind'], trim(strip_tags($d['title'])), trim(strip_tags($d['body'])), $link !== null && str_starts_with($link, '/') ? url($link) : $link);
-        $audit->record('broadcast.sent', null, ['ref' => $ref, 'kind' => $d['kind'], 'title' => $d['title']]);
+        SendBroadcast::dispatch($ref, $d['kind'], trim(strip_tags($d['title'])), trim(strip_tags($d['body'])), $link !== null && str_starts_with($link, '/') ? url($link) : $link, $audience, $one?->id, $skip);
+        $audit->record('broadcast.sent', null, ['ref' => $ref, 'kind' => $d['kind'], 'title' => $d['title'], 'audience' => $audience, 'skip' => $skip]);
 
-        return redirect()->route('admin.broadcast.index')->with('status', 'Sending started. Customers get it in the app inbox, as a push and by email within a few minutes.');
+        return redirect()->route('admin.broadcast.index')->with('status', $one ? 'Sent to '.$one->name.'.' : 'Sending started. Customers get it in the app and website inbox'.(in_array('push', $skip, true) ? '' : ', as a phone notification').(in_array('email', $skip, true) ? '' : ' and by email').' within a few minutes.');
     }
 }

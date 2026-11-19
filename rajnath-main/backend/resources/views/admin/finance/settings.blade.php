@@ -9,6 +9,7 @@
             <x-field name="webhook_secret" label="Webhook secret" type="password" autocomplete="new-password" :hint="($webhookMasked ? 'Saved: '.$webhookMasked.'. ' : 'Not saved. ').'Webhook URL: '.route('webhooks.razorpay').' — events: payment.captured, payment.failed, order.paid, refund.processed'" />
             <label class="flex items-start gap-3 rounded-xl border border-gold-200 bg-gold-50 p-3 text-sm"><input type="checkbox" name="live_enabled" value="1" class="mt-1 size-4 accent-ink-900" @checked($live)>
                 <span>Allow <strong>live</strong> payments. Only tick this after testing with test keys and agreeing limits with your accountant.</span></label>
+            <x-field name="printed_delivery" label="Printed Kundli delivery charge (₹)" type="number" min="0" step="1" :value="$printedDelivery / 100" hint="Added to the price of the Printed Lifetime Kundli at checkout. 0 = free delivery." />
             <button class="btn-primary">Save</button>
         </form>
         <form method="POST" action="{{ route('admin.payments.tax') }}" class="card space-y-4 p-5 sm:p-6">

@@ -150,8 +150,13 @@ class CallingAndPricesTest extends TestCase
         $this->asStaff($staff)->postJson(route('call.event', $b->ref), ['event' => 'camera_error', 'detail' => 'NotReadableError'])->assertNoContent();
         $this->assertDatabaseHas('call_logs', ['booking_id' => $b->id, 'role' => 'customer', 'channel' => 'app', 'event' => 'dropped', 'detail' => 'serverShutdown']);
         $this->assertDatabaseHas('call_logs', ['booking_id' => $b->id, 'user_id' => $staff->id, 'role' => 'astrologer', 'channel' => 'web', 'event' => 'camera_error']);
+        // Acharya Ji joins: the customer's phone rings (call notification) and they get an email, once
+        $this->asStaff($staff)->postJson(route('call.event', $b->ref), ['event' => 'joined'])->assertNoContent();
+        $this->asStaff($staff)->postJson(route('call.event', $b->ref), ['event' => 'joined'])->assertNoContent();
+        $this->assertSame(1, DB::table('user_notifications')->where('user_id', $u->id)->where('kind', 'call')->count());
+        $this->assertDatabaseHas('user_notifications', ['user_id' => $u->id, 'kind' => 'call', 'ref' => $b->ref, 'link' => route('call.join', $b->ref)]);
         $this->asStaff($staff)->get(route('admin.ops.booking.calls', $b->ref))->assertOk()->assertSee('Connection dropped')->assertSee('serverShutdown')->assertSee('Camera did not start');
-        $this->asStaff($staff)->get(route('admin.ops.bookings'))->assertOk()->assertSee('call log (2)');
+        $this->asStaff($staff)->get(route('admin.ops.bookings'))->assertOk()->assertSee('call log (5)');
         $this->actingAs($this->customer())->postJson(route('call.event', $b->ref), ['event' => 'joined'])->assertNotFound();
 
         // An overrunning call can still rejoin up to 60 minutes after the end, not later

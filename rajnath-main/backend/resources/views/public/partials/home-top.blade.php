@@ -15,7 +15,7 @@
             <p class="eyebrow text-gold-200">{{ $profile->text('home.eyebrow') }}</p>
             <h1 class="mt-4 text-4xl leading-[1.08] text-white sm:text-5xl xl:text-6xl">
                 {{ __('Clear, practical guidance from') }}
-                <span class="text-gold-grad block pb-1">{{ $name }}</span>
+                <span class="text-gold-grad mt-2 block pb-1 font-brand text-[0.82em] font-bold leading-[1.15] tracking-[0.01em]">{{ $name }}</span>
             </h1>
             <p class="mt-5 max-w-xl text-lg leading-8 text-white/80">{{ $profile->text('home.subtitle') }}</p>
             <div class="mt-8 flex flex-col gap-3 sm:flex-row">

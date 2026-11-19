@@ -69,6 +69,20 @@
                     </div>
                     <p class="text-xs text-ink-600">Someone else? <a href="{{ route('account.birth-profiles.create', ['back' => url()->full()]) }}">Add another birth profile</a>.</p>
                 @endif
+                @php $printed = \App\Domain\Reports\ReportJobs::printed((string) $v->offering?->slug); @endphp
+                @if ($printed)
+                    <fieldset class="space-y-4 rounded-2xl border border-gold-200 bg-gold-50/50 p-4"><legend class="px-1 text-sm font-semibold">{{ __('Where should we post your printed Kundli?') }}</legend>
+                        <div class="grid gap-4 sm:grid-cols-2">
+                            <x-field name="delivery_name" :label="__('Name')" :value="old('delivery_name', $user->name)" required autocomplete="name" />
+                            <x-field name="delivery_phone" :label="__('Mobile number')" type="tel" :value="old('delivery_phone', $user->phone_e164)" required autocomplete="tel" />
+                        </div>
+                        <div><label for="f-delivery_address" class="field-label">{{ __('House, street and area') }}</label><textarea id="f-delivery_address" name="delivery_address" rows="2" maxlength="400" class="input" required autocomplete="street-address">{{ old('delivery_address') }}</textarea>@error('delivery_address')<p class="field-error">{{ $message }}</p>@enderror</div>
+                        <div class="grid gap-4 sm:grid-cols-2">
+                            <x-field name="delivery_city" :label="__('City and state')" :value="old('delivery_city')" required />
+                            <x-field name="delivery_pincode" :label="__('PIN code')" :value="old('delivery_pincode')" required inputmode="numeric" maxlength="6" />
+                        </div>
+                    </fieldset>
+                @endif
                 <div><label for="f-question" class="field-label">{{ $kind === 'question' ? 'Your question (one per line for two or three questions)' : 'Anything you want us to focus on (optional)' }}</label>
                     <textarea id="f-question" name="question" rows="4" maxlength="2000" class="input" @if ($kind === 'question') required @endif>{{ old('question') }}</textarea>@error('question')<p class="field-error">{{ $message }}</p>@enderror</div>
             @else

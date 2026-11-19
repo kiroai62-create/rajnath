@@ -479,6 +479,10 @@ class ServiceDetailsFormState extends State<ServiceDetailsForm> {
 
   bool get _two => widget.variant['needs_two'] == true;
 
+  /// Printed reports (Printed Lifetime Kundli) are posted: they need a delivery address.
+  bool get _printed => widget.variant['needs_address'] == true;
+  final _pin = TextEditingController();
+
   @override
   void initState() {
     super.initState();
@@ -495,7 +499,7 @@ class ServiceDetailsFormState extends State<ServiceDetailsForm> {
 
   @override
   void dispose() {
-    for (final c in [_question, _gotra, _wish, _address, _city, _notes, _phone, ..._names]) {
+    for (final c in [_question, _gotra, _wish, _address, _city, _notes, _phone, _pin, ..._names]) {
       c.dispose();
     }
     super.dispose();
@@ -554,6 +558,14 @@ class ServiceDetailsFormState extends State<ServiceDetailsForm> {
         if (_two && (_profileB == null || _profileB == _profileA)) e['profile_b'] = 'Choose the second person.';
         if (widget.kind == 'question' && _question.text.trim().length < 5) e['question'] = 'Write your question.';
         out.addAll({'profile_a': _profileA, if (_two) 'profile_b': _profileB, 'language': _language, if (_question.text.trim().isNotEmpty) 'question': _question.text.trim()});
+        if (_printed) {
+          if (!isValidIndianMobile(phone)) e['delivery_phone'] = 'Enter a 10-digit mobile number.';
+          if (_address.text.trim().length < 5) e['delivery_address'] = 'Enter the house, street and area.';
+          if (_city.text.trim().isEmpty) e['delivery_city'] = 'Enter the city and state.';
+          if (!isValidPincode(_pin.text)) e['delivery_pincode'] = 'Enter a 6-digit PIN code.';
+          out.addAll({'delivery_name': '${widget.state.user?['name'] ?? ''}'.trim().isEmpty ? 'Customer' : '${widget.state.user?['name']}', 'delivery_phone': normalizeIndianMobile(phone),
+            'delivery_address': _address.text.trim(), 'delivery_city': _city.text.trim(), 'delivery_pincode': _pin.text.trim()});
+        }
       case 'visit':
         final onsite = widget.variant['mode'] == 'onsite';
         if (!isValidIndianMobile(phone) && !phone.startsWith('+')) e['phone'] = 'Enter a valid mobile number.';
@@ -678,6 +690,18 @@ class ServiceDetailsFormState extends State<ServiceDetailsForm> {
           ],
           gap, lang, gap,
           TextField(controller: _question, maxLines: 3, maxLength: 2000, decoration: InputDecoration(labelText: trn(widget.kind == 'question' ? 'Your question' : 'Anything to focus on (optional)'), errorText: trn(errors['question']))),
+          if (_printed) ...[
+            gap,
+            Text(tr('Where should we post your printed Kundli?'), style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+            gap,
+            TextField(controller: _phone, keyboardType: TextInputType.phone, decoration: InputDecoration(labelText: tr('Mobile number'), errorText: trn(errors['delivery_phone']))),
+            gap,
+            TextField(controller: _address, maxLines: 2, maxLength: 400, decoration: InputDecoration(labelText: tr('House, street and area'), errorText: trn(errors['delivery_address']))),
+            gap,
+            TextField(controller: _city, decoration: InputDecoration(labelText: tr('City and state'), errorText: trn(errors['delivery_city']))),
+            gap,
+            TextField(controller: _pin, keyboardType: TextInputType.number, maxLength: 6, decoration: InputDecoration(labelText: tr('PIN code'), errorText: trn(errors['delivery_pincode']))),
+          ],
         ]);
       case 'visit':
         final onsite = widget.variant['mode'] == 'onsite';

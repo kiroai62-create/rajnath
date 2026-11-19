@@ -8,6 +8,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../state/app_state.dart';
 import '../util/i18n.dart';
+import '../screens/incoming_call_screen.dart';
 
 // The backend contract stores classic FCM registration tokens (POST /push-tokens) and sends with
 // them, so we deliberately keep getToken()/onTokenRefresh. firebase_messaging 17 deprecates them in
@@ -124,6 +125,7 @@ class PushService {
 
   void _onForeground(RemoteMessage m) {
     unawaited(state.refreshUnread());
+    if (m.data['kind'] == 'call') return _incomingCall(m);
     final title = m.notification?.title ?? m.data['title'] as String?;
     final body = m.notification?.body ?? m.data['body'] as String?;
     final text = [title, body].whereType<String>().where((s) => s.isNotEmpty).join(' — ');
@@ -132,6 +134,19 @@ class PushService {
       content: Text(tr(text)),
       action: SnackBarAction(label: tr('View'), onPressed: () => _open(m)),
       duration: const Duration(seconds: 6),
+    ));
+  }
+
+  /// Acharya Ji joined while the app is open: a full "incoming call" screen with Join / Later (the phone vibrates).
+  void _incomingCall(RemoteMessage m) {
+    final nav = navigatorKey.currentState;
+    if (nav == null || !state.signedIn) return;
+    nav.push(MaterialPageRoute<void>(
+      fullscreenDialog: true,
+      builder: (_) => IncomingCallScreen(
+        caller: m.notification?.title ?? 'Acharya Ji is waiting for you',
+        onJoin: () => nav.pushReplacement(MaterialPageRoute<void>(builder: (_) => targetBuilder('call', m.data['ref'] as String?))),
+      ),
     ));
   }
 

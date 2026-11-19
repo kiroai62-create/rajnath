@@ -407,7 +407,7 @@ class _ReportDetailScreenState extends State<ReportDetailScreen> {
               const SizedBox(height: 8),
               Row(children: [StatusChip(r['status'])]),
               if (r['status'] == 'awaiting_details')
-                ReportDetailsForm(state: widget.state, ref: widget.ref, twoProfiles: r['needs_two_profiles'] == true, onDone: () => setState(() => _v++))
+                ReportDetailsForm(state: widget.state, ref: widget.ref, twoProfiles: r['needs_two_profiles'] == true, needsAddress: r['needs_address'] == true, onDone: () => setState(() => _v++))
               else if (r['status'] == 'in_preparation')
                 Padding(padding: EdgeInsets.only(top: 16), child: Text(tr('Your report is being prepared. We will notify you when it is ready.')))
               else ...[
@@ -422,10 +422,13 @@ class _ReportDetailScreenState extends State<ReportDetailScreen> {
 }
 
 class ReportDetailsForm extends StatefulWidget {
-  const ReportDetailsForm({super.key, required this.state, required this.ref, required this.twoProfiles, required this.onDone});
+  const ReportDetailsForm({super.key, required this.state, required this.ref, required this.twoProfiles, this.needsAddress = false, required this.onDone});
   final AppState state;
   final String ref;
   final bool twoProfiles;
+
+  /// Printed report: ask where to post it.
+  final bool needsAddress;
   final VoidCallback onDone;
   @override
   State<ReportDetailsForm> createState() => _ReportDetailsFormState();
@@ -433,6 +436,8 @@ class ReportDetailsForm extends StatefulWidget {
 
 class _ReportDetailsFormState extends State<ReportDetailsForm> {
   final _question = TextEditingController();
+  late final _dPhone = TextEditingController(text: '${widget.state.user?['phone'] ?? ''}'.replaceAll('null', ''));
+  final _dAddress = TextEditingController(), _dCity = TextEditingController(), _dPin = TextEditingController();
   String? _a, _b;
   String _lang = 'en';
   bool _busy = false;
@@ -441,9 +446,16 @@ class _ReportDetailsFormState extends State<ReportDetailsForm> {
 
   @override
   void dispose() {
-    _question.dispose();
+    for (final c in [_question, _dPhone, _dAddress, _dCity, _dPin]) {
+      c.dispose();
+    }
     super.dispose();
   }
+
+  Map<String, dynamic> get _delivery => widget.needsAddress
+      ? {'delivery_name': '${widget.state.user?['name'] ?? 'Customer'}', 'delivery_phone': normalizeIndianMobile(_dPhone.text), 'delivery_address': _dAddress.text.trim(),
+          'delivery_city': _dCity.text.trim(), 'delivery_pincode': _dPin.text.trim()}
+      : const {};
 
   Future<void> _submit() async {
     if (_a == null || (widget.twoProfiles && _b == null)) {
@@ -453,7 +465,7 @@ class _ReportDetailsFormState extends State<ReportDetailsForm> {
     setState(() { _busy = true; _errors = {}; });
     try {
       final q = _question.text.trim();
-      await widget.state.api.post('/reports/${widget.ref}/details', {'profile_a': _a, if (_b != null) 'profile_b': _b, 'language': _lang, if (q.isNotEmpty) 'question': q});
+      await widget.state.api.post('/reports/${widget.ref}/details', {'profile_a': _a, if (_b != null) 'profile_b': _b, 'language': _lang, if (q.isNotEmpty) 'question': q, ..._delivery});
       if (!mounted) return;
       showSnack(context, 'Thank you. We have started preparing your report.');
       widget.onDone();
@@ -494,6 +506,16 @@ class _ReportDetailsFormState extends State<ReportDetailsForm> {
             _LanguagePicker(value: _lang, onChanged: (v) => setState(() => _lang = v)),
             const SizedBox(height: 12),
             TextField(controller: _question, maxLines: 3, maxLength: 500, decoration: InputDecoration(labelText: tr('Anything specific to look at? (optional)'), errorText: trn(_errors['question']))),
+            if (widget.needsAddress) ...[
+              const SectionTitle('Where should we post your printed Kundli?'),
+              TextField(controller: _dPhone, keyboardType: TextInputType.phone, decoration: InputDecoration(labelText: tr('Mobile number'), errorText: trn(_errors['delivery_phone']))),
+              const SizedBox(height: 12),
+              TextField(controller: _dAddress, maxLines: 2, maxLength: 400, decoration: InputDecoration(labelText: tr('House, street and area'), errorText: trn(_errors['delivery_address']))),
+              const SizedBox(height: 12),
+              TextField(controller: _dCity, decoration: InputDecoration(labelText: tr('City and state'), errorText: trn(_errors['delivery_city']))),
+              const SizedBox(height: 12),
+              TextField(controller: _dPin, keyboardType: TextInputType.number, maxLength: 6, decoration: InputDecoration(labelText: tr('PIN code'), errorText: trn(_errors['delivery_pincode']))),
+            ],
             FormError(_errors['_'] ?? _errors['language']),
             const SizedBox(height: 12),
             FilledButton(onPressed: _busy || profiles.isEmpty ? null : _submit, child: Text(tr(_busy ? 'Sending…' : 'Submit details'))),

@@ -13,6 +13,8 @@
             @empty<p class="text-ink-600">Waiting for the customer to choose birth details.</p>@endforelse
             @if (isset($chart['matching']))<p class="font-semibold">Guna milan {{ $chart['matching']['total'] }}/36</p>@endif
             @if ($j->question)<p class="mt-3 rounded-xl bg-ivory-100 p-3"><strong>Customer asks:</strong> {{ $j->question }}</p>@endif
+            @php $ship = ($j->delivery ?? null) ? json_decode(\Illuminate\Support\Facades\Crypt::decryptString($j->delivery), true) : null; @endphp
+            @if ($ship)<div class="mt-3 rounded-xl border border-gold-200 bg-gold-50 p-3 text-sm"><strong>Print and post to:</strong> {{ $ship['name'] }}, {{ $ship['phone'] }}<br>{{ $ship['address'] }}, {{ $ship['city'] }} – {{ $ship['pincode'] }}</div>@endif
         </section>
         <form method="POST" action="{{ route('admin.ops.report.save', $j->ref) }}" class="card min-w-0 space-y-4 p-5">
             @csrf <h2 class="text-lg">Write the report ({{ $j->language === 'hi' ? 'Hindi' : 'English' }})</h2>

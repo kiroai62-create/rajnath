@@ -8,6 +8,7 @@ use App\Domain\Payments\Invoices;
 use App\Domain\Payments\Razorpay;
 use App\Domain\Payments\Reconciler;
 use App\Domain\Payments\Refunds;
+use App\Domain\Reports\ReportJobs;
 use App\Domain\Store\Shiprocket;
 use App\Http\Controllers\Controller;
 use App\Support\Audit\AuditLogger;
@@ -108,6 +109,7 @@ class FinanceController extends Controller
         return view('admin.finance.settings', ['keyId' => $s->get('payments.razorpay.key_id'), 'secretMasked' => $s->masked('payments.razorpay.key_secret'),
             'webhookMasked' => $s->masked('payments.razorpay.webhook_secret'), 'live' => (bool) $s->get('payments.live_enabled'), 'mode' => $rzp->mode(), 'configured' => $rzp->configured(),
             'packages' => DB::table('recharge_packages')->orderBy('sort')->orderBy('amount_minor')->get(),
+            'printedDelivery' => ReportJobs::deliveryFee(),
             'tax' => app(Invoices::class)->config() + ['enabled' => (bool) $s->get('tax.gst_enabled')],
             'rzx' => ['account' => $s->get('payouts.razorpayx.account_number'), 'mode' => $s->get('payouts.razorpayx.mode', 'IMPS'), 'webhook' => $s->masked('payouts.razorpayx.webhook_secret')],
             'courier' => ['email' => $s->get('courier.shiprocket.email'), 'password' => $s->masked('courier.shiprocket.password'), 'pickup' => $s->get('courier.shiprocket.pickup_location'),
@@ -242,6 +244,7 @@ class FinanceController extends Controller
             'key_id' => ['nullable', 'regex:/^rzp_(test|live)_[A-Za-z0-9]{8,32}$/'],
             'key_secret' => ['nullable', 'string', 'max:100'], 'webhook_secret' => ['nullable', 'string', 'max:100'],
             'live_enabled' => ['nullable', 'boolean'],
+            'printed_delivery' => ['nullable', 'numeric', 'min:0', 'max:5000'],
         ], ['key_id.regex' => 'Key ID must look like rzp_test_… or rzp_live_…']);
         if (($d['key_id'] ?? null) !== $s->get('payments.razorpay.key_id')) {
             $s->set('payments.razorpay.key_id', $d['key_id'] ?? null);
@@ -252,6 +255,9 @@ class FinanceController extends Controller
             }
         }
         $s->set('payments.live_enabled', (bool) ($d['live_enabled'] ?? false));
+        if (array_key_exists('printed_delivery', $d) && $d['printed_delivery'] !== null) {
+            $s->set('reports.printed_delivery_minor', (int) round(((float) $d['printed_delivery']) * 100), false, 'reports');
+        }
 
         return back()->with('status', 'Payment settings saved.');
     }

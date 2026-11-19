@@ -10,6 +10,8 @@ use App\Domain\Reviews\Reviews;
 use App\Models\BirthProfile;
 use App\Models\User;
 use App\Support\Audit\AuditLogger;
+use App\Support\Settings\SettingsRepository;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -32,6 +34,7 @@ class ReportJobs
         'sade-sati-report' => ['status' => 'Your Sade Sati status', 'phases' => 'Phase-by-phase effects', 'saturn' => 'Saturn in your chart', 'remedies' => 'Remedies'],
         'kaal-sarp-and-manglik-dosh-report' => ['kaal_sarp' => 'Kaal Sarp assessment', 'manglik' => 'Manglik assessment', 'cancellations' => 'Cancellations and severity', 'remedies' => 'Remedies'],
         'varshphal-yearly-report' => ['overview' => 'The year ahead', 'months' => 'Month by month', 'career' => 'Career and money', 'family' => 'Family and health', 'remedies' => 'Remedies'],
+        'printed-lifetime-kundli' => ['personality' => 'Personality and nature', 'career' => 'Education and career', 'wealth' => 'Wealth and property', 'marriage' => 'Marriage and family', 'health' => 'Health tendencies', 'dasha' => 'Life periods (dasha) and timing', 'doshas' => 'Yogas and doshas', 'remedies' => 'Remedies'],
         'ask-one-question' => ['answer' => 'Answer to your question', 'reasoning' => 'What the chart shows', 'advice' => 'Advice'],
     ];
 
@@ -42,6 +45,39 @@ class ReportJobs
     public static function sections(string $slug): array
     {
         return self::SECTIONS[$slug] ?? self::DEFAULT;
+    }
+
+    /** Reports that are printed and posted to the customer (they also need a delivery address). */
+    public const PRINTED = ['printed-lifetime-kundli'];
+
+    /** Postage for a printed report (Admin › Payments setup), ₹100 until changed. */
+    public static function deliveryFee(): int
+    {
+        return max(0, (int) app(SettingsRepository::class)->get('reports.printed_delivery_minor', 10000));
+    }
+
+    public static function printed(string $slug): bool
+    {
+        return in_array($slug, self::PRINTED, true);
+    }
+
+    /** @return array<string, list<mixed>> delivery address rules for printed reports */
+    public static function deliveryRules(): array
+    {
+        return [
+            'delivery_name' => ['required', 'string', 'max:120'],
+            'delivery_phone' => ['required', 'regex:/^(?:\+?91)?[6-9]\d{9}$/'],
+            'delivery_address' => ['required', 'string', 'max:400'],
+            'delivery_city' => ['required', 'string', 'max:100'],
+            'delivery_pincode' => ['required', 'regex:/^[1-9]\d{5}$/'],
+        ];
+    }
+
+    /** @param array<string, mixed> $d validated input @return array<string, string>|null */
+    public static function delivery(array $d): ?array
+    {
+        return isset($d['delivery_address']) ? ['name' => $d['delivery_name'], 'phone' => $d['delivery_phone'], 'address' => $d['delivery_address'],
+            'city' => $d['delivery_city'], 'pincode' => $d['delivery_pincode']] : null;
     }
 
     public static function needsTwo(string $slug): bool
@@ -59,18 +95,21 @@ class ReportJobs
         $u = $d ? User::find($order->user_id) : null;
         if ($u) {
             try {
-                $this->submitDetails(DB::table('report_jobs')->where('order_id', $order->id)->first(), $u, $d['profiles'], $d['language'], $d['question']);
+                $this->submitDetails(DB::table('report_jobs')->where('order_id', $order->id)->first(), $u, $d['profiles'], $d['language'], $d['question'], $d['delivery'] ?? null);
             } catch (\Throwable $e) {
                 report($e); // the customer is asked for the details again from the report page
             }
         }
     }
 
-    public function submitDetails(object $job, User $u, array $profileRefs, string $language, ?string $question): void
+    public function submitDetails(object $job, User $u, array $profileRefs, string $language, ?string $question, ?array $delivery = null): void
     {
         abort_unless($job->user_id === $u->id, 404);
         if ($job->status !== 'awaiting_details') {
             throw ValidationException::withMessages(['profile_a' => 'Details were already submitted.']);
+        }
+        if (self::printed($job->offering_slug) && ! $delivery) {
+            throw ValidationException::withMessages(['delivery_address' => 'Add the address where we should post your printed Kundli.']);
         }
         $profiles = [];
         foreach ($profileRefs as $ref) {
@@ -96,6 +135,7 @@ class ReportJobs
             'subjects' => json_encode(array_map(fn ($p) => $p->toApi(), $profiles), JSON_UNESCAPED_UNICODE),
             'chart' => json_encode(['charts' => $charts] + $extra, JSON_UNESCAPED_UNICODE),
             'language' => $language, 'question' => $question, 'status' => 'in_preparation', 'updated_at' => now(),
+            'delivery' => $delivery ? Crypt::encryptString(json_encode($delivery, JSON_UNESCAPED_UNICODE)) : null,
         ]);
         $this->audit->record('report.details_submitted', null, ['job' => $job->ref], $u);
         app(Notifier::class)->send($u, 'report', 'Report details received', 'Thank you. Your report is being prepared and we will notify you when the PDF is ready.', $job->ref, route('account.reports.show', $job->ref));

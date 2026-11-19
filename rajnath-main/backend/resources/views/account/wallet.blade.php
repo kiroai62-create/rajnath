@@ -4,22 +4,27 @@
             <h2 id="bal-h" class="text-sm text-ink-600">Balance</h2>
             <p class="mt-1 text-3xl font-semibold">{{ \App\Support\Money::format($balance) }}</p>
             <p class="mt-2 text-xs text-ink-600">1 wallet rupee = ₹1. Wallet money can be used for any service on this website and app.</p>
-            @if ($payable && $packages->isNotEmpty())
+            @if ($payable)
                 <form method="POST" action="{{ route('account.wallet.recharge') }}" class="mt-5 space-y-3">
                     @csrf <input type="hidden" name="key" value="{{ \App\Http\Controllers\Web\PaymentController::newKey() }}">
-                    <fieldset><legend class="field-label">Add money</legend>
-                        <div class="grid grid-cols-2 gap-2">
-                            @foreach ($packages as $p)
-                                <label class="flex min-h-14 cursor-pointer flex-col justify-center rounded-xl border border-ink-200 p-3 text-sm has-[:checked]:border-ink-900 has-[:checked]:bg-ivory-100">
-                                    <input type="radio" name="package" value="{{ $p->id }}" class="sr-only" @checked($loop->first)>
-                                    <span class="font-semibold">{{ \App\Support\Money::format((int) $p->amount_minor) }}</span>
-                                    @if ($p->bonus_minor)<span class="text-xs text-success-700">+ {{ \App\Support\Money::format((int) $p->bonus_minor) }} bonus</span>@endif
-                                </label>
-                            @endforeach
-                        </div>
+                    <fieldset><legend class="field-label">{{ __('Add money') }}</legend>
+                        @if ($packages->isNotEmpty())
+                            <div class="grid grid-cols-2 gap-2">
+                                @foreach ($packages as $p)
+                                    <label class="flex min-h-14 cursor-pointer flex-col justify-center rounded-xl border border-ink-200 p-3 text-sm has-[:checked]:border-ink-900 has-[:checked]:bg-ivory-100">
+                                        <input type="radio" name="package" value="{{ $p->id }}" class="sr-only" @checked($loop->first && ! old('amount'))>
+                                        <span class="font-semibold">{{ \App\Support\Money::format((int) $p->amount_minor) }}</span>
+                                        @if ($p->bonus_minor)<span class="text-xs text-success-700">+ {{ \App\Support\Money::format((int) $p->bonus_minor) }} {{ __('bonus') }}</span>@endif
+                                    </label>
+                                @endforeach
+                            </div>
+                        @endif
                     </fieldset>
+                    <x-field name="amount" type="number" :label="$packages->isNotEmpty() ? __('Or enter any amount (₹)') : __('Amount (₹)')" inputmode="numeric"
+                        min="{{ \App\Domain\Payments\Checkout::RECHARGE_MIN / 100 }}" max="{{ \App\Domain\Payments\Checkout::RECHARGE_MAX / 100 }}" step="1" placeholder="1000"
+                        :hint="__('From ₹100 to ₹1,00,000. Paid securely with UPI, card or net banking.')" />
                     @error('package')<p class="field-error">{{ $message }}</p>@enderror
-                    <button class="btn-primary w-full">Continue to pay</button>
+                    <button class="btn-primary w-full">{{ __('Continue to pay') }}</button>
                 </form>
             @else
                 <p class="mt-5 rounded-xl bg-ivory-100 p-3 text-sm">Online recharge opens once payments are switched on.</p>

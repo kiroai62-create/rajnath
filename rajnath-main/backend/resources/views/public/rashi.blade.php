@@ -17,9 +17,9 @@
         <h1 class="mt-3 text-3xl">{{ $name }}</h1>
 
         <div class="mt-6 grid gap-6 lg:grid-cols-2">
-            <section class="card p-5" aria-labelledby="facts-h">
+            <section class="card min-w-0 p-5" aria-labelledby="facts-h">
                 <h2 id="facts-h" class="text-lg">{{ $hi ? 'राशि परिचय' : 'About this sign' }}</h2>
-                <dl class="mt-3 grid grid-cols-[10rem_1fr] gap-x-4 gap-y-2 text-sm">
+                <dl class="mt-3 grid grid-cols-[minmax(0,7rem)_minmax(0,1fr)] gap-x-4 gap-y-2 break-words text-sm sm:grid-cols-[10rem_minmax(0,1fr)]">
                     <dt class="text-ink-600">Symbol</dt><dd>{{ $C::SIGN_SYMBOLS[$i] }}</dd>
                     <dt class="text-ink-600">Lord (swami)</dt><dd><a href="{{ route('gochar.planet', $lord) }}">{{ $V::PLANET_NAMES[$lord] }}</a></dd>
                     <dt class="text-ink-600">Element (tattva)</dt><dd>{{ implode(' / ', $elements[$i % 4]) }}</dd>
@@ -34,7 +34,7 @@
                 </dl>
             </section>
 
-            <section class="card p-5" aria-labelledby="gochar-h">
+            <section class="card min-w-0 p-5" aria-labelledby="gochar-h">
                 <h2 id="gochar-h" class="text-lg">{{ $hi ? 'वर्तमान गोचर (चंद्र राशि से)' : 'Current transits from this Moon sign' }}</h2>
                 @if ($now)
                     <div class="table-wrap mt-3" role="region" aria-label="Transits" tabindex="0"><table class="table text-sm">

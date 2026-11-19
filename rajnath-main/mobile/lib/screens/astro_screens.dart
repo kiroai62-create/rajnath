@@ -8,6 +8,7 @@ import '../util/i18n.dart';
 import '../widgets/common.dart';
 import 'assistant_screen.dart';
 import '../widgets/tool_display.dart';
+import 'consult_cta.dart';
 
 const planetNames = {'sun': 'Sun', 'moon': 'Moon', 'mars': 'Mars', 'mercury': 'Mercury', 'jupiter': 'Jupiter', 'venus': 'Venus', 'saturn': 'Saturn', 'rahu': 'Rahu', 'ketu': 'Ketu'};
 
@@ -160,6 +161,9 @@ class _KundliScreenState extends State<KundliScreen> {
               subtitle: Text(tr(widget.matching ? 'Koota table and Manglik check' : 'Navamsa, Manglik check and full tables')),
               children: [ToolDisplayView(r['display'] as Map)],
             ),
+          if (r != null)
+            ConsultCta(state: widget.state, printed: !widget.matching,
+                text: widget.matching ? 'Want Acharya Ji to check this match in detail?' : 'Want Acharya Ji to read your Kundli in detail?'),
         ]),
       ),
     );
@@ -271,6 +275,7 @@ class _PanchangScreenState extends State<PanchangScreen> {
                 if (lunarMonthText(p['masa']) != null) Text(tr(lunarMonthText(p['masa'])!)),
                 Text(tr('Times shown in the place\'s local time (UTC{0}).', [p['place']['utc_offset']]), style: const TextStyle(color: ArjColors.ink600, fontSize: 12)),
                 AskAiCard(state: widget.state, page: '/panchang', question: 'Explain today\'s Panchang in simple words: is today good for new work?', suggestions: const ['What is Rahu Kaal today?', 'Best Choghadiya today?']),
+                ConsultCta(state: widget.state, text: 'Need a muhurat for something important?'),
                 const SectionTitle('Sun & Moon'),
                 Wrap(spacing: 16, runSpacing: 8, children: [
                   Text(tr('Sunrise {0}', [_t(p['sunrise'])])), Text(tr('Sunset {0}', [_t(p['sunset'])])), Text(tr('Moonrise {0}', [_t(p['moonrise'])])), Text(tr('Moonset {0}', [_t(p['moonset'])])),

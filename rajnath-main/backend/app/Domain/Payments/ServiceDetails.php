@@ -68,7 +68,7 @@ class ServiceDetails
                 'profile_b' => [ReportJobs::needsTwo((string) $v->offering?->slug) ? 'required' : 'nullable', 'string', 'size:26', 'different:profile_a'],
                 'language' => ['required', Rule::in(['en', 'hi'])],
                 'question' => [$kind === 'question' ? 'required' : 'nullable', 'string', 'min:'.($kind === 'question' ? 5 : 0), 'max:2000'],
-            ],
+            ] + (ReportJobs::printed((string) $v->offering?->slug) ? ReportJobs::deliveryRules() : []),
             'visit' => [
                 'address' => [$v->mode === 'onsite' ? 'required' : 'nullable', 'string', 'max:400'], 'city' => [$v->mode === 'onsite' ? 'required' : 'nullable', 'string', 'max:80'],
                 'preferred_date' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:today'], 'phone' => $phone,
@@ -125,7 +125,7 @@ class ServiceDetails
                         throw ValidationException::withMessages(['profile_a' => $p->name.': a birth time is needed for this report. Edit the profile and add the time.']);
                     }
                 }
-                $details['report'] = ['profiles' => $refs, 'language' => $d['language'], 'question' => $d['question'] ?? null];
+                $details['report'] = ['profiles' => $refs, 'language' => $d['language'], 'question' => $d['question'] ?? null, 'delivery' => ReportJobs::delivery($d)];
                 break;
             case 'visit':
                 $details['visit'] = Crypt::encryptString(json_encode(['address' => $d['address'] ?? null, 'city' => $d['city'] ?? null,

@@ -74,9 +74,8 @@ class PaymentController extends Controller
 
     public function recharge(Request $request): RedirectResponse
     {
-        $d = $request->validate(['package' => ['required', 'integer'], 'key' => ['required', 'string', 'max:64']]);
-        $pkg = DB::table('recharge_packages')->where('id', $d['package'])->where('active', true)->first();
-        abort_unless($pkg, 404);
+        $d = $request->validate(['package' => ['nullable', 'integer'], 'amount' => ['nullable', 'numeric'], 'key' => ['required', 'string', 'max:64']]);
+        $pkg = Checkout::rechargeChoice($request->filled('amount') ? null : ($d['package'] ?? null), $d['amount'] ?? null);
         try {
             $r = $this->checkout->startRecharge($request->user(), $pkg, $d['key']);
         } catch (RuntimeException $e) {

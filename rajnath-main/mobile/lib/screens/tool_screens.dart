@@ -13,6 +13,7 @@ import 'activity_screens.dart';
 import 'astro_screens.dart';
 import 'content_screens.dart';
 import 'info_screens.dart';
+import 'consult_cta.dart';
 
 const toolKindLabels = {'astronomical': 'Astronomical', 'traditional': 'Traditional', 'symbolic': 'Symbolic', 'entertainment': 'Just for fun'};
 
@@ -288,6 +289,7 @@ class _ToolScreenState extends State<ToolScreen> {
           if (_display != null)
             AskAiCard(state: widget.state, page: 'tool:$_slug', label: tr('Explain my result with AI'), question: 'Explain my ${widget.tool['title']} result in simple words. What does it mean for me?',
                 suggestions: const ['What remedies are suggested?', 'Should I book a consultation?']),
+          if (_display != null) ConsultCta(state: widget.state, printed: const ['kundli', 'lagna-navamsa', 'memorable-periods'].contains(_slug)),
         ]),
       ),
     );

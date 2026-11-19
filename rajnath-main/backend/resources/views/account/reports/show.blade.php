@@ -10,6 +10,20 @@
                 @if ($two)<x-select name="profile_b" label="Second person" :options="$profiles->mapWithKeys(fn ($p) => [$p->ref => $p->name.' — '.$p->birth_date->format('d M Y')])->all()" :value="$profiles->skip(1)->first()?->ref" />@endif
                 <x-select name="language" label="Report language" :options="['en' => 'English', 'hi' => 'Hindi']" />
                 @php $ask = str_starts_with($j->offering_slug, 'ask-'); @endphp
+                @php $printed = \App\Domain\Reports\ReportJobs::printed($j->offering_slug); $user = auth()->user(); @endphp
+                @if ($printed)
+                    <fieldset class="space-y-4 rounded-2xl border border-gold-200 bg-gold-50/50 p-4"><legend class="px-1 text-sm font-semibold">{{ __('Where should we post your printed Kundli?') }}</legend>
+                        <div class="grid gap-4 sm:grid-cols-2">
+                            <x-field name="delivery_name" :label="__('Name')" :value="old('delivery_name', $user->name)" required autocomplete="name" />
+                            <x-field name="delivery_phone" :label="__('Mobile number')" type="tel" :value="old('delivery_phone', $user->phone_e164)" required autocomplete="tel" />
+                        </div>
+                        <div><label for="f-delivery_address" class="field-label">{{ __('House, street and area') }}</label><textarea id="f-delivery_address" name="delivery_address" rows="2" maxlength="400" class="input" required autocomplete="street-address">{{ old('delivery_address') }}</textarea>@error('delivery_address')<p class="field-error">{{ $message }}</p>@enderror</div>
+                        <div class="grid gap-4 sm:grid-cols-2">
+                            <x-field name="delivery_city" :label="__('City and state')" :value="old('delivery_city')" required />
+                            <x-field name="delivery_pincode" :label="__('PIN code')" :value="old('delivery_pincode')" required inputmode="numeric" maxlength="6" />
+                        </div>
+                    </fieldset>
+                @endif
                 <div><label for="f-q" class="field-label">{{ $ask ? 'Your question (for two or three questions, write each on a new line)' : 'Anything specific you want covered? (optional)' }}</label><textarea id="f-q" name="question" rows="{{ $ask ? 6 : 3 }}" maxlength="2000" class="input" @if ($ask) required @endif></textarea></div>
                 <button class="btn-primary">Submit</button>
                 <p class="text-xs text-ink-600"><a href="{{ route('account.birth-profiles.create') }}">Add another birth profile</a></p>

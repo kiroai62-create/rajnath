@@ -19,13 +19,35 @@ class CustomerController extends Controller
     {
         $this->authorize('customers.view');
         $q = trim((string) $request->query('q', ''));
+        $channel = in_array($request->query('channel'), ['web', 'app', 'both'], true) ? $request->query('channel') : null;
+        $appIds = fn () => DB::table('personal_access_tokens')->where('tokenable_type', User::class)->select('tokenable_id');
         $list = User::where('kind', User::KIND_CUSTOMER)
+            ->when($channel === 'web' || $channel === 'app', fn ($w) => $w->where('signup_channel', $channel))
+            ->when($channel === 'both', fn ($w) => $w->where('signup_channel', 'web')->whereIn('id', $appIds()))
             ->when($q !== '', function ($w) use ($q) {
                 $like = '%'.addcslashes($q, '%_\\').'%';
                 $w->where(fn ($x) => $x->where('name', 'like', $like)->orWhere('email', 'like', $like)->orWhere('phone_e164', 'like', $like));
             })->latest()->paginate(30)->withQueryString();
 
-        return view('admin.customers.index', ['list' => $list, 'q' => $q]);
+        $c = fn () => User::where('kind', User::KIND_CUSTOMER);
+        $ist = now('Asia/Kolkata');
+        $days = collect(range(29, 0))->map(fn ($i) => $ist->copy()->subDays($i)->toDateString());
+        $daily = $c()->where('created_at', '>=', $ist->copy()->subDays(29)->startOfDay()->utc())
+            ->selectRaw("DATE(DATE_ADD(created_at, INTERVAL 330 MINUTE)) as d, sum(signup_channel = 'app') as app, sum(coalesce(signup_channel, 'web') = 'web') as web")
+            ->groupBy('d')->get()->keyBy('d');
+
+        return view('admin.customers.index', ['list' => $list, 'q' => $q, 'channel' => $channel,
+            'appUsers' => DB::table('personal_access_tokens')->where('tokenable_type', User::class)->whereIn('tokenable_id', $list->pluck('id'))->pluck('tokenable_id')->flip(),
+            'sum' => [
+                'total' => $c()->count(), 'web' => $c()->where('signup_channel', 'web')->count(), 'app' => $c()->where('signup_channel', 'app')->count(),
+                'app_now' => $c()->whereIn('id', $appIds())->count(),
+                'today' => $c()->where('created_at', '>=', $ist->copy()->startOfDay()->utc())->count(),
+                'week' => $c()->where('created_at', '>=', $ist->copy()->subDays(6)->startOfDay()->utc())->count(),
+                'month' => $c()->where('created_at', '>=', $ist->copy()->subDays(29)->startOfDay()->utc())->count(),
+                'active7' => $c()->where('last_login_at', '>=', now()->subDays(7))->count(),
+            ],
+            'daily' => $days->map(fn ($d) => [$d, (int) ($daily[$d]->web ?? 0), (int) ($daily[$d]->app ?? 0)])->all(),
+        ]);
     }
 
     public function show(User $customer, AuditLogger $audit): View

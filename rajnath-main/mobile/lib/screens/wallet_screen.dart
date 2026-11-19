@@ -20,10 +20,30 @@ class _WalletScreenState extends State<WalletScreen> {
   int _v = 0;
   Object? _busyId;
 
+  final _amount = TextEditingController();
+
+  @override
+  void dispose() {
+    _amount.dispose();
+    super.dispose();
+  }
+
+  /// Any amount the customer types (rupees), within the limits the server sends.
+  Future<void> _rechargeAmount(Map limits) async {
+    final rupees = int.tryParse(_amount.text.trim()) ?? 0;
+    final min = ((limits['min_minor'] as num?)?.toInt() ?? 10000) ~/ 100, max = ((limits['max_minor'] as num?)?.toInt() ?? 10000000) ~/ 100;
+    if (rupees < min || rupees > max) {
+      showSnack(context, tr('Enter an amount between ₹{0} and ₹{1}.', [min, max]));
+      return;
+    }
+    await _recharge({'id': 'amount-$rupees', 'amount': rupees});
+  }
+
   Future<void> _recharge(Map p) async {
     setState(() => _busyId = p['id']);
     try {
-      final r = await widget.state.api.post('/checkout/recharge', {'package': p['id'], 'key': _attempt.keyFor('recharge|${p['id']}')});
+      final body = p['amount'] != null ? {'amount': p['amount']} : {'package': p['id']};
+      final r = await widget.state.api.post('/checkout/recharge', {...body, 'key': _attempt.keyFor('recharge|${p['id']}')});
       if (!mounted) return;
       final order = await runCheckout(context, widget.state.api, r);
       if (!mounted) return;
@@ -62,8 +82,31 @@ class _WalletScreenState extends State<WalletScreen> {
                     ]),
                   ),
                 ),
+                const SectionTitle('Add money'),
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _amount,
+                          keyboardType: TextInputType.number,
+                          decoration: InputDecoration(labelText: tr('Amount (₹)'), hintText: '1000', prefixText: '₹ ', helperText: tr('From ₹100 to ₹1,00,000')),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Padding(
+                        padding: const EdgeInsets.only(top: 6),
+                        child: FilledButton(
+                          onPressed: _busyId != null ? null : () => _rechargeAmount((w['recharge'] as Map?) ?? const {}),
+                          child: Text(tr(_busyId != null && '$_busyId'.startsWith('amount-') ? 'Wait…' : 'Add')),
+                        ),
+                      ),
+                    ]),
+                  ),
+                ),
                 if (packages.isNotEmpty) ...[
-                  const SectionTitle('Recharge'),
+                  Padding(padding: const EdgeInsets.only(top: 12, bottom: 8), child: Text(tr('Or choose a pack'), style: const TextStyle(fontWeight: FontWeight.w600))),
                   GridView.count(
                     crossAxisCount: 2,
                     shrinkWrap: true,

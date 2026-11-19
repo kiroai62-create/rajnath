@@ -15,6 +15,7 @@ import 'screens/astro_screens.dart';
 import 'screens/blog_screens.dart';
 import 'screens/content_screens.dart';
 import 'screens/info_screens.dart';
+import 'screens/permissions_screen.dart';
 import 'screens/puja_request_screens.dart';
 import 'screens/review_screens.dart';
 import 'screens/routing.dart';
@@ -81,6 +82,15 @@ class HomeShell extends StatefulWidget {
 
 class _HomeShellState extends State<HomeShell> {
   int _tab = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    // First start after install: ask for notifications, camera, microphone and Bluetooth once.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) unawaited(AppPermissions.askOnce(context));
+    });
+  }
 
   /// Tabs visited, so the back button retraces them before leaving the app.
   final List<int> _history = [];
@@ -433,7 +443,9 @@ class _HomeTabState extends State<HomeTab> {
       ]),
       const SizedBox(height: 12),
       Text(tr('Clear, practical guidance from'), style: heading),
-      GoldGradientText(name, style: heading?.copyWith(fontSize: 27)),
+      const SizedBox(height: 4),
+      // The name in Cinzel, as on the website (Devanagari falls back to Noto Sans Devanagari).
+      GoldGradientText(name, style: heading?.copyWith(fontFamily: 'Cinzel', fontFamilyFallback: const ['NotoSansDevanagari'], fontSize: 25, fontWeight: FontWeight.w700, height: 1.2, letterSpacing: 0.2)),
       const SizedBox(height: 10),
       Text(tr(_or(home['subtitle'], 'Ph.D. in Astrology · Director, Jyotirveda Vigyan Sansthan, Patna · 30+ years of practice')),
           style: TextStyle(color: Colors.white.withValues(alpha: 0.8), height: 1.5, fontSize: 15)),

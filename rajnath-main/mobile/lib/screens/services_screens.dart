@@ -260,7 +260,7 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
                         margin: const EdgeInsets.only(bottom: 8),
                         child: ListTile(
                           title: Text(tr('${v['name']}'), style: const TextStyle(fontWeight: FontWeight.w600)),
-                          subtitle: Text(tr([if (v['duration_min'] != null) '${v['duration_min']} min', if ((v['participants'] ?? 1) > 1) '${v['participants']} people', if (v['urgent'] == true) 'Priority', formatPaise((v['price_minor'] as num?)?.toInt())].join(' · '))),
+                          subtitle: Text(tr([if (v['duration_min'] != null) '${v['duration_min']} min', if ((v['participants'] ?? 1) > 1) '${v['participants']} people', if (v['urgent'] == true) 'Priority', formatPaise((v['price_minor'] as num?)?.toInt()), if (((v['delivery_minor'] as num?) ?? 0) > 0) '+ ${formatPaise((v['delivery_minor'] as num).toInt())} delivery'].join(' · '))),
                           trailing: v['price_minor'] == null
                               ? null
                               : FilledButton(

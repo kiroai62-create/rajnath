@@ -18,10 +18,11 @@ class Notifier
     /** kind → preference key (null = always sent). */
     public const PREF = [
         'booking' => 'booking_reminders', 'report' => 'reports_ready', 'palm' => 'reports_ready',
-        'order' => 'payments', 'offer' => 'offers', 'puja' => null, 'ticket' => null, 'review' => null, 'general' => null,
+        'order' => 'payments', 'offer' => 'offers', 'puja' => null, 'call' => null, 'ticket' => null, 'review' => null, 'general' => null,
     ];
 
-    public function send(int|User $user, string $kind, string $title, string $body, ?string $ref = null, ?string $link = null): ?int
+    /** @param list<string> $skip channels not to use for this message (email, push) */
+    public function send(int|User $user, string $kind, string $title, string $body, ?string $ref = null, ?string $link = null, array $skip = []): ?int
     {
         $u = $user instanceof User ? $user : User::find($user);
         if (! $u || $u->status === 'anonymized') {
@@ -32,7 +33,7 @@ class Notifier
         $wanted = $pref === null || ($prefs[$pref] ?? true);
         $id = DB::table('user_notifications')->insertGetId([
             'user_id' => $u->id, 'kind' => $kind, 'ref' => $ref, 'title' => mb_substr($title, 0, 160), 'body' => mb_substr($body, 0, 500),
-            'link' => $link, 'channels' => json_encode($wanted ? [] : ['email' => 'muted', 'push' => 'muted']), 'created_at' => now(), 'updated_at' => now(),
+            'link' => $link, 'channels' => json_encode($wanted ? array_fill_keys(array_values(array_intersect($skip, ['email', 'push'])), 'not_chosen') : ['email' => 'muted', 'push' => 'muted']), 'created_at' => now(), 'updated_at' => now(),
         ]);
         if ($wanted) {
             DeliverNotification::dispatch($id)->afterCommit();

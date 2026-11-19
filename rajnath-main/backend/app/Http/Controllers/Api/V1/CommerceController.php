@@ -71,6 +71,7 @@ class CommerceController extends Controller
             ->orderByDesc('e.id')->limit(50)->get(['e.direction', 'e.amount_minor', 't.kind', 't.memo', 't.occurred_at']) : collect();
 
         return response()->json(['balance_minor' => $ledger->walletBalance($u->id),
+            'recharge' => ['min_minor' => Checkout::RECHARGE_MIN, 'max_minor' => Checkout::RECHARGE_MAX],
             'packages' => DB::table('recharge_packages')->where('active', true)->orderBy('sort')->orderBy('amount_minor')->get(['id', 'amount_minor', 'bonus_minor'])
                 ->map(fn ($p) => ['id' => $p->id, 'amount_minor' => (int) $p->amount_minor, 'bonus_minor' => (int) $p->bonus_minor]),
             'transactions' => $tx->map(fn ($t) => ['kind' => $t->kind, 'amount_minor' => (int) $t->amount_minor, 'direction' => $t->direction, 'memo' => $t->memo, 'at' => self::iso($t->occurred_at)])]);
@@ -138,11 +139,8 @@ class CommerceController extends Controller
 
     public function recharge(Request $request): JsonResponse
     {
-        $d = $request->validate(['package' => ['required', 'integer'], 'key' => ['required', 'string', 'max:64']]);
-        $pkg = DB::table('recharge_packages')->where('id', $d['package'])->where('active', true)->first();
-        if (! $pkg) {
-            throw ValidationException::withMessages(['package' => 'Choose a recharge amount.']);
-        }
+        $d = $request->validate(['package' => ['nullable', 'integer'], 'amount' => ['nullable', 'numeric'], 'key' => ['required', 'string', 'max:64']]);
+        $pkg = Checkout::rechargeChoice($d['package'] ?? null, $d['amount'] ?? null);
         try {
             return response()->json($this->payload($this->checkout->startRecharge($request->user(), $pkg, $d['key']), $request));
         } catch (RuntimeException $e) {

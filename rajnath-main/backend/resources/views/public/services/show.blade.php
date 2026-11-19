@@ -92,7 +92,7 @@
                             <li class="flex items-start justify-between gap-3 py-3 text-sm">
                                 <span><span class="font-medium">{{ $v->label() }}</span>
                                     <span class="block text-xs text-ink-600">{{ implode(' · ', array_filter([$v->duration_min ? __(':n min', ['n' => $v->duration_min]) : null, $v->participants > 1 ? __(':n people', ['n' => $v->participants]) : null, $v->urgent ? __('Priority') : null])) }}</span></span>
-                                <span class="whitespace-nowrap font-semibold">{{ \App\Support\Money::format($v->price_minor) }}</span>
+                                <span class="whitespace-nowrap font-semibold">{{ \App\Support\Money::format($v->price_minor) }}@if (\App\Domain\Reports\ReportJobs::printed($o->slug) && ($fee = \App\Domain\Reports\ReportJobs::deliveryFee()))<span class="block text-xs font-normal text-ink-600">+ {{ \App\Support\Money::format($fee) }} {{ __('delivery') }}</span>@endif</span>
                             </li>
                         @endforeach
                     </ul>

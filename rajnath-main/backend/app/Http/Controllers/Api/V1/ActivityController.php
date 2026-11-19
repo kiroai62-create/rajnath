@@ -113,7 +113,7 @@ class ActivityController extends Controller
     {
         $title = DB::table('offerings as o')->join('offering_translations as t', fn ($x) => $x->on('t.offering_id', '=', 'o.id')->where('t.locale', 'en'))->where('o.slug', $j->offering_slug)->value('t.title');
 
-        return ['ref' => $j->ref, 'title' => $title, 'status' => $j->status, 'needs_two_profiles' => ReportJobs::needsTwo($j->offering_slug),
+        return ['ref' => $j->ref, 'title' => $title, 'status' => $j->status, 'needs_two_profiles' => ReportJobs::needsTwo($j->offering_slug), 'needs_address' => ReportJobs::printed($j->offering_slug),
             'sections' => $j->status === 'completed' ? self::sections(ReportJobs::sections($j->offering_slug), $j->sections) : [], 'completed_at' => CommerceController::iso($j->completed_at),
             'pdf_url' => $j->status === 'completed' ? FileLinkController::url('report', $j->ref, (int) $j->user_id) : null];
     }
@@ -133,8 +133,8 @@ class ActivityController extends Controller
         $j = $this->own('report_jobs', $ref, $r);
         $two = ReportJobs::needsTwo($j->offering_slug);
         $d = $r->validate(['profile_a' => ['required', 'string', 'size:26'], 'profile_b' => [$two ? 'required' : 'nullable', 'string', 'size:26', 'different:profile_a'],
-            'language' => ['required', Rule::in(['en', 'hi'])], 'question' => ['nullable', 'string', 'max:2000']]);
-        $jobs->submitDetails($j, $r->user(), array_values(array_filter([$d['profile_a'], $two ? $d['profile_b'] : null])), $d['language'], $d['question'] ?? null);
+            'language' => ['required', Rule::in(['en', 'hi'])], 'question' => ['nullable', 'string', 'max:2000']] + (ReportJobs::printed($j->offering_slug) ? ReportJobs::deliveryRules() : []));
+        $jobs->submitDetails($j, $r->user(), array_values(array_filter([$d['profile_a'], $two ? $d['profile_b'] : null])), $d['language'], $d['question'] ?? null, ReportJobs::delivery($d));
 
         return response()->json(['data' => $this->report(DB::table('report_jobs')->find($j->id))]);
     }

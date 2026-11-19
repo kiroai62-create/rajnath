@@ -6,6 +6,7 @@ use App\Models\Offering;
 use App\Models\ServiceFamily;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 /**
  * Safe, idempotent catalogue seed. Content is based on the owner's own previous website.
@@ -104,6 +105,7 @@ class CatalogueSeeder extends Seeder
             'audience' => ['New parents', 'Families planning a samskara'],
             'disclaimer' => 'Muhurat guidance is traditional. The timing and method of childbirth are medical decisions for your doctors and must never be changed for astrological reasons.',
         ], [['name' => 'Video call — 30 min', 'mode' => 'video', 'duration_min' => 30], ['name' => 'Audio call — 30 min', 'mode' => 'audio', 'duration_min' => 30], ['name' => 'In person (Patna) — 30 min', 'mode' => 'in_person', 'duration_min' => 30]], 5);
+        $this->printedKundli($fam['report']);
         $this->offering($fam['report'], 'palmistry-photo-report', 'active', [
             'image' => 'images/owner/seated-navy-480.jpg', 'title' => 'Palmistry Report from Photos',
             'summary' => 'Send clear photos of both palms and receive a written palmistry report prepared by Acharya Ji\'s team.',
@@ -156,7 +158,7 @@ class CatalogueSeeder extends Seeder
         ];
         foreach ($drafts as $family => $titles) {
             foreach ($titles as $i => $title) {
-                $slug = \Illuminate\Support\Str::slug(str_replace(['–', '/'], ' ', $title));
+                $slug = Str::slug(str_replace(['–', '/'], ' ', $title));
                 $this->offering($fam[$family], $slug, 'draft', [
                     'title' => $title, 'summary' => $title.' — details to be finalised before publication.',
                     'includes' => $includes[$family] ?? null, 'disclaimer' => $disclaimer[$family] ?? null,
@@ -188,6 +190,22 @@ class CatalogueSeeder extends Seeder
         }
     }
 
+    /** Lifetime Kundli, printed and posted (₹5,100). Also added to existing sites by a migration. */
+    public function printedKundli(int $reportFamilyId): void
+    {
+        $this->offering($reportFamilyId, 'printed-lifetime-kundli', 'active', [
+            'image' => 'images/art/kundli.jpg', 'title' => 'Printed Lifetime Kundli',
+            'summary' => 'Your complete life Kundli, prepared by Acharya Ji\'s team, printed in colour as a bound book and posted to your home.',
+            'body' => "A complete Janam Kundli for your whole life: birth chart, Navamsa and other divisional charts, planet positions, Vimshottari dasha for 120 years, yogas and doshas, and remedies.\n\nAfter payment you choose your birth details and the delivery address. Acharya Ji's team prepares and checks the Kundli, prints it in colour on quality paper, binds it and posts it to you. You also get the PDF in your account.",
+            'includes' => ['Lagna, Navamsa and divisional charts', 'Planet positions, nakshatras and houses', 'Vimshottari dasha and antardasha for the whole life', 'Yogas, Manglik, Kaal Sarp and Sade Sati', 'Personality, career, marriage, health and wealth', 'Remedies: mantra, gemstone and daan', 'Printed colour book, posted to your address', 'PDF copy in your account', 'Hindi or English'],
+            'audience' => ['Families keeping a Kundli for a child', 'Anyone who wants a complete life Kundli on paper', 'A gift for parents and newly-weds'],
+            'process' => ['Choose the option and pay online (price plus delivery charge)', 'Choose your birth details and the delivery address', 'Acharya Ji\'s team prepares and checks your Kundli', 'We print it in colour, bind it and post it to you', 'The PDF is also in your account'],
+            'benefits' => ['A complete Kundli for the whole life, kept safely at home', 'Checked by Acharya Ji\'s team, not only by a computer', 'Useful for marriage matching, muhurat and future consultations'],
+            'faqs' => [['How long does delivery take?', 'Usually 10 to 15 working days after we receive your birth details, anywhere in India.'], ['Is there a delivery charge?', 'Yes, a small delivery charge is added at checkout. It is shown before you pay.'], ['Can I get it in Hindi?', 'Yes. Choose Hindi or English when you give your birth details.'], ['What if I do not know my exact birth time?', 'Choose the closest time you know and tell us in the notes; our team will contact you before preparing the Kundli.']],
+            'disclaimer' => 'Astrology is traditional guidance, not a medical, legal or financial assessment. Printing and delivery usually take 10 to 15 working days after the details are received.',
+        ], [['name' => 'Printed book + PDF (posted)', 'mode' => 'report', 'price_minor' => 510000, 'active' => true]], 1, true);
+    }
+
     private function offering(int $familyId, string $slug, string $status, array $t, array $variants, int $sort, bool $featured = false): void
     {
         if (Offering::where('slug', $slug)->exists()) {
@@ -200,6 +218,7 @@ class CatalogueSeeder extends Seeder
         $o->translations()->create([
             'locale' => 'en', 'title' => $t['title'], 'summary' => $t['summary'], 'body' => $t['body'] ?? null,
             'includes' => $t['includes'] ?? null, 'audience' => $t['audience'] ?? null, 'disclaimer' => $t['disclaimer'] ?? null,
+            'process' => $t['process'] ?? null, 'benefits' => $t['benefits'] ?? null, 'faqs' => $t['faqs'] ?? null,
             'meta_description' => $t['summary'],
         ]);
         foreach ($variants as $i => $v) {
@@ -267,7 +286,7 @@ class CatalogueSeeder extends Seeder
                 'audience' => ['Families arranging a marriage', 'Couples planning a love marriage', 'Married couples facing difficulties'], 'disclaimer' => $general],
             ['family' => 'consultation', 'slug' => 'business-astrology', 'image' => 'images/owner/desk-black-480.jpg', 'title' => 'Business Astrology',
                 'summary' => 'Timing and direction for launches, partnerships, investments and expansion.',
-                'body' => "Acharya Ji studies your personal chart together with the muhurta of your business registration or launch to identify supportive periods, risky periods and suitable sectors.",
+                'body' => 'Acharya Ji studies your personal chart together with the muhurta of your business registration or launch to identify supportive periods, risky periods and suitable sectors.',
                 'includes' => ['Business vs. job suitability', 'Suitable business sectors', 'Partner compatibility', 'Muhurta for launch, registration and contracts', 'Strong and weak financial periods ahead', 'Vastu review of office or shop'],
                 'audience' => ['Entrepreneurs and business owners', 'People planning a new venture', 'Partners entering an agreement'], 'disclaimer' => $general],
             ['family' => 'consultation', 'slug' => 'numerology', 'image' => 'images/owner/writing-navy-480.jpg', 'title' => 'Numerology',

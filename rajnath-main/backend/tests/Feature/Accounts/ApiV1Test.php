@@ -131,7 +131,7 @@ class ApiV1Test extends TestCase
     {
         $this->seed(CatalogueSeeder::class);
         $list = $this->getJson('/api/v1/catalogue/offerings')->assertOk()->json('data');
-        $this->assertCount(12, $list, 'online puja is no longer listed');
+        $this->assertCount(13, $list, 'online puja is no longer listed; the printed Kundli is listed');
         $this->assertNotContains('puja-rituals', array_column($list, 'slug'));
         $this->assertNotContains('premium-personalized-kundli', array_column($list, 'slug'));
         $this->getJson('/api/v1/catalogue/offerings/premium-personalized-kundli')->assertNotFound()->assertJsonPath('error.code', 'not_found');

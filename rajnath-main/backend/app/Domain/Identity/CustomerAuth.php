@@ -89,6 +89,7 @@ class CustomerAuth
                 }
                 $user = new User(['name' => $name ? mb_substr(trim($name), 0, 120) : 'Customer']);
                 $user->kind = User::KIND_CUSTOMER;
+                $user->signup_channel = request()->is('api/*') ? 'app' : 'web';
                 $c['channel'] === 'email' ? $user->email = $c['destination'] : $user->phone_e164 = $c['destination'];
                 $user->terms_accepted_at = now();
                 $user->save();

@@ -2,7 +2,7 @@
     $labels = [
         'joined' => 'Joined', 'rejoined' => 'Rejoined by itself after a drop', 'reconnecting' => 'Connection weak, reconnecting', 'reconnected' => 'Reconnected',
         'dropped' => 'Connection dropped', 'left' => 'Left the call', 'ended' => 'Call ended', 'camera_error' => 'Camera did not start',
-        'mic_error' => 'Microphone did not start', 'failed' => 'Could not connect', 'background' => 'App went to the background', 'foreground' => 'App back on screen',
+        'mic_error' => 'Microphone did not start', 'failed' => 'Could not connect', 'background' => 'App went to the background', 'foreground' => 'App back on screen', 'ringing' => 'Customer called (phone rang, email sent)',
     ];
     $bad = ['dropped', 'camera_error', 'mic_error', 'failed'];
 @endphp

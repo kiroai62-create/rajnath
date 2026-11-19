@@ -11,6 +11,7 @@ import '../widgets/common.dart';
 import 'assistant_screen.dart';
 import 'activity_screens.dart';
 import 'services_screens.dart';
+import 'consult_cta.dart';
 
 String _s(Object? v) => v == null ? '' : '$v'.trim();
 
@@ -269,6 +270,7 @@ class ArticleScreen extends StatelessWidget {
                     ),
                 ],
                 AskAiCard(state: state, page: 'article:$slug', question: 'Explain this article in simple words.', suggestions: const ['What remedy does it suggest?', 'Does this apply to me?']),
+                ConsultCta(state: state, text: 'Does this apply to you? Ask Acharya Ji.'),
                 if (web.isNotEmpty) ...[
                   const SizedBox(height: 20),
                   FilledButton.icon(onPressed: () => openExternal(context, web), icon: const Icon(Icons.open_in_new), label: Text(tr('Read on the website'))),

@@ -14,6 +14,8 @@ import 'content_screens.dart';
 import 'review_screens.dart';
 import 'showcase_screens.dart';
 import 'support_screens.dart';
+import 'consult_cta.dart';
+import 'permissions_screen.dart';
 
 /// URL slugs for GET /rashi/{sign}, by sign index (first word of the sign name, lower case).
 final rashiSlugs = [for (final n in signNames) n.split(' ').first.toLowerCase()];
@@ -105,10 +107,9 @@ class _MoreScreenState extends State<MoreScreen> {
         _tile(context, Icons.help_outline, 'FAQ', page: () => FaqScreen(state: state)),
         _tile(context, Icons.support_agent_outlined, 'Help & support', subtitle: 'Your support requests', page: () => SupportGate(state: state)),
         _tile(context, Icons.call_outlined, 'Contact us', page: () => ContactScreen(state: state)),
-        if (state.multilingual) ...[
-          const SectionTitle('Settings'),
-          _tile(context, Icons.translate, 'Language', subtitle: AppState.localeNames[state.locale ?? 'en'], page: () => LanguageScreen(state: state)),
-        ],
+        const SectionTitle('Settings'),
+        if (state.multilingual) _tile(context, Icons.translate, 'Language', subtitle: AppState.localeNames[state.locale ?? 'en'], page: () => LanguageScreen(state: state)),
+        _tile(context, Icons.verified_user_outlined, 'Permissions', subtitle: 'Notifications, camera, microphone', page: () => const PermissionsScreen()),
         const SectionTitle('Legal'),
         if (_legal case final legal?)
           for (final l in legal) _tile(context, _legalIcon(l['kind']), '${l['title']}', url: '${l['url']}')
@@ -299,6 +300,7 @@ class RashiDetailScreen extends StatelessWidget {
                       ),
                     ),
                 ],
+                ConsultCta(state: state, text: 'Want a personal reading for your sign?'),
                 if (transits.isNotEmpty) ...[
                   const SectionTitle('Transits from this Moon sign'),
                   for (final t in transits)

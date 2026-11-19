@@ -46,13 +46,45 @@ class Checkout
             'price_minor' => $variant->price_minor, 'currency' => 'INR', 'terms_version' => LegalDocuments::consentVersion(),
             'disclaimer' => $o->t('en')?->disclaimer,
         ] + $extra;
+        $amount = (int) $variant->price_minor;
+        if (ReportJobs::printed($o->slug) && ($fee = ReportJobs::deliveryFee()) > 0) {
+            // Printed and posted: the delivery charge is part of the order total and shown on the checkout.
+            $snapshot['delivery_minor'] = $fee;
+            $amount += $fee;
+        }
 
-        return $this->start($user, 'service', $variant->price_minor, $snapshot, $useWallet, $idempotencyKey, $couponCode);
+        return $this->start($user, 'service', $amount, $snapshot, $useWallet, $idempotencyKey, $couponCode);
     }
 
     public function startProductOrder(User $user, array $snapshot, string $idempotencyKey, ?string $couponCode = null): array
     {
         return $this->start($user, 'product', (int) $snapshot['price_minor'], $snapshot, false, $idempotencyKey, $couponCode);
+    }
+
+    /** Smallest and largest wallet top-up the customer may type in (paise). */
+    public const RECHARGE_MIN = 10000;
+
+    public const RECHARGE_MAX = 10000000;
+
+    /**
+     * A wallet top-up: an active package by id, or an amount the customer typed in rupees (no bonus).
+     *
+     * @throws ValidationException when neither is valid
+     */
+    public static function rechargeChoice(mixed $packageId, mixed $rupees): object
+    {
+        if ($packageId !== null && $packageId !== '') {
+            $pkg = DB::table('recharge_packages')->where('id', (int) $packageId)->where('active', true)->first();
+            if ($pkg) {
+                return $pkg;
+            }
+        }
+        $minor = is_numeric($rupees) ? (int) round(((float) $rupees) * 100) : 0;
+        if ($minor < self::RECHARGE_MIN || $minor > self::RECHARGE_MAX) {
+            throw ValidationException::withMessages(['amount' => 'Choose an amount, or enter between ₹'.(self::RECHARGE_MIN / 100).' and ₹'.number_format(self::RECHARGE_MAX / 100).'.']);
+        }
+
+        return (object) ['id' => null, 'amount_minor' => $minor, 'bonus_minor' => 0];
     }
 
     public function startRecharge(User $user, object $package, string $idempotencyKey): array

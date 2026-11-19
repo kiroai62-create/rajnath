@@ -17,7 +17,9 @@ if (keystorePropertiesFile.exists()) {
 
 android {
     namespace = "com.astrorajnathjha.app"
-    compileSdk = flutter.compileSdkVersion
+    // permission_handler_android 13.x needs compile SDK 37 (compile-time only;
+    // targetSdk/minSdk below are unchanged).
+    compileSdk = maxOf(flutter.compileSdkVersion, 37)
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
