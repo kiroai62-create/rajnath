@@ -55,6 +55,18 @@ class WebsiteAndCatalogueTest extends TestCase
         $this->get('/services?q=zzzz')->assertSee('No services match');
     }
 
+    public function test_an_empty_filter_shows_what_the_search_finds_elsewhere_and_how_lists_only_offered_ways(): void
+    {
+        $r = $this->get('/services?q=vastu&family=consultations&mode=onsite')->assertOk()->assertSee('0 services found')->assertSee('Found in any category');
+        $this->assertSame(['vastu-consultation'], collect($r->viewData('relaxed')['offerings'])->pluck('slug')->all());
+        $this->assertSame('', $r->viewData('relaxed')['family']);
+
+        $this->assertNull($this->get('/services?q=zzzz&family=consultations')->viewData('relaxed'));
+        $modes = $this->get('/services')->viewData('modes');
+        $this->assertArrayHasKey('onsite', $modes);
+        $this->assertArrayNotHasKey('puja', $modes);   // pujas are booked through the request form
+    }
+
     public function test_enquiry_submission_and_admin_follow_up(): void
     {
         $this->post('/enquiries', ['offering' => 'vastu-consultation', 'name' => 'Ramesh', 'phone' => '91234 56789', 'language' => 'Hindi', 'message' => 'Flat in Patna', 'consent' => '1'])

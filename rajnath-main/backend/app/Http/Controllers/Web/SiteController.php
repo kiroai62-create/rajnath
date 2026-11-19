@@ -14,6 +14,7 @@ use App\Models\Offering;
 use App\Models\OfferingVariant;
 use App\Models\ServiceFamily;
 use App\Support\Audit\AuditLogger;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -43,7 +44,31 @@ class SiteController extends Controller
             return redirect()->route('puja-request.create', status: 301);
         }
         $mode = (string) $request->query('mode', '');
-        $offerings = Offering::public()->with(['translations', 'variants', 'family'])
+        $offerings = $this->findServices($q, $family, $mode);
+
+        // Nothing in the chosen category or way: show what the same search finds without that filter
+        // (e.g. "vastu" + Consultations + On-site visit finds the Vastu visit in the Vastu category).
+        $relaxed = null;
+        if ($offerings->isEmpty() && ($family !== '' || $mode !== '')) {
+            foreach ([['', $mode], [$family, ''], ['', '']] as [$f, $m]) {
+                if (($f !== $family || $m !== $mode) && ($found = $this->findServices($q, $f, $m))->isNotEmpty()) {
+                    $relaxed = ['offerings' => $found, 'family' => $f, 'mode' => $m];
+                    break;
+                }
+            }
+        }
+
+        return view('public.services.index', [
+            'offerings' => $offerings, 'q' => $q, 'family' => $family, 'mode' => $mode, 'relaxed' => $relaxed,
+            'families' => ServiceFamily::whereHas('offerings', fn ($w) => $w->public())->orderBy('sort')->get(),
+            'modes' => self::serviceModes(),
+        ]);
+    }
+
+    /** @return Collection<int, Offering> */
+    private function findServices(string $q, string $family, string $mode): Collection
+    {
+        return Offering::public()->with(['translations', 'variants', 'family'])
             ->when($family !== '', fn ($w) => $w->whereHas('family', fn ($f) => $f->where('slug', $family)))
             ->when($mode !== '', fn ($w) => $w->whereHas('variants', fn ($v) => $v->where('mode', $mode)->where('active', true)))
             ->when($q !== '', function ($w) use ($q) {
@@ -51,11 +76,19 @@ class SiteController extends Controller
                 $w->whereHas('translations', fn ($t) => $t->where('title', 'like', $like)->orWhere('summary', 'like', $like)->orWhere('body', 'like', $like));
             })
             ->orderBy('sort')->get();
+    }
 
-        return view('public.services.index', [
-            'offerings' => $offerings, 'q' => $q, 'family' => $family, 'mode' => $mode,
-            'families' => ServiceFamily::whereHas('offerings', fn ($w) => $w->public())->orderBy('sort')->get(),
-        ]);
+    /**
+     * The "How" choices: only ways that at least one public service offers, so no choice always gives 0 results.
+     *
+     * @return array<string, string>
+     */
+    private static function serviceModes(): array
+    {
+        $labels = ['in_person' => 'In person', 'video' => 'Video call', 'audio' => 'Audio call', 'chat' => 'Chat', 'onsite' => 'On-site visit', 'written' => 'Written answer', 'report' => 'Report'];
+        $available = OfferingVariant::where('active', true)->whereHas('offering', fn ($o) => $o->public())->distinct()->pluck('mode')->all();
+
+        return collect($labels)->only($available)->map(fn ($label) => __($label))->all();
     }
 
     public function service(string $slug): View|RedirectResponse

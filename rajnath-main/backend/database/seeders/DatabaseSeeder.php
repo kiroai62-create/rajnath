@@ -29,5 +29,6 @@ class DatabaseSeeder extends Seeder
         $this->call(GoogleReviewsSeeder::class);
         $this->call(GalleryImportSeeder::class);
         $this->call(GallerySyncSeeder::class);
+        $this->call(BiodataUpdateSeeder::class);
     }
 }
